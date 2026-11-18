@@ -54,7 +54,7 @@ jobs:
           body: |
             Debug build v${{ steps.version.outputs.version }} auto-generated from commit.
           files: app/build/outputs/apk/debug/*.apk
-          prerelease: true
+          prerelease: false
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -2,8 +2,8 @@
   "appUpdate": {
     "versionCode": 1,
     "versionName": "0.0.1-beta",
-    "changelog": "Initial beta release.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/latest"
+    "changelog": "Initial beta release of WallNice.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases"
   },
   "categories": [
     "All",
