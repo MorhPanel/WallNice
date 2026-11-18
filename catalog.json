@@ -1,8 +1,8 @@
 {
   "appUpdate": {
-    "versionCode": 11,
-    "versionName": "0.0.11-beta",
-    "changelog": "Fixes trusted update downloads from the canonical latest release URL.",
+    "versionCode": 12,
+    "versionName": "0.0.12-beta",
+    "changelog": "Fixes update dialog spacing and trusted latest-release downloads.",
     "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/latest/download/app-release.apk"
   },
   "categories": [

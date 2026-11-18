@@ -116,29 +116,33 @@ fun AppUpdateDialog(
                 ) { currentState ->
                     when (currentState) {
                     UpdateInstallState.Idle -> {
-                        Row(
+                        Column(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.sm)
+                            verticalArrangement = Arrangement.spacedBy(WallNiceSpacing.md)
                         ) {
-                            VersionTile(
-                                label = "Installed",
-                                version = BuildConfig.VERSION_NAME,
-                                modifier = Modifier.weight(1f)
-                            )
-                            VersionTile(
-                                label = "Available",
-                                version = updateInfo.versionName,
-                                modifier = Modifier.weight(1f),
-                                accent = true
-                            )
-                        }
-                        if (updateInfo.changelog.isNotBlank()) {
-                            Spacer(Modifier.height(WallNiceSpacing.md))
-                            Text(
-                                text = updateInfo.changelog,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = TextSecondary
-                            )
+                            if (updateInfo.changelog.isNotBlank()) {
+                                Text(
+                                    text = updateInfo.changelog,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = TextSecondary
+                                )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.sm)
+                            ) {
+                                VersionTile(
+                                    label = "Installed",
+                                    version = BuildConfig.VERSION_NAME,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                VersionTile(
+                                    label = "Available",
+                                    version = updateInfo.versionName,
+                                    modifier = Modifier.weight(1f),
+                                    accent = true
+                                )
+                            }
                         }
                     }
 

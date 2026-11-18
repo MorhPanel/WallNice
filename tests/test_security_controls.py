@@ -45,6 +45,8 @@ class SecurityControlTests(unittest.TestCase):
         self.assertNotIn("ACTION_INSTALL_PACKAGE", updater)
         self.assertNotIn("application/vnd.android.package-archive", updater)
         self.assertNotIn("context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(updateInfo.downloadUrl))", dialog)
+        self.assertIn("Column(\n                            modifier = Modifier.fillMaxWidth(),\n                            verticalArrangement = Arrangement.spacedBy(WallNiceSpacing.md)", dialog)
+        self.assertIn("if (updateInfo.changelog.isNotBlank())", dialog)
 
     def test_release_signing_stays_fail_closed(self):
         gradle = (ROOT / "android/app/build.gradle.kts").read_text()
@@ -67,10 +69,10 @@ class SecurityControlTests(unittest.TestCase):
     def test_release_metadata_is_synchronized(self):
         gradle = (ROOT / "android/app/build.gradle.kts").read_text()
         catalog = json.loads((ROOT / "catalog.json").read_text())
-        self.assertIn("versionCode = 11", gradle)
-        self.assertIn('versionName = "0.0.11-beta"', gradle)
-        self.assertEqual(catalog["appUpdate"]["versionCode"], 11)
-        self.assertEqual(catalog["appUpdate"]["versionName"], "0.0.11-beta")
+        self.assertIn("versionCode = 12", gradle)
+        self.assertIn('versionName = "0.0.12-beta"', gradle)
+        self.assertEqual(catalog["appUpdate"]["versionCode"], 12)
+        self.assertEqual(catalog["appUpdate"]["versionName"], "0.0.12-beta")
 
     def test_settings_is_header_action_with_back_navigation_and_shared_motion(self):
         home = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/screens/HomeScreen.kt").read_text()
