@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
@@ -41,6 +42,10 @@ class MainActivity : ComponentActivity() {
                 ) {
                     var selectedWallpaper by remember { mutableStateOf<WallpaperItem?>(null) }
                     var pendingUpdate by remember { mutableStateOf<AppUpdateInfo?>(null) }
+
+                    BackHandler(enabled = selectedWallpaper != null) {
+                        selectedWallpaper = null
+                    }
 
                     AnimatedContent(
                         targetState = selectedWallpaper,

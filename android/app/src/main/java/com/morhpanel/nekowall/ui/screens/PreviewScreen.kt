@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -59,6 +60,7 @@ fun PreviewScreen(
     wallpaper: WallpaperItem,
     onBack: () -> Unit
 ) {
+    BackHandler(onBack = onBack)
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var overlayMode by remember { mutableStateOf(PreviewOverlayMode.CLEAN) }

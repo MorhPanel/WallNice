@@ -24,9 +24,13 @@ object WallpaperRepository {
             var wallpapersList = mutableListOf<WallpaperItem>()
 
             try {
-                val catalogConn = URL(remoteCatalogUrl).openConnection() as HttpURLConnection
+                val separator = if (remoteCatalogUrl.contains("?")) "&" else "?"
+                val catalogConn = URL("$remoteCatalogUrl${separator}cacheBust=${System.currentTimeMillis()}").openConnection() as HttpURLConnection
                 catalogConn.connectTimeout = 8000
                 catalogConn.readTimeout = 8000
+                catalogConn.useCaches = false
+                catalogConn.setRequestProperty("Cache-Control", "no-cache, no-store")
+                catalogConn.setRequestProperty("Pragma", "no-cache")
                 if (catalogConn.responseCode == HttpURLConnection.HTTP_OK) {
                     val rawJson = catalogConn.inputStream.bufferedReader().use { it.readText() }
                     val root = JSONObject(rawJson)

@@ -79,11 +79,7 @@ fun WallpaperCard(
                 MediaType.GIF -> {
                     Badge(text = "GIF", icon = Icons.Default.Gif, color = NeonCyan)
                 }
-                MediaType.IMAGE -> {
-                    if (wallpaper.isAmoled) {
-                        Badge(text = "AMOLED", color = NeonGreen)
-                    }
-                }
+                MediaType.IMAGE -> {}
             }
         }
 
