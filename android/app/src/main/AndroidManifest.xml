@@ -7,9 +7,9 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@drawable/ic_wallpaper_thumb"
+        android:icon="@drawable/ic_launcher_wallnice"
         android:label="@string/app_name"
-        android:roundIcon="@drawable/ic_wallpaper_thumb"
+        android:roundIcon="@drawable/ic_launcher_wallnice"
         android:supportsRtl="true"
         android:theme="@style/Theme.NekoWall">
 

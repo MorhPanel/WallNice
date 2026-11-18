@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 320" width="100%" height="100%">
+  <defs>
+    <linearGradient id="wm-nice-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#05D9E8"/>
+      <stop offset="60%" stop-color="#FF2A6D"/>
+      <stop offset="100%" stop-color="#FF5E97"/>
+    </linearGradient>
+    <filter id="wm-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="320" rx="32" fill="#090A10"/>
+  <!-- Icon Symbol on the left -->
+  <g transform="translate(60, 40) scale(0.46875)">
+    <!-- Scale 512 down to 240 -->
+    
+    
+  <defs>
+    <radialGradient id="c4-pulse-ambient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FF2A6D" stop-opacity="0.3"/>
+      <stop offset="60%" stop-color="#05D9E8" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#090A10" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="c4-motion-wave" x1="0%" y1="30%" x2="100%" y2="70%">
+      <stop offset="0%" stop-color="#5DF6FF"/>
+      <stop offset="25%" stop-color="#05D9E8"/>
+      <stop offset="65%" stop-color="#7928CA"/>
+      <stop offset="100%" stop-color="#FF2A6D"/>
+    </linearGradient>
+    <linearGradient id="c4-inner-line" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#05D9E8"/>
+      <stop offset="100%" stop-color="#FF2A6D"/>
+    </linearGradient>
+    <filter id="c4-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+  
+  <g filter="url(#c4-glow)" id="icon-glyph">
+    <!-- Screen Squircle Frame Outline (Abstract device display boundary) -->
+    <rect x="106" y="106" width="300" height="300" rx="64" 
+          fill="none" 
+          stroke="rgba(255, 255, 255, 0.08)" 
+          stroke-width="5"/>
+    
+    <!-- Primary Kinetic Motion "W" Wave (Bold, Ultra-Readable at 48x48) -->
+    <path d="M 148 190 
+             C 165 240, 185 320, 206 332
+             C 220 340, 235 315, 256 245
+             C 277 315, 292 340, 306 332
+             C 327 320, 347 240, 364 190" 
+          fill="none" 
+          stroke="url(#c4-motion-wave)" 
+          stroke-width="32" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+
+    <!-- Subtle Live Pulse Wave (Echo line indicating GIF / Live dynamics) -->
+    <path d="M 180 185 
+             C 192 220, 204 270, 214 278
+             C 224 286, 238 260, 256 205
+             C 274 260, 288 286, 298 278
+             C 308 270, 320 220, 332 185" 
+          fill="none" 
+          stroke="url(#c4-inner-line)" 
+          stroke-width="8" 
+          stroke-linecap="round" 
+          opacity="0.65"/>
+
+    <!-- Glowing Apex Sparkles (Live wallpaper interaction touchpoints) -->
+    
+    <circle cx="256" cy="205" r="7" fill="#5DF6FF"/>
+    <circle cx="148" cy="190" r="5" fill="#05D9E8"/>
+    <circle cx="364" cy="190" r="5" fill="#FF2A6D"/>
+    
+  </g>
+
+  </g>
+
+  <!-- Divider line -->
+  <line x1="330" y1="80" x2="330" y2="240" stroke="rgba(255, 255, 255, 0.12)" stroke-width="2" />
+
+  <!-- Typography: WallNice -->
+  <g transform="translate(370, 185)">
+    <text font-family="system-ui, -apple-system, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif" 
+          font-weight="900" 
+          font-size="92" 
+          letter-spacing="-1">
+      <tspan fill="#F1F1F6">Wall</tspan><tspan fill="url(#wm-nice-grad)">Nice</tspan>
+    </text>
+
+    <!-- Tagline / Descriptor -->
+    <text y="42" 
+          font-family="system-ui, -apple-system, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif" 
+          font-weight="600" 
+          font-size="16" 
+          letter-spacing="6" 
+          fill="#9092A5">
+      4K • LIVE • GIF • WALLPAPERS
+    </text>
+
+    <!-- Glowing Accent Dot over "i" -->
+    <circle cx="282" cy="-68" r="7" fill="#FF2A6D" filter="url(#wm-glow)"/>
+  </g>
+</svg>
