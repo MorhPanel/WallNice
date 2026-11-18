@@ -4,13 +4,30 @@ Ultra-fast, cross-platform live wallpaper engine and media hub. Zero lag, zero b
 
 ---
 
+## Repository Structure
+
+```
+WallNice/
+├── android/                 # Android client (Kotlin, Compose, Media3)
+├── windows/                 # Windows client (Win32, DirectX 11, DWM overlay)
+├── linux/                   # Linux client (Wayland, swww daemon)
+├── DLS/                     # Shared cross-platform media pool
+│   ├── img/                 # Static images by category/title
+│   ├── video/               # Live video wallpapers
+│   └── gif/                 # Looping animations
+├── .github/                 # Workflows & CI automation
+└── catalog.json             # Dynamic catalog manifest
+```
+
+---
+
 ## Platform Support
 
-| Platform | Runtime | Status |
-|---|---|---|
-| **Android** | `WallpaperService` + Media3 (ExoPlayer) | 🟡 In Progress |
-| **Windows** | DirectX 11 / DWM overlay + Win32 API | 🔜 Coming Soon |
-| **Linux (Fedora / GNOME)** | `org.freedesktop.portal.Wallpaper` / `swww` daemon (Wayland) | 🔜 Coming Soon |
+| Platform | Directory | Runtime | Status |
+|---|---|---|---|
+| **Android** | `./android` | `WallpaperService` + Media3 | 🟢 Working Beta |
+| **Windows** | `./windows` | DirectX 11 / DWM overlay + Win32 API | 🔜 Coming Soon |
+| **Linux (Fedora / GNOME)** | `./linux` | `swww` daemon (Wayland) | 🔜 Coming Soon |
 
 ---
 
@@ -46,17 +63,17 @@ DLS/
 
 | # | Task | Platform | Priority | Status |
 |---|---|---|---|---|
-| 1 | Live video wallpaper engine | Android | 🔴 High | 🟡 In Progress |
-| 2 | GitHub catalog auto-sync | Android | 🔴 High | 🟡 In Progress |
-| 3 | Auto-update dialog | Android | 🔴 High | 🟡 In Progress |
-| 4 | Category filter + search | Android | 🟡 Medium | 🔜 Planned |
+| 1 | Live video wallpaper engine | Android | 🔴 High | 🟢 Completed |
+| 2 | GitHub catalog auto-sync | Android | 🔴 High | 🟢 Completed |
+| 3 | Auto-update dialog | Android | 🔴 High | 🟢 Completed |
+| 4 | Category filter + search | Android | 🟡 Medium | 🟡 In Progress |
 | 5 | Favorites / local collection | Android | 🟡 Medium | 🔜 Planned |
 | 6 | Custom thumbnail for video preview | Android | 🟡 Medium | 🔜 Planned |
 | 7 | Win32 DWM live wallpaper layer | Windows | 🔴 High | ⬜ Not Started |
 | 8 | DirectX 11 video renderer | Windows | 🔴 High | ⬜ Not Started |
 | 9 | Windows system tray app + hotkeys | Windows | 🟡 Medium | ⬜ Not Started |
 | 10 | Wayland `swww` daemon integration | Linux | 🔴 High | ⬜ Not Started |
-| 11 | GNOME `org.freedesktop.portal.Wallpaper` static support | Linux | 🟡 Medium | ⬜ Not Started |
+| 11 | GNOME static portal support | Linux | 🟡 Medium | ⬜ Not Started |
 | 12 | KDE Plasma wallpaper plugin | Linux | 🟢 Low | ⬜ Not Started |
 | 13 | Unified cross-platform catalog CLI | All | 🟡 Medium | ⬜ Not Started |
 
@@ -66,10 +83,11 @@ DLS/
 
 **Android:**
 ```bash
+cd android
 ./gradlew assembleDebug
 ```
 
-**CI:** Every push to `main` triggers an automated APK build via GitHub Actions.
+**CI:** Every push to `android/**` triggers automated APK builds via GitHub Actions.
 Releases → [github.com/MorhPanel/WallNice/releases](https://github.com/MorhPanel/WallNice/releases)
 
 ---
