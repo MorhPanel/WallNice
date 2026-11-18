@@ -3,6 +3,7 @@ package com.morhpanel.nekowall.data.repository
 import com.morhpanel.nekowall.data.models.AppUpdateInfo
 import com.morhpanel.nekowall.data.models.CatalogResponse
 import com.morhpanel.nekowall.data.models.MediaType
+import com.morhpanel.nekowall.data.models.MediaTypeResolver
 import com.morhpanel.nekowall.data.models.WallpaperItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -62,12 +63,11 @@ object WallpaperRepository {
                         val itemsArray = root.getJSONArray("wallpapers")
                         for (i in 0 until itemsArray.length()) {
                             val item = itemsArray.getJSONObject(i)
-                            val mediaTypeStr = item.optString("mediaType", "IMAGE")
-                            val type = when (mediaTypeStr.uppercase()) {
-                                "VIDEO" -> MediaType.VIDEO
-                                "GIF" -> MediaType.GIF
-                                else -> MediaType.IMAGE
-                            }
+                            val url = item.getString("url")
+                            val type = MediaTypeResolver.fromCatalog(
+                                value = item.optString("mediaType", ""),
+                                url = url
+                            )
 
                             wallpapersList.add(
                                 WallpaperItem(
@@ -76,8 +76,8 @@ object WallpaperRepository {
                                     author = item.optString("author", "morhpanel"),
                                     category = item.optString("category", "All"),
                                     mediaType = type,
-                                    url = item.getString("url"),
-                                    thumbnailUrl = item.optString("thumbnailUrl", item.getString("url")),
+                                    url = url,
+                                    thumbnailUrl = item.optString("thumbnailUrl", url),
                                     resolution = item.optString("resolution", "Original"),
                                     isAmoled = item.optBoolean("isAmoled", false),
                                     likesCount = item.optInt("likesCount", 0)
@@ -162,14 +162,14 @@ object WallpaperRepository {
                 val segments = path.split("/")
                 val subFolder = if (segments.size > 1) segments[1].lowercase() else ""
                 var category = "All"
+                val detectedMediaType = MediaTypeResolver.fromUrl("https://wallnice.invalid/$fileName")
 
-                val ext = fileName.substringAfterLast(".", "").lowercase()
                 val mediaType = when {
-                    ext in listOf("mp4", "webm", "mkv") || subFolder == "video" -> {
+                    detectedMediaType == MediaType.VIDEO || subFolder == "video" -> {
                         category = "Live Video"
                         MediaType.VIDEO
                     }
-                    ext in listOf("gif") || subFolder == "gif" -> {
+                    detectedMediaType == MediaType.GIF || subFolder == "gif" -> {
                         category = "GIF Loops"
                         MediaType.GIF
                     }

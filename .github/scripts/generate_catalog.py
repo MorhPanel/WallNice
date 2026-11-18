@@ -13,9 +13,9 @@ CATALOG_PATH = "catalog.json"
 DLS_DIR = "DLS"
 
 existing_update = {
-    "versionCode": 9,
-    "versionName": "0.0.9-beta",
-    "changelog": "Smoother navigation, refreshed Settings, and system-managed update downloads.",
+    "versionCode": 10,
+    "versionName": "0.0.10-beta",
+    "changelog": "Clearer media filters, fullscreen previews, and media-type badges.",
     "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/latest/download/app-release.apk"
 }
 
@@ -31,8 +31,8 @@ if os.path.exists(CATALOG_PATH):
 categories = set(["All"])
 wallpapers = []
 
-valid_img = {".jpg", ".jpeg", ".png", ".webp"}
-valid_vid = {".mp4", ".webm", ".mkv"}
+valid_img = {".jpg", ".jpeg", ".png", ".webp", ".avif"}
+valid_vid = {".mp4", ".webm", ".mkv", ".m4v", ".mov"}
 valid_gif = {".gif"}
 
 for root, _, files in os.walk(DLS_DIR):

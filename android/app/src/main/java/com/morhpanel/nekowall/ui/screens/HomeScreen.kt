@@ -59,8 +59,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.morhpanel.nekowall.data.models.AppUpdateInfo
+import com.morhpanel.nekowall.data.models.MediaFilter
 import com.morhpanel.nekowall.data.models.MediaType
 import com.morhpanel.nekowall.data.models.WallpaperItem
+import com.morhpanel.nekowall.data.models.matches
 import com.morhpanel.nekowall.data.repository.WallpaperRepository
 import com.morhpanel.nekowall.ui.components.BrandMark
 import com.morhpanel.nekowall.ui.components.CategoryPill
@@ -96,6 +98,7 @@ fun HomeScreen(
     val coroutineScope = rememberCoroutineScope()
     var showSettings by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf("All") }
+    var selectedMediaFilter by remember { mutableStateOf(MediaFilter.ALL) }
     var searchQuery by remember { mutableStateOf("") }
     var categories by remember { mutableStateOf(listOf("All")) }
     var wallpapers by remember { mutableStateOf<List<WallpaperItem>>(emptyList()) }
@@ -126,7 +129,7 @@ fun HomeScreen(
         loadData()
     }
 
-    val filteredList = remember(selectedCategory, searchQuery, wallpapers) {
+    val filteredList = remember(selectedCategory, selectedMediaFilter, searchQuery, wallpapers) {
         val query = searchQuery.trim()
         wallpapers.filter { item ->
             val decodedUrl = Uri.decode(item.url)
@@ -146,7 +149,7 @@ fun HomeScreen(
                 item.author.contains(query, ignoreCase = true) ||
                 item.category.contains(query, ignoreCase = true) ||
                 decodedUrl.contains(query, ignoreCase = true)
-            categoryMatches && searchMatches
+            selectedMediaFilter.matches(item) && categoryMatches && searchMatches
         }
     }
 
@@ -172,6 +175,8 @@ fun HomeScreen(
                     categories = categories,
                     selectedCategory = selectedCategory,
                     onCategorySelected = { selectedCategory = it },
+                    selectedMediaFilter = selectedMediaFilter,
+                    onMediaFilterSelected = { selectedMediaFilter = it },
                     onRefresh = { loadData() },
                     onOpenSettings = { showSettings = true }
                 )
@@ -292,6 +297,7 @@ fun HomeScreen(
                                     onAction = {
                                         searchQuery = ""
                                         selectedCategory = "All"
+                                        selectedMediaFilter = MediaFilter.ALL
                                     }
                                 )
                             }
@@ -332,6 +338,8 @@ private fun CatalogHeader(
     categories: List<String>,
     selectedCategory: String,
     onCategorySelected: (String) -> Unit,
+    selectedMediaFilter: MediaFilter,
+    onMediaFilterSelected: (MediaFilter) -> Unit,
     onRefresh: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
@@ -452,5 +460,31 @@ private fun CatalogHeader(
                 )
             }
         }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = WallNiceSpacing.md),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Media",
+                style = MaterialTheme.typography.labelSmall,
+                color = TextSecondary
+            )
+            Spacer(Modifier.width(WallNiceSpacing.sm))
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.xs)
+            ) {
+                items(MediaFilter.entries, key = { it.name }) { filter ->
+                    CategoryPill(
+                        text = filter.label,
+                        selected = selectedMediaFilter == filter,
+                        onClick = { onMediaFilterSelected(filter) }
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(WallNiceSpacing.xs))
     }
 }

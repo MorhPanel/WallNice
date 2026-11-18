@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Gif
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -37,6 +38,7 @@ import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
 import coil.request.ImageRequest
 import com.morhpanel.nekowall.data.models.MediaType
+import com.morhpanel.nekowall.data.models.MediaTypeResolver
 import com.morhpanel.nekowall.data.models.WallpaperItem
 import com.morhpanel.nekowall.ui.theme.NeonCyan
 import com.morhpanel.nekowall.ui.theme.NeonPink
@@ -151,14 +153,17 @@ private fun MediaBadge(
     val label: String
     val icon = when (mediaType) {
         MediaType.VIDEO -> {
-            label = "LIVE"
+            label = MediaTypeResolver.label(mediaType)
             Icons.Default.PlayArrow
         }
         MediaType.GIF -> {
-            label = "GIF"
+            label = MediaTypeResolver.label(mediaType)
             Icons.Default.Gif
         }
-        MediaType.IMAGE -> return
+        MediaType.IMAGE -> {
+            label = MediaTypeResolver.label(mediaType)
+            Icons.Default.Photo
+        }
     }
     val color = if (mediaType == MediaType.VIDEO) NeonPink else NeonCyan
 

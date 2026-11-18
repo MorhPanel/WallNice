@@ -12,8 +12,8 @@ android {
         applicationId = "com.morhpanel.nekowall"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "0.0.9-beta"
+        versionCode = 10
+        versionName = "0.0.10-beta"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

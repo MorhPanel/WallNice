@@ -66,10 +66,10 @@ class SecurityControlTests(unittest.TestCase):
     def test_release_metadata_is_synchronized(self):
         gradle = (ROOT / "android/app/build.gradle.kts").read_text()
         catalog = json.loads((ROOT / "catalog.json").read_text())
-        self.assertIn("versionCode = 9", gradle)
-        self.assertIn('versionName = "0.0.9-beta"', gradle)
-        self.assertEqual(catalog["appUpdate"]["versionCode"], 9)
-        self.assertEqual(catalog["appUpdate"]["versionName"], "0.0.9-beta")
+        self.assertIn("versionCode = 10", gradle)
+        self.assertIn('versionName = "0.0.10-beta"', gradle)
+        self.assertEqual(catalog["appUpdate"]["versionCode"], 10)
+        self.assertEqual(catalog["appUpdate"]["versionName"], "0.0.10-beta")
 
     def test_settings_is_header_action_with_back_navigation_and_shared_motion(self):
         home = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/screens/HomeScreen.kt").read_text()
@@ -93,6 +93,40 @@ class SecurityControlTests(unittest.TestCase):
         self.assertIn("WallNiceMotion", home)
         self.assertIn("WallNiceMotion", motion)
         self.assertIn("standardDurationMillis = 240", motion)
+
+    def test_media_types_filters_badges_and_fullscreen_preview_are_present(self):
+        resolver = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/data/models/MediaTypeResolver.kt").read_text()
+        filters = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/data/models/MediaFilter.kt").read_text()
+        repository = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/data/repository/WallpaperRepository.kt").read_text()
+        home = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/screens/HomeScreen.kt").read_text()
+        card = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/components/WallpaperCard.kt").read_text()
+        preview = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/screens/PreviewScreen.kt").read_text()
+
+        for extension in ("jpg", "jpeg", "png", "webp", "avif"):
+            self.assertIn(extension, resolver)
+        for extension in ("mp4", "webm", "mkv", "m4v", "mov"):
+            self.assertIn(extension, resolver)
+        self.assertIn('extension == "gif"', resolver)
+        self.assertIn("fromCatalog", repository)
+        self.assertIn("fromUrl", repository)
+        self.assertIn('"Photos"', filters)
+        self.assertIn('"Videos"', filters)
+        self.assertIn('"GIFs"', filters)
+        self.assertIn("selectedMediaFilter", home)
+        self.assertIn("MediaFilter.entries", home)
+        self.assertIn('MediaTypeResolver.label(mediaType)', card)
+        self.assertIn('MediaType.IMAGE -> "Photo"', resolver)
+        self.assertIn('MediaType.VIDEO -> "Video"', resolver)
+        self.assertIn('MediaType.GIF -> "GIF"', resolver)
+        self.assertIn("showFullscreenPreview", preview)
+        self.assertIn("FullscreenMediaViewer", preview)
+        self.assertIn("fitContent = true", preview)
+        self.assertIn('contentDescription = "Open fullscreen preview"', preview)
+        self.assertIn('contentDescription = "Back from fullscreen preview"', preview)
+        self.assertIn("BackHandler(enabled = showFullscreenPreview)", preview)
+        self.assertIn("onOpenFullscreen", preview)
+        self.assertIn("AspectRatioFrameLayout.RESIZE_MODE_FIT", preview)
+        self.assertIn("ContentScale.Fit", preview)
 
 
 if __name__ == "__main__":

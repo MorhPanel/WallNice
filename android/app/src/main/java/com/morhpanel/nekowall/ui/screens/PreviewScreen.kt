@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PhoneAndroid
@@ -112,8 +113,6 @@ fun PreviewScreen(
     wallpaper: WallpaperItem,
     onBack: () -> Unit
 ) {
-    BackHandler(onBack = onBack)
-
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -122,8 +121,14 @@ fun PreviewScreen(
     var isMuted by remember { mutableStateOf(true) }
     var showApplyDialog by remember { mutableStateOf(false) }
     var isApplying by remember { mutableStateOf(false) }
+    var showFullscreenPreview by remember { mutableStateOf(false) }
     var videoPlaybackState by remember { mutableIntStateOf(Player.STATE_IDLE) }
     var videoError by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = !showFullscreenPreview, onBack = onBack)
+    BackHandler(enabled = showFullscreenPreview) {
+        showFullscreenPreview = false
+    }
 
     val exoPlayer = remember(wallpaper.url, wallpaper.mediaType) {
         if (wallpaper.mediaType == MediaType.VIDEO) {
@@ -167,90 +172,144 @@ fun PreviewScreen(
             .fillMaxSize()
             .background(AmoledBlack)
     ) {
+        if (!showFullscreenPreview) {
+            WallpaperMedia(
+                wallpaper = wallpaper,
+                exoPlayer = exoPlayer,
+                videoPlaybackState = videoPlaybackState,
+                videoError = videoError
+            )
+
+            when (overlayMode) {
+                PreviewOverlayMode.CLEAN -> Unit
+                PreviewOverlayMode.LOCK_SCREEN -> LockScreenSimulation()
+                PreviewOverlayMode.HOME_SCREEN -> HomeScreenSimulation()
+            }
+
+            PreviewTopBar(
+                selectedMode = overlayMode,
+                onModeSelected = { overlayMode = it },
+                onBack = onBack
+            )
+
+            PreviewBottomPanel(
+                modifier = Modifier.align(Alignment.BottomCenter),
+                wallpaper = wallpaper,
+                isMuted = isMuted,
+                isApplying = isApplying,
+                onMuteToggle = { isMuted = !isMuted },
+                onOpenFullscreen = { showFullscreenPreview = true },
+                onApply = {
+                    if (!isBusy) {
+                        if (wallpaper.mediaType == MediaType.VIDEO) {
+                            coroutineScope.launch {
+                                isApplying = true
+                                val cachedFile = DownloadHelper.downloadToCache(
+                                    context = context,
+                                    fileUrl = wallpaper.url,
+                                    extension = "mp4"
+                                )
+                                isApplying = false
+                                val videoUri = cachedFile?.let { Uri.fromFile(it).toString() }
+                                    ?: wallpaper.url
+                                WallpaperHelper.openLiveWallpaperChooser(
+                                    context = context,
+                                    videoUri = videoUri,
+                                    isMuted = isMuted
+                                )
+                            }
+                        } else {
+                            showApplyDialog = true
+                        }
+                    }
+                }
+            )
+
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(
+                        start = WallNiceSpacing.md,
+                        end = WallNiceSpacing.md,
+                        bottom = 150.dp
+                    )
+            )
+
+            if (showApplyDialog) {
+                ApplyTargetDialog(
+                    isApplying = isApplying,
+                    onDismiss = {
+                        if (!isApplying) showApplyDialog = false
+                    },
+                    onTargetSelected = { target ->
+                        showApplyDialog = false
+                        coroutineScope.launch {
+                            isApplying = true
+                            val success = loadAndApplyWallpaper(
+                                context = context,
+                                url = wallpaper.url,
+                                target = target
+                            )
+                            isApplying = false
+                            snackbarHostState.showSnackbar(
+                                if (success) "Wallpaper applied" else "Couldn’t apply wallpaper"
+                            )
+                        }
+                    }
+                )
+            }
+        }
+
+        if (showFullscreenPreview) {
+            FullscreenMediaViewer(
+                wallpaper = wallpaper,
+                exoPlayer = exoPlayer,
+                videoPlaybackState = videoPlaybackState,
+                videoError = videoError,
+                onBack = { showFullscreenPreview = false }
+            )
+        }
+    }
+}
+
+@OptIn(UnstableApi::class)
+@Composable
+private fun FullscreenMediaViewer(
+    wallpaper: WallpaperItem,
+    exoPlayer: ExoPlayer?,
+    videoPlaybackState: Int,
+    videoError: Boolean,
+    onBack: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
         WallpaperMedia(
             wallpaper = wallpaper,
             exoPlayer = exoPlayer,
             videoPlaybackState = videoPlaybackState,
-            videoError = videoError
+            videoError = videoError,
+            fitContent = true
         )
-
-        when (overlayMode) {
-            PreviewOverlayMode.CLEAN -> Unit
-            PreviewOverlayMode.LOCK_SCREEN -> LockScreenSimulation()
-            PreviewOverlayMode.HOME_SCREEN -> HomeScreenSimulation()
-        }
-
-        PreviewTopBar(
-            selectedMode = overlayMode,
-            onModeSelected = { overlayMode = it },
-            onBack = onBack
-        )
-
-        PreviewBottomPanel(
-            modifier = Modifier.align(Alignment.BottomCenter),
-            wallpaper = wallpaper,
-            isMuted = isMuted,
-            isApplying = isApplying,
-            onMuteToggle = { isMuted = !isMuted },
-            onApply = {
-                if (!isBusy) {
-                    if (wallpaper.mediaType == MediaType.VIDEO) {
-                        coroutineScope.launch {
-                            isApplying = true
-                            val cachedFile = DownloadHelper.downloadToCache(
-                                context = context,
-                                fileUrl = wallpaper.url,
-                                extension = "mp4"
-                            )
-                            isApplying = false
-                            val videoUri = cachedFile?.let { Uri.fromFile(it).toString() }
-                                ?: wallpaper.url
-                            WallpaperHelper.openLiveWallpaperChooser(
-                                context = context,
-                                videoUri = videoUri,
-                                isMuted = isMuted
-                            )
-                        }
-                    } else {
-                        showApplyDialog = true
-                    }
-                }
-            }
-        )
-
-        SnackbarHost(
-            hostState = snackbarHostState,
+        IconButton(
+            onClick = onBack,
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(
-                    start = WallNiceSpacing.md,
-                    end = WallNiceSpacing.md,
-                    bottom = 150.dp
-                )
-        )
-
-        if (showApplyDialog) {
-            ApplyTargetDialog(
-                isApplying = isApplying,
-                onDismiss = {
-                    if (!isApplying) showApplyDialog = false
-                },
-                onTargetSelected = { target ->
-                    showApplyDialog = false
-                    coroutineScope.launch {
-                        isApplying = true
-                        val success = loadAndApplyWallpaper(
-                            context = context,
-                            url = wallpaper.url,
-                            target = target
-                        )
-                        isApplying = false
-                        snackbarHostState.showSnackbar(
-                            if (success) "Wallpaper applied" else "Couldn’t apply wallpaper"
-                        )
-                    }
-                }
+                .align(Alignment.TopStart)
+                .statusBarsPadding()
+                .padding(WallNiceSpacing.md)
+                .size(WallNiceSizes.minimumTouchTarget)
+                .clip(CircleShape)
+                .background(Color.Black.copy(alpha = 0.6f))
+                .border(1.dp, Color.White.copy(alpha = 0.28f), CircleShape)
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back from fullscreen preview",
+                tint = Color.White
             )
         }
     }
@@ -262,7 +321,8 @@ private fun WallpaperMedia(
     wallpaper: WallpaperItem,
     exoPlayer: ExoPlayer?,
     videoPlaybackState: Int,
-    videoError: Boolean
+    videoError: Boolean,
+    fitContent: Boolean = false
 ) {
     val context = LocalContext.current
 
@@ -273,7 +333,11 @@ private fun WallpaperMedia(
                     PlayerView(viewContext).apply {
                         player = exoPlayer
                         useController = false
-                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                        resizeMode = if (fitContent) {
+                            AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        } else {
+                            AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                        }
                     }
                 },
                 update = { it.player = exoPlayer },
@@ -299,12 +363,13 @@ private fun WallpaperMedia(
             }
             WallpaperImage(
                 wallpaper = wallpaper,
-                imageLoader = imageLoader
+                imageLoader = imageLoader,
+                fitContent = fitContent
             )
         }
 
         MediaType.IMAGE -> {
-            WallpaperImage(wallpaper = wallpaper)
+            WallpaperImage(wallpaper = wallpaper, fitContent = fitContent)
         }
     }
 }
@@ -312,7 +377,8 @@ private fun WallpaperMedia(
 @Composable
 private fun WallpaperImage(
     wallpaper: WallpaperItem,
-    imageLoader: ImageLoader? = null
+    imageLoader: ImageLoader? = null,
+    fitContent: Boolean = false
 ) {
     val context = LocalContext.current
     val model = ImageRequest.Builder(context)
@@ -324,7 +390,7 @@ private fun WallpaperImage(
         SubcomposeAsyncImage(
             model = model,
             contentDescription = wallpaper.title,
-            contentScale = ContentScale.Crop,
+            contentScale = if (fitContent) ContentScale.Fit else ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
             loading = { MediaLoadingState() },
             error = { MediaErrorState() },
@@ -335,7 +401,7 @@ private fun WallpaperImage(
             model = model,
             imageLoader = imageLoader,
             contentDescription = wallpaper.title,
-            contentScale = ContentScale.Crop,
+            contentScale = if (fitContent) ContentScale.Fit else ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
             loading = { MediaLoadingState() },
             error = { MediaErrorState() },
@@ -477,6 +543,7 @@ private fun PreviewBottomPanel(
     isMuted: Boolean,
     isApplying: Boolean,
     onMuteToggle: () -> Unit,
+    onOpenFullscreen: () -> Unit,
     onApply: () -> Unit
 ) {
     Column(
@@ -542,37 +609,58 @@ private fun PreviewBottomPanel(
 
         Spacer(Modifier.height(WallNiceSpacing.md))
 
-        Button(
-            onClick = onApply,
-            enabled = !isApplying,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(WallNiceSizes.primaryActionHeight),
-            shape = RoundedCornerShape(WallNiceRadii.medium),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = NeonPink,
-                disabledContainerColor = NeonPink.copy(alpha = 0.5f)
-            )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            if (isApplying) {
-                CircularProgressIndicator(
-                    color = Color.White,
-                    strokeWidth = 2.dp,
-                    modifier = Modifier.size(19.dp)
-                )
-            } else {
+            IconButton(
+                onClick = onOpenFullscreen,
+                modifier = Modifier
+                    .size(WallNiceSizes.primaryActionHeight)
+                    .clip(RoundedCornerShape(WallNiceRadii.medium))
+                    .background(SurfaceHigh)
+                    .border(1.dp, OutlineSubtle, RoundedCornerShape(WallNiceRadii.medium))
+            ) {
                 Icon(
-                    imageVector = Icons.Default.Wallpaper,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
+                    imageVector = Icons.Default.Fullscreen,
+                    contentDescription = "Open fullscreen preview",
+                    tint = NeonCyan
                 )
-                Spacer(Modifier.width(WallNiceSpacing.xs))
-                Text(
-                    text = "Set Wallpaper",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
+            }
+
+            Button(
+                onClick = onApply,
+                enabled = !isApplying,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(WallNiceSizes.primaryActionHeight),
+                shape = RoundedCornerShape(WallNiceRadii.medium),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = NeonPink,
+                    disabledContainerColor = NeonPink.copy(alpha = 0.5f)
                 )
+            ) {
+                if (isApplying) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(19.dp)
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Wallpaper,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(WallNiceSpacing.xs))
+                    Text(
+                        text = "Set Wallpaper",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }
