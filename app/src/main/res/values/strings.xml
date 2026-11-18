@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">NekoWall</string>
+    <string name="wallpaper_service_label">NekoWall Live Engine</string>
+    <string name="wallpaper_service_description">High-performance video and animated wallpaper engine by morhpanel</string>
+</resources>

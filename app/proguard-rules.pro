@@ -1,0 +1,2 @@
+-keep class com.morhpanel.nekowall.engine.** { *; }
+-keep class androidx.media3.** { *; }
