@@ -15,6 +15,42 @@
   "wallpapers": [
     {
       "id": "wp_1",
+      "title": "Midnight Kitsune",
+      "author": "morhpanel",
+      "category": "Anime",
+      "mediaType": "IMAGE",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Gothic/midnight_kitsune_b9e0d763.jpg",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Gothic/midnight_kitsune_b9e0d763.jpg",
+      "resolution": "1440x3200",
+      "isAmoled": false,
+      "likesCount": 0
+    },
+    {
+      "id": "wp_2",
+      "title": "Twin Queens",
+      "author": "morhpanel",
+      "category": "Anime",
+      "mediaType": "IMAGE",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Gothic/twin_queens_8b4f1c9a.jpg",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Gothic/twin_queens_8b4f1c9a.jpg",
+      "resolution": "1440x3200",
+      "isAmoled": false,
+      "likesCount": 0
+    },
+    {
+      "id": "wp_3",
+      "title": "Kanna Kamui",
+      "author": "morhpanel",
+      "category": "Anime",
+      "mediaType": "IMAGE",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Miss%20Kobayashi%27s%20Dragon%20Maid/kanna_kamui.jpg",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Miss%20Kobayashi%27s%20Dragon%20Maid/kanna_kamui.jpg",
+      "resolution": "1440x3200",
+      "isAmoled": false,
+      "likesCount": 0
+    },
+    {
+      "id": "wp_4",
       "title": "Ichika Nakano",
       "author": "morhpanel",
       "category": "Anime",
@@ -26,7 +62,7 @@
       "likesCount": 0
     },
     {
-      "id": "wp_2",
+      "id": "wp_5",
       "title": "Ichika Nakano",
       "author": "morhpanel",
       "category": "Anime",
@@ -38,7 +74,7 @@
       "likesCount": 0
     },
     {
-      "id": "wp_3",
+      "id": "wp_6",
       "title": "Itsuki Nakano",
       "author": "morhpanel",
       "category": "Anime",
@@ -50,7 +86,7 @@
       "likesCount": 0
     },
     {
-      "id": "wp_4",
+      "id": "wp_7",
       "title": "Itsuki Nakano",
       "author": "morhpanel",
       "category": "Anime",
@@ -62,7 +98,7 @@
       "likesCount": 0
     },
     {
-      "id": "wp_5",
+      "id": "wp_8",
       "title": "Itsuki Nakano",
       "author": "morhpanel",
       "category": "Anime",
@@ -74,7 +110,7 @@
       "likesCount": 0
     },
     {
-      "id": "wp_6",
+      "id": "wp_9",
       "title": "Miku Nakano",
       "author": "morhpanel",
       "category": "Anime",
@@ -86,7 +122,7 @@
       "likesCount": 0
     },
     {
-      "id": "wp_7",
+      "id": "wp_10",
       "title": "Miku Nakano",
       "author": "morhpanel",
       "category": "Anime",
@@ -98,19 +134,7 @@
       "likesCount": 0
     },
     {
-      "id": "wp_8",
-      "title": "Miku Nakano",
-      "author": "morhpanel",
-      "category": "Anime",
-      "mediaType": "IMAGE",
-      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/The%20Quintessential%20Quintuplets/miku_nakano_e04ce147.jpg",
-      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/The%20Quintessential%20Quintuplets/miku_nakano_e04ce147.jpg",
-      "resolution": "1440x3200",
-      "isAmoled": false,
-      "likesCount": 0
-    },
-    {
-      "id": "wp_9",
+      "id": "wp_11",
       "title": "Nino Nakano",
       "author": "morhpanel",
       "category": "Anime",
@@ -122,37 +146,13 @@
       "likesCount": 0
     },
     {
-      "id": "wp_10",
-      "title": "Nino Nakano",
-      "author": "morhpanel",
-      "category": "Anime",
-      "mediaType": "IMAGE",
-      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/The%20Quintessential%20Quintuplets/nino_nakano_13c869f6.jpg",
-      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/The%20Quintessential%20Quintuplets/nino_nakano_13c869f6.jpg",
-      "resolution": "1440x3200",
-      "isAmoled": false,
-      "likesCount": 0
-    },
-    {
-      "id": "wp_11",
+      "id": "wp_12",
       "title": "Nino Nakano",
       "author": "morhpanel",
       "category": "Anime",
       "mediaType": "IMAGE",
       "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/The%20Quintessential%20Quintuplets/nino_nakano_9f1e8d3b.jpg",
       "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/The%20Quintessential%20Quintuplets/nino_nakano_9f1e8d3b.jpg",
-      "resolution": "1440x3200",
-      "isAmoled": false,
-      "likesCount": 0
-    },
-    {
-      "id": "wp_12",
-      "title": "Nino Nakano",
-      "author": "morhpanel",
-      "category": "Anime",
-      "mediaType": "IMAGE",
-      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/The%20Quintessential%20Quintuplets/nino_nakano_c66fd805.jpg",
-      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/The%20Quintessential%20Quintuplets/nino_nakano_c66fd805.jpg",
       "resolution": "1440x3200",
       "isAmoled": false,
       "likesCount": 0
@@ -177,42 +177,6 @@
       "mediaType": "IMAGE",
       "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/The%20Quintessential%20Quintuplets/yotsuba_nakano_5c7a2e8d.jpg",
       "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/The%20Quintessential%20Quintuplets/yotsuba_nakano_5c7a2e8d.jpg",
-      "resolution": "1440x3200",
-      "isAmoled": false,
-      "likesCount": 0
-    },
-    {
-      "id": "wp_15",
-      "title": "Kanna Kamui",
-      "author": "morhpanel",
-      "category": "Anime",
-      "mediaType": "IMAGE",
-      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Miss%20Kobayashi%27s%20Dragon%20Maid/kanna_kamui.jpg",
-      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Miss%20Kobayashi%27s%20Dragon%20Maid/kanna_kamui.jpg",
-      "resolution": "1440x3200",
-      "isAmoled": false,
-      "likesCount": 0
-    },
-    {
-      "id": "wp_16",
-      "title": "Midnight Kitsune",
-      "author": "morhpanel",
-      "category": "Anime",
-      "mediaType": "IMAGE",
-      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Gothic/midnight_kitsune_b9e0d763.jpg",
-      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Gothic/midnight_kitsune_b9e0d763.jpg",
-      "resolution": "1440x3200",
-      "isAmoled": false,
-      "likesCount": 0
-    },
-    {
-      "id": "wp_17",
-      "title": "Twin Queens",
-      "author": "morhpanel",
-      "category": "Anime",
-      "mediaType": "IMAGE",
-      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Gothic/twin_queens_8b4f1c9a.jpg",
-      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Gothic/twin_queens_8b4f1c9a.jpg",
       "resolution": "1440x3200",
       "isAmoled": false,
       "likesCount": 0
