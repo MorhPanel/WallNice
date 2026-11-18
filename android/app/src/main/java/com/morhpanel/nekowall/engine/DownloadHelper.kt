@@ -15,6 +15,16 @@ import java.net.URL
 
 object DownloadHelper {
 
+    fun getCachedFile(context: Context, fileUrl: String, extension: String): File? {
+        val fileName = "cached_wp_${fileUrl.hashCode()}.$extension"
+        val targetFile = File(context.cacheDir, fileName)
+        return if (targetFile.exists() && targetFile.length() > 0) targetFile else null
+    }
+
+    fun isCached(context: Context, fileUrl: String, extension: String): Boolean {
+        return getCachedFile(context, fileUrl, extension) != null
+    }
+
     suspend fun downloadToCache(context: Context, fileUrl: String, extension: String): File? = withContext(Dispatchers.IO) {
         try {
             val fileName = "cached_wp_${fileUrl.hashCode()}.$extension"

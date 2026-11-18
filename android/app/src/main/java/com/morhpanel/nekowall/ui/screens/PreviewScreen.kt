@@ -24,6 +24,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import com.morhpanel.nekowall.data.repository.FavoritesManager
+import java.io.File
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.Home
@@ -125,15 +129,27 @@ fun PreviewScreen(
     var videoPlaybackState by remember { mutableIntStateOf(Player.STATE_IDLE) }
     var videoError by remember { mutableStateOf(false) }
 
+    val favoriteIds by FavoritesManager.favoriteIds
+    val isFavorite = favoriteIds.contains(wallpaper.id)
+    val extension = when (wallpaper.mediaType) {
+        MediaType.VIDEO -> "mp4"
+        MediaType.GIF -> "gif"
+        MediaType.IMAGE -> "jpg"
+    }
+    val cachedFile = remember(wallpaper.url) {
+        DownloadHelper.getCachedFile(context, wallpaper.url, extension)
+    }
+
     BackHandler(enabled = !showFullscreenPreview, onBack = onBack)
     BackHandler(enabled = showFullscreenPreview) {
         showFullscreenPreview = false
     }
 
-    val exoPlayer = remember(wallpaper.url, wallpaper.mediaType) {
+    val exoPlayer = remember(wallpaper.url, wallpaper.mediaType, cachedFile) {
         if (wallpaper.mediaType == MediaType.VIDEO) {
             ExoPlayer.Builder(context).build().apply {
-                setMediaItem(MediaItem.fromUri(Uri.parse(wallpaper.url)))
+                val mediaUri = cachedFile?.let { Uri.fromFile(it) } ?: Uri.parse(wallpaper.url)
+                setMediaItem(MediaItem.fromUri(mediaUri))
                 repeatMode = Player.REPEAT_MODE_ALL
                 volume = 0f
                 prepare()
@@ -177,7 +193,8 @@ fun PreviewScreen(
                 wallpaper = wallpaper,
                 exoPlayer = exoPlayer,
                 videoPlaybackState = videoPlaybackState,
-                videoError = videoError
+                videoError = videoError,
+                cachedFile = cachedFile
             )
 
             when (overlayMode) {
@@ -188,7 +205,16 @@ fun PreviewScreen(
 
             PreviewTopBar(
                 selectedMode = overlayMode,
+                isFavorite = isFavorite,
                 onModeSelected = { overlayMode = it },
+                onToggleFavorite = {
+                    val nowFav = FavoritesManager.toggleFavorite(context, wallpaper.id)
+                    if (nowFav) {
+                        coroutineScope.launch {
+                            DownloadHelper.downloadToCache(context, wallpaper.url, extension)
+                        }
+                    }
+                },
                 onBack = onBack
             )
 
@@ -204,13 +230,13 @@ fun PreviewScreen(
                         if (wallpaper.mediaType == MediaType.VIDEO) {
                             coroutineScope.launch {
                                 isApplying = true
-                                val cachedFile = DownloadHelper.downloadToCache(
+                                val readyFile = cachedFile ?: DownloadHelper.downloadToCache(
                                     context = context,
                                     fileUrl = wallpaper.url,
                                     extension = "mp4"
                                 )
                                 isApplying = false
-                                val videoUri = cachedFile?.let { Uri.fromFile(it).toString() }
+                                val videoUri = readyFile?.let { Uri.fromFile(it).toString() }
                                     ?: wallpaper.url
                                 WallpaperHelper.openLiveWallpaperChooser(
                                     context = context,
@@ -268,6 +294,7 @@ fun PreviewScreen(
                 exoPlayer = exoPlayer,
                 videoPlaybackState = videoPlaybackState,
                 videoError = videoError,
+                cachedFile = cachedFile,
                 onBack = { showFullscreenPreview = false }
             )
         }
@@ -281,6 +308,7 @@ private fun FullscreenMediaViewer(
     exoPlayer: ExoPlayer?,
     videoPlaybackState: Int,
     videoError: Boolean,
+    cachedFile: File?,
     onBack: () -> Unit
 ) {
     Box(
@@ -293,6 +321,7 @@ private fun FullscreenMediaViewer(
             exoPlayer = exoPlayer,
             videoPlaybackState = videoPlaybackState,
             videoError = videoError,
+            cachedFile = cachedFile,
             fitContent = true
         )
         IconButton(
@@ -322,6 +351,7 @@ private fun WallpaperMedia(
     exoPlayer: ExoPlayer?,
     videoPlaybackState: Int,
     videoError: Boolean,
+    cachedFile: File? = null,
     fitContent: Boolean = false
 ) {
     val context = LocalContext.current
@@ -364,12 +394,17 @@ private fun WallpaperMedia(
             WallpaperImage(
                 wallpaper = wallpaper,
                 imageLoader = imageLoader,
+                cachedFile = cachedFile,
                 fitContent = fitContent
             )
         }
 
         MediaType.IMAGE -> {
-            WallpaperImage(wallpaper = wallpaper, fitContent = fitContent)
+            WallpaperImage(
+                wallpaper = wallpaper,
+                cachedFile = cachedFile,
+                fitContent = fitContent
+            )
         }
     }
 }
@@ -378,11 +413,12 @@ private fun WallpaperMedia(
 private fun WallpaperImage(
     wallpaper: WallpaperItem,
     imageLoader: ImageLoader? = null,
+    cachedFile: File? = null,
     fitContent: Boolean = false
 ) {
     val context = LocalContext.current
     val model = ImageRequest.Builder(context)
-        .data(wallpaper.url)
+        .data(cachedFile ?: wallpaper.url)
         .crossfade(220)
         .build()
 
@@ -453,7 +489,9 @@ private fun MediaErrorState() {
 @Composable
 private fun PreviewTopBar(
     selectedMode: PreviewOverlayMode,
+    isFavorite: Boolean,
     onModeSelected: (PreviewOverlayMode) -> Unit,
+    onToggleFavorite: () -> Unit,
     onBack: () -> Unit
 ) {
     Row(
@@ -508,6 +546,25 @@ private fun PreviewTopBar(
                 text = "Home",
                 selected = selectedMode == PreviewOverlayMode.HOME_SCREEN,
                 onClick = { onModeSelected(PreviewOverlayMode.HOME_SCREEN) }
+            )
+        }
+
+        IconButton(
+            onClick = onToggleFavorite,
+            modifier = Modifier
+                .size(WallNiceSizes.minimumTouchTarget)
+                .clip(CircleShape)
+                .background(Color.Black.copy(alpha = 0.72f))
+                .border(
+                    1.dp,
+                    if (isFavorite) NeonPink.copy(alpha = 0.7f) else OutlineSubtle,
+                    CircleShape
+                )
+        ) {
+            Icon(
+                imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                tint = if (isFavorite) NeonPink else Color.White
             )
         }
     }
@@ -791,9 +848,11 @@ private suspend fun loadAndApplyWallpaper(
     target: WallpaperTarget
 ): Boolean {
     return try {
+        val extension = if (url.endsWith(".gif", ignoreCase = true)) "gif" else "jpg"
+        val cached = DownloadHelper.getCachedFile(context, url, extension)
         val loader = ImageLoader(context)
         val request = ImageRequest.Builder(context)
-            .data(url)
+            .data(cached ?: url)
             .allowHardware(false)
             .build()
         val result = loader.execute(request)

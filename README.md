@@ -58,6 +58,7 @@ The goal is a smooth, distraction-free experience with a remotely maintained cat
 | ↓ | **Scoped storage downloads** | One-tap gallery export using Android MediaStore without legacy storage permissions. |
 | ↻ | **Auto-syncing catalog** | Catalog metadata updates automatically on repository push via GitHub Actions. |
 | ⇪ | **In-app updates** | Remote version check on launch with a trusted GitHub APK download handoff. |
+| ♡ | **Offline cache & favorites** | Instant offline viewing and wallpaper playback with persistent favorites and local catalog caching. |
 
 <a id="architecture"></a>
 <a id="-architecture"></a>
@@ -143,7 +144,7 @@ WallNice/
 | 4 | Portrait 9:20 AMOLED safe-zone adaptation | Android | 🔴 High | 🟢 Completed |
 | 5 | Release signing pipeline & Play Protect compliance | Android | 🔴 High | 🟢 Completed |
 | 6 | Category filtering and multi-tag search | Android | 🟡 Medium | 🟢 Completed |
-| 7 | Offline wallpaper cache and favorites | Android | 🟡 Medium | 🔜 Planned |
+| 7 | Offline wallpaper cache and favorites | Android | 🟡 Medium | 🟢 Completed |
 | 8 | Win32 DWM live wallpaper desktop injection | Windows | 🔴 High | ⬜ Not Started |
 | 9 | DirectX 11 hardware video renderer | Windows | 🔴 High | ⬜ Not Started |
 | 10 | System tray controls and hotkey manager | Windows | 🟡 Medium | ⬜ Not Started |

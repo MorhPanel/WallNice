@@ -33,6 +33,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.ui.platform.LocalContext
+import com.morhpanel.nekowall.data.repository.FavoritesManager
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.CollectionsBookmark
@@ -95,7 +98,9 @@ fun HomeScreen(
     onWallpaperSelected: (WallpaperItem) -> Unit,
     onUpdateAvailable: (AppUpdateInfo) -> Unit
 ) {
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val favoriteIds by FavoritesManager.favoriteIds
     var showSettings by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf("All") }
     var selectedMediaFilter by remember { mutableStateOf(MediaFilter.ALL) }
@@ -110,9 +115,10 @@ fun HomeScreen(
         coroutineScope.launch {
             isLoading = true
             errorMessage = null
-            WallpaperRepository.fetchCatalog()
+            WallpaperRepository.fetchCatalog(context)
                 .onSuccess { response ->
-                    val nextCategories = response.categories.ifEmpty { listOf("All") }
+                    val baseCategories = response.categories.filter { !it.equals("All", ignoreCase = true) && !it.equals("Favorites", ignoreCase = true) }
+                    val nextCategories = listOf("All", "Favorites") + baseCategories
                     categories = nextCategories
                     wallpapers = response.wallpapers
                     if (selectedCategory !in nextCategories) selectedCategory = "All"
@@ -126,15 +132,17 @@ fun HomeScreen(
     }
 
     LaunchedEffect(Unit) {
+        FavoritesManager.init(context)
         loadData()
     }
 
-    val filteredList = remember(selectedCategory, selectedMediaFilter, searchQuery, wallpapers) {
+    val filteredList = remember(selectedCategory, selectedMediaFilter, searchQuery, wallpapers, favoriteIds) {
         val query = searchQuery.trim()
         wallpapers.filter { item ->
             val decodedUrl = Uri.decode(item.url)
             val categoryMatches = when (selectedCategory) {
                 "All" -> true
+                "Favorites" -> favoriteIds.contains(item.id)
                 "Live Video" -> item.mediaType == MediaType.VIDEO
                 "GIF Loops" -> item.mediaType == MediaType.GIF
                 "AMOLED 4K" -> item.isAmoled
@@ -289,17 +297,29 @@ fun HomeScreen(
                                     .padding(innerPadding),
                                 contentAlignment = Alignment.Center
                             ) {
-                                EmptyStatePanel(
-                                    icon = Icons.Default.Search,
-                                    title = "Nothing found",
-                                    message = "Try another title, creator, or category.",
-                                    actionLabel = "Clear search",
-                                    onAction = {
-                                        searchQuery = ""
-                                        selectedCategory = "All"
-                                        selectedMediaFilter = MediaFilter.ALL
-                                    }
-                                )
+                                if (selectedCategory == "Favorites" && searchQuery.isBlank()) {
+                                    EmptyStatePanel(
+                                        icon = Icons.Default.FavoriteBorder,
+                                        title = "No favorites yet",
+                                        message = "Tap the heart on any wallpaper preview to save it for quick offline access.",
+                                        actionLabel = "Explore wallpapers",
+                                        onAction = {
+                                            selectedCategory = "All"
+                                        }
+                                    )
+                                } else {
+                                    EmptyStatePanel(
+                                        icon = Icons.Default.Search,
+                                        title = "Nothing found",
+                                        message = "Try another title, creator, or category.",
+                                        actionLabel = "Clear search",
+                                        onAction = {
+                                            searchQuery = ""
+                                            selectedCategory = "All"
+                                            selectedMediaFilter = MediaFilter.ALL
+                                        }
+                                    )
+                                }
                             }
                         }
 

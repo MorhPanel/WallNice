@@ -119,6 +119,32 @@ class SecurityControlTests(unittest.TestCase):
         self.assertIn("AspectRatioFrameLayout.RESIZE_MODE_FIT", preview)
         self.assertIn("ContentScale.Fit", preview)
 
+    def test_offline_cache_and_favorites_are_present(self):
+        fav_mgr = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/data/repository/FavoritesManager.kt").read_text()
+        repo = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/data/repository/WallpaperRepository.kt").read_text()
+        helper = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/engine/DownloadHelper.kt").read_text()
+        home = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/screens/HomeScreen.kt").read_text()
+        preview = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/screens/PreviewScreen.kt").read_text()
+        card = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/components/WallpaperCard.kt").read_text()
+        readme = (ROOT / "README.md").read_text()
+
+        self.assertIn("object FavoritesManager", fav_mgr)
+        self.assertIn("toggleFavorite", fav_mgr)
+        self.assertIn("isFavorite", fav_mgr)
+        self.assertIn("favoriteIds", fav_mgr)
+        self.assertIn("saveCatalogCache", repo)
+        self.assertIn("loadCatalogCache", repo)
+        self.assertIn("catalog_cache.json", repo)
+        self.assertIn("getCachedFile", helper)
+        self.assertIn("isCached", helper)
+        self.assertIn('"Favorites"', home)
+        self.assertIn("FavoritesManager.init", home)
+        self.assertIn('"No favorites yet"', home)
+        self.assertIn("onToggleFavorite", preview)
+        self.assertIn("cachedFile", preview)
+        self.assertIn("FavoritesManager.isFavorite(wallpaper.id)", card)
+        self.assertIn("| 7 | Offline wallpaper cache and favorites | Android | 🟡 Medium | 🟢 Completed |", readme)
+
 
 if __name__ == "__main__":
     unittest.main()

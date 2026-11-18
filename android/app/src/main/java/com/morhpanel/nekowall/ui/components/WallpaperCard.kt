@@ -3,7 +3,6 @@ package com.morhpanel.nekowall.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,9 +13,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Gif
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Photo
@@ -40,6 +41,7 @@ import coil.request.ImageRequest
 import com.morhpanel.nekowall.data.models.MediaType
 import com.morhpanel.nekowall.data.models.MediaTypeResolver
 import com.morhpanel.nekowall.data.models.WallpaperItem
+import com.morhpanel.nekowall.data.repository.FavoritesManager
 import com.morhpanel.nekowall.ui.theme.NeonCyan
 import com.morhpanel.nekowall.ui.theme.NeonPink
 import com.morhpanel.nekowall.ui.theme.OutlineSubtle
@@ -112,6 +114,26 @@ fun WallpaperCard(
                     )
                 )
         )
+
+        if (FavoritesManager.isFavorite(wallpaper.id)) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(WallNiceSpacing.sm)
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.78f))
+                    .border(1.dp, NeonPink.copy(alpha = 0.65f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = "Favorited",
+                    tint = NeonPink,
+                    modifier = Modifier.size(13.dp)
+                )
+            }
+        }
 
         MediaBadge(
             mediaType = wallpaper.mediaType,
