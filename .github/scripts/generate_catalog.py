@@ -13,9 +13,9 @@ CATALOG_PATH = "catalog.json"
 DLS_DIR = "DLS"
 
 existing_update = {
-    "versionCode": 10,
-    "versionName": "0.0.10-beta",
-    "changelog": "Clearer media filters, fullscreen previews, and media-type badges.",
+    "versionCode": 11,
+    "versionName": "0.0.11-beta",
+    "changelog": "Fixes trusted update downloads from the canonical latest release URL.",
     "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/latest/download/app-release.apk"
 }
 

@@ -32,6 +32,7 @@ class SecurityControlTests(unittest.TestCase):
         self.assertIn("openApkDownload(context, updateInfo.downloadUrl)", dialog)
         self.assertIn("resolveApkUrl(originalUrl)", updater)
         self.assertIn("val safeUrl = resolveApkUrl(originalUrl)", updater)
+        self.assertIn('path.equals("$RELEASES_PATH/latest/download/app-release.apk", ignoreCase = true)', updater)
         self.assertIn("Intent(Intent.ACTION_VIEW, Uri.parse(safeUrl))", updater)
         self.assertIn("isPlayManagedInstall", updater)
         self.assertIn('source.host != "github.com"', updater)
@@ -66,10 +67,10 @@ class SecurityControlTests(unittest.TestCase):
     def test_release_metadata_is_synchronized(self):
         gradle = (ROOT / "android/app/build.gradle.kts").read_text()
         catalog = json.loads((ROOT / "catalog.json").read_text())
-        self.assertIn("versionCode = 10", gradle)
-        self.assertIn('versionName = "0.0.10-beta"', gradle)
-        self.assertEqual(catalog["appUpdate"]["versionCode"], 10)
-        self.assertEqual(catalog["appUpdate"]["versionName"], "0.0.10-beta")
+        self.assertIn("versionCode = 11", gradle)
+        self.assertIn('versionName = "0.0.11-beta"', gradle)
+        self.assertEqual(catalog["appUpdate"]["versionCode"], 11)
+        self.assertEqual(catalog["appUpdate"]["versionName"], "0.0.11-beta")
 
     def test_settings_is_header_action_with_back_navigation_and_shared_motion(self):
         home = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/screens/HomeScreen.kt").read_text()

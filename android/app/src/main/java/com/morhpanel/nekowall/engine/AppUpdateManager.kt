@@ -32,7 +32,8 @@ object AppUpdateManager {
         val path = source.path ?: return null
         return when {
             path.equals(RELEASES_PATH, ignoreCase = true) ||
-                path.equals("$RELEASES_PATH/latest", ignoreCase = true) -> LATEST_APK_URL
+                path.equals("$RELEASES_PATH/latest", ignoreCase = true) ||
+                path.equals("$RELEASES_PATH/latest/download/app-release.apk", ignoreCase = true) -> LATEST_APK_URL
             isTrustedGithubApkPath(path) -> "https://github.com$path"
             path.startsWith(TAG_PATH, ignoreCase = true) -> {
                 val tag = path.substring(TAG_PATH.length)
