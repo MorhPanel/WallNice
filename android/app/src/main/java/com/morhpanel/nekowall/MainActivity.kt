@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.morhpanel.nekowall.data.models.AppUpdateInfo
 import com.morhpanel.nekowall.data.models.WallpaperItem
+import com.morhpanel.nekowall.engine.AppUpdateManager
 import com.morhpanel.nekowall.ui.components.AppUpdateDialog
 import com.morhpanel.nekowall.ui.screens.HomeScreen
 import com.morhpanel.nekowall.ui.screens.PreviewScreen
@@ -47,7 +48,9 @@ class MainActivity : ComponentActivity() {
                             HomeScreen(
                                 onWallpaperSelected = { selectedWallpaper = it },
                                 onUpdateAvailable = { updateInfo ->
-                                    if (updateInfo.versionCode > BuildConfig.VERSION_CODE) {
+                                    if (updateInfo.versionCode > BuildConfig.VERSION_CODE &&
+                                        !AppUpdateManager.isPlayManagedInstall(this@MainActivity)
+                                    ) {
                                         pendingUpdate = updateInfo
                                     }
                                 }

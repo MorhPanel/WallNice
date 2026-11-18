@@ -13,9 +13,9 @@ CATALOG_PATH = "catalog.json"
 DLS_DIR = "DLS"
 
 existing_update = {
-    "versionCode": 5,
-    "versionName": "0.0.5-beta",
-    "changelog": "High definition 4K wallpapers, new settings with stats, and clean UI.",
+    "versionCode": 8,
+    "versionName": "0.0.8-beta",
+    "changelog": "System-managed APK downloads, no app install permission, and Play-managed update deferral.",
     "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/latest/download/app-release.apk"
 }
 

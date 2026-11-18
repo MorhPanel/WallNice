@@ -1,7 +1,5 @@
 package com.morhpanel.nekowall.ui.components
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -19,7 +17,6 @@ import androidx.compose.material.icons.filled.SystemUpdateAlt
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -28,7 +25,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,16 +41,12 @@ import com.morhpanel.nekowall.ui.theme.AmoledBlack
 import com.morhpanel.nekowall.ui.theme.NeonCyan
 import com.morhpanel.nekowall.ui.theme.NeonPink
 import com.morhpanel.nekowall.ui.theme.OutlineStrong
-import com.morhpanel.nekowall.ui.theme.SurfaceHigh
 import com.morhpanel.nekowall.ui.theme.SurfaceMid
 import com.morhpanel.nekowall.ui.theme.TextPrimary
 import com.morhpanel.nekowall.ui.theme.TextSecondary
 import com.morhpanel.nekowall.ui.theme.WallNiceRadii
 import com.morhpanel.nekowall.ui.theme.WallNiceSizes
 import com.morhpanel.nekowall.ui.theme.WallNiceSpacing
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import java.util.Locale
 
 @Composable
 fun AppUpdateDialog(
@@ -62,44 +54,23 @@ fun AppUpdateDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
     var state by remember { mutableStateOf<UpdateInstallState>(UpdateInstallState.Idle) }
-    var downloadJob by remember { mutableStateOf<Job?>(null) }
 
     fun closeDialog() {
-        downloadJob?.cancel()
         onDismiss()
     }
 
-    fun startDownload() {
-        downloadJob?.cancel()
-        state = UpdateInstallState.Downloading(0, 0, 0)
-        downloadJob = coroutineScope.launch {
-            AppUpdateManager.downloadApk(
-                context = context,
-                urlStr = updateInfo.downloadUrl,
-                versionCode = updateInfo.versionCode,
-                onProgress = { progress, current, total ->
-                    state = UpdateInstallState.Downloading(progress, current, total)
-                }
-            ).onSuccess { apkFile ->
-                if (!AppUpdateManager.canInstallApk(context)) {
-                    state = UpdateInstallState.NeedsPermission(apkFile)
-                } else {
-                    state = UpdateInstallState.ReadyToInstall(apkFile)
-                    AppUpdateManager.launchInstaller(context, apkFile)
-                        .onFailure { error ->
-                            state = UpdateInstallState.Error(
-                                error.localizedMessage ?: "Couldn’t open the installer."
-                            )
-                        }
-                }
-            }.onFailure { error ->
+    fun openDownload() {
+        state = UpdateInstallState.OpeningDownload
+        AppUpdateManager.openApkDownload(context, updateInfo.downloadUrl)
+            .onSuccess {
+                state = UpdateInstallState.DownloadStarted
+            }
+            .onFailure { error ->
                 state = UpdateInstallState.Error(
-                    error.localizedMessage ?: "Download failed."
+                    error.localizedMessage ?: "Couldn’t open the secure download."
                 )
             }
-        }
     }
 
     Dialog(onDismissRequest = { closeDialog() }) {
@@ -147,51 +118,17 @@ fun AppUpdateDialog(
                         }
                     }
 
-                    is UpdateInstallState.Downloading -> {
+                    UpdateInstallState.OpeningDownload -> {
                         Text(
-                            text = "Downloading version " + updateInfo.versionName,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextSecondary
-                        )
-                        Spacer(Modifier.height(WallNiceSpacing.md))
-                        if (currentState.progressPercent >= 0) {
-                            LinearProgressIndicator(
-                                progress = { currentState.progressPercent / 100f },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(6.dp),
-                                color = NeonPink,
-                                trackColor = SurfaceHigh
-                            )
-                        } else {
-                            LinearProgressIndicator(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(6.dp),
-                                color = NeonPink,
-                                trackColor = SurfaceHigh
-                            )
-                        }
-                        Spacer(Modifier.height(WallNiceSpacing.xs))
-                        Text(
-                            text = formatProgress(currentState),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextPrimary,
-                            modifier = Modifier.align(Alignment.End)
-                        )
-                    }
-
-                    is UpdateInstallState.NeedsPermission -> {
-                        Text(
-                            text = "Android needs permission to install updates downloaded by WallNice. You only need to grant it once.",
+                            text = "Opening the secure download for " + updateInfo.versionName,
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextSecondary
                         )
                     }
 
-                    is UpdateInstallState.ReadyToInstall -> {
+                    UpdateInstallState.DownloadStarted -> {
                         Text(
-                            text = "The APK is ready. Continue with the Android installer to finish the update.",
+                            text = "Your browser will download the APK. Open it from the download notification to finish the update.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextSecondary
                         )
@@ -218,11 +155,11 @@ fun AppUpdateDialog(
 
                 Spacer(Modifier.height(WallNiceSpacing.xl))
 
-                when (val currentState = state) {
+                when (state) {
                     UpdateInstallState.Idle -> {
                         UpdatePrimaryButton(
                             text = "Download update",
-                            onClick = { startDownload() }
+                            onClick = { openDownload() }
                         )
                         UpdateSecondaryButton(
                             text = "Later",
@@ -230,41 +167,20 @@ fun AppUpdateDialog(
                         )
                     }
 
-                    is UpdateInstallState.Downloading -> {
+                    UpdateInstallState.OpeningDownload -> {
                         UpdateSecondaryButton(
-                            text = "Cancel download",
+                            text = "Later",
                             onClick = { closeDialog() }
                         )
                     }
 
-                    is UpdateInstallState.NeedsPermission -> {
+                    UpdateInstallState.DownloadStarted -> {
                         UpdatePrimaryButton(
-                            text = "Grant permission",
-                            onClick = {
-                                AppUpdateManager.openInstallPermissionSettings(context)
-                                state = UpdateInstallState.ReadyToInstall(currentState.apkFile)
-                            }
+                            text = "Open download again",
+                            onClick = { openDownload() }
                         )
                         UpdateSecondaryButton(
-                            text = "Later",
-                            onClick = { closeDialog() }
-                        )
-                    }
-
-                    is UpdateInstallState.ReadyToInstall -> {
-                        UpdatePrimaryButton(
-                            text = "Install update",
-                            onClick = {
-                                AppUpdateManager.launchInstaller(context, currentState.apkFile)
-                                    .onFailure { error ->
-                                        state = UpdateInstallState.Error(
-                                            error.localizedMessage ?: "Couldn’t open the installer."
-                                        )
-                                    }
-                            }
-                        )
-                        UpdateSecondaryButton(
-                            text = "Later",
+                            text = "Done",
                             onClick = { closeDialog() }
                         )
                     }
@@ -272,18 +188,11 @@ fun AppUpdateDialog(
                     is UpdateInstallState.Error -> {
                         UpdatePrimaryButton(
                             text = "Retry",
-                            onClick = { startDownload() }
+                            onClick = { openDownload() }
                         )
                         UpdateSecondaryButton(
-                            text = "Open in browser",
-                            onClick = {
-                                AppUpdateManager.resolveApkUrl(updateInfo.downloadUrl)?.let { safeUrl ->
-                                    context.startActivity(
-                                        Intent(Intent.ACTION_VIEW, Uri.parse(safeUrl))
-                                    )
-                                }
-                                closeDialog()
-                            }
+                            text = "Later",
+                            onClick = { closeDialog() }
                         )
                     }
                 }
@@ -315,9 +224,8 @@ private fun UpdateHeader(state: UpdateInstallState) {
             Text(
                 text = when (state) {
                     UpdateInstallState.Idle -> "Update ready"
-                    is UpdateInstallState.Downloading -> "Downloading"
-                    is UpdateInstallState.NeedsPermission -> "Permission required"
-                    is UpdateInstallState.ReadyToInstall -> "Ready to install"
+                    UpdateInstallState.OpeningDownload -> "Opening download"
+                    UpdateInstallState.DownloadStarted -> "Download started"
                     is UpdateInstallState.Error -> "Update failed"
                 },
                 style = MaterialTheme.typography.titleLarge,
@@ -326,9 +234,8 @@ private fun UpdateHeader(state: UpdateInstallState) {
             Text(
                 text = when (state) {
                     UpdateInstallState.Idle -> "A newer WallNice build is available"
-                    is UpdateInstallState.Downloading -> "Keep the app open for a moment"
-                    is UpdateInstallState.NeedsPermission -> "Allow installation from this source"
-                    is UpdateInstallState.ReadyToInstall -> "The download is complete"
+                    UpdateInstallState.OpeningDownload -> "The system browser will handle the APK download"
+                    UpdateInstallState.DownloadStarted -> "Finish from Android's download notification"
                     is UpdateInstallState.Error -> "Your current version is unchanged"
                 },
                 style = MaterialTheme.typography.bodyMedium,
@@ -403,21 +310,5 @@ private fun UpdateSecondaryButton(
             color = NeonCyan,
             fontWeight = FontWeight.SemiBold
         )
-    }
-}
-
-private fun formatProgress(state: UpdateInstallState.Downloading): String {
-    val downloadedMb = state.currentBytes / (1024f * 1024f)
-    return if (state.totalBytes > 0) {
-        val totalMb = state.totalBytes / (1024f * 1024f)
-        String.format(
-            Locale.US,
-            "%d%%  •  %.1f / %.1f MB",
-            state.progressPercent,
-            downloadedMb,
-            totalMb
-        )
-    } else {
-        String.format(Locale.US, "%.1f MB downloaded", downloadedMb)
     }
 }

@@ -12,7 +12,7 @@ A sleek, lightweight cross-platform experience for discovering, downloading, and
 
 [![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Windows%20%7C%20Linux-10151D?style=for-the-badge&logo=android&logoColor=3DDC84)](#platforms)
 [![Kotlin](https://img.shields.io/badge/Android-Kotlin%20%2B%20Compose-10151D?style=for-the-badge&logo=kotlin&logoColor=AA78FF)](android/)
-[![Status](https://img.shields.io/badge/Status-Beta%20v0.0.4-10151D?style=for-the-badge&logo=github&logoColor=white)](https://github.com/MorhPanel/WallNice/releases)
+[![Status](https://img.shields.io/badge/Status-Beta%20v0.0.5-10151D?style=for-the-badge&logo=github&logoColor=white)](https://github.com/MorhPanel/WallNice/releases)
 [![License](https://img.shields.io/badge/License-Not%20Specified-10151D?style=for-the-badge)](#license)
 
 <br />
@@ -31,7 +31,7 @@ A sleek, lightweight cross-platform experience for discovering, downloading, and
 
 The goal is a smooth, distraction-free experience with a remotely maintained catalog and zero battery drain.
 
-> **Project status:** Android is in active public Beta (v0.0.4-beta). Desktop clients for Windows and Linux are in development.
+> **Project status:** Android is in active public Beta (v0.0.5-beta). Desktop clients for Windows and Linux are in development.
 
 <a id="platforms"></a>
 <a id="-platforms"></a>
@@ -57,7 +57,7 @@ The goal is a smooth, distraction-free experience with a remotely maintained cat
 | ⌕ | **Discover & categories** | Filter by Anime, series, resolution, and media types with reactive category chips. |
 | ↓ | **Scoped storage downloads** | One-tap gallery export using Android MediaStore without legacy storage permissions. |
 | ↻ | **Auto-syncing catalog** | Catalog metadata updates automatically on repository push via GitHub Actions. |
-| ⇪ | **In-app updates** | Remote version check on launch with instant GitHub Release update dialog. |
+| ⇪ | **In-app updates** | Remote version check on launch with a trusted GitHub APK download handoff. |
 
 <a id="architecture"></a>
 <a id="-architecture"></a>

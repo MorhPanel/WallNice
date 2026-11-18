@@ -1,8 +1,8 @@
 {
   "appUpdate": {
-    "versionCode": 7,
-    "versionName": "0.0.7-beta",
-    "changelog": "New AI upscaled 4K wallpapers and navigation tabs.",
+    "versionCode": 8,
+    "versionName": "0.0.8-beta",
+    "changelog": "System-managed APK downloads, no app install permission, and Play-managed update deferral.",
     "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/latest/download/app-release.apk"
   },
   "categories": [
