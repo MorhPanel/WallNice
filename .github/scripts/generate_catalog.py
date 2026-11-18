@@ -12,10 +12,10 @@ CATALOG_PATH = "catalog.json"
 DLS_DIR = "DLS"
 
 existing_update = {
-    "versionCode": 2,
-    "versionName": "0.0.2-beta",
-    "changelog": "Initial beta release of WallNice.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/latest"
+    "versionCode": 3,
+    "versionName": "0.0.3-beta",
+    "changelog": "AMOLED interface redesign, Prism W branding, and direct in-app APK updates.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/latest/download/app-release.apk"
 }
 
 if os.path.exists(CATALOG_PATH):

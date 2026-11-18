@@ -56,16 +56,16 @@ object DownloadHelper {
         try {
             val extension = if (isVideo) "mp4" else "jpg"
             val mimeType = if (isVideo) "video/mp4" else "image/jpeg"
-            val safeTitle = "NekoWall_${title.replace("[^a-zA-Z0-9]".toRegex(), "_")}_${System.currentTimeMillis()}"
+            val safeTitle = "WallNice_${title.replace("[^a-zA-Z0-9]".toRegex(), "_")}_${System.currentTimeMillis()}"
 
             val contentValues = ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, "$safeTitle.$extension")
                 put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     val relativePath = if (isVideo) {
-                        "${Environment.DIRECTORY_MOVIES}/NekoWall"
+                        "${Environment.DIRECTORY_MOVIES}/WallNice"
                     } else {
-                        "${Environment.DIRECTORY_PICTURES}/NekoWall"
+                        "${Environment.DIRECTORY_PICTURES}/WallNice"
                     }
                     put(MediaStore.MediaColumns.RELATIVE_PATH, relativePath)
                     put(MediaStore.MediaColumns.IS_PENDING, 1)

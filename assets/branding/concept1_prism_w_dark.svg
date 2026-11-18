@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <radialGradient id="c1-ambient-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#05D9E8" stop-opacity="0.3"/>
+      <stop offset="50%" stop-color="#FF2A6D" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#090A10" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="c1-grad-left" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5DF6FF"/>
+      <stop offset="100%" stop-color="#0077FE"/>
+    </linearGradient>
+    <linearGradient id="c1-grad-left-inner" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0066FF"/>
+      <stop offset="100%" stop-color="#7928CA"/>
+    </linearGradient>
+    <linearGradient id="c1-grad-right-inner" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7928CA"/>
+      <stop offset="100%" stop-color="#FF2A6D"/>
+    </linearGradient>
+    <linearGradient id="c1-grad-right" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FF2A6D"/>
+      <stop offset="100%" stop-color="#FF5E97"/>
+    </linearGradient>
+    <filter id="c1-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+  
+    <rect width="512" height="512" rx="112" fill="#090A10"/>
+    <rect width="510" height="510" x="1" y="1" rx="111" fill="none" stroke="rgba(255, 42, 109, 0.15)" stroke-width="2"/>
+    <circle cx="256" cy="256" r="180" fill="url(#c1-ambient-glow)" opacity="0.35"/>
+  
+  <g filter="url(#c1-glow)" id="icon-glyph">
+    <!-- Left outer ribbon -->
+    <path d="M 120 165 L 175 140 L 220 330 L 165 355 Z" fill="url(#c1-grad-left)" />
+    <!-- Left inner ribbon -->
+    <path d="M 165 355 L 220 330 L 256 220 L 215 220 Z" fill="url(#c1-grad-left-inner)" />
+    <!-- Right inner ribbon -->
+    <path d="M 256 220 L 297 220 L 347 355 L 292 330 Z" fill="url(#c1-grad-right-inner)" />
+    <!-- Right outer ribbon -->
+    <path d="M 292 330 L 347 355 L 392 140 L 337 165 Z" fill="url(#c1-grad-right)" />
+    <!-- Dynamic Fold Shadow & Highlight -->
+    
+    <polygon points="220,330 256,220 236,250 195,340" fill="#000000" opacity="0.25"/>
+    <polygon points="292,330 256,220 276,250 317,340" fill="#FFFFFF" opacity="0.15"/>
+    
+  </g>
+</svg>

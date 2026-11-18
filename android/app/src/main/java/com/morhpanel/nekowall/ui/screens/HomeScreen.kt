@@ -2,8 +2,18 @@ package com.morhpanel.nekowall.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -11,26 +21,51 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.CollectionsBookmark
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.morhpanel.nekowall.data.models.AppUpdateInfo
 import com.morhpanel.nekowall.data.models.MediaType
 import com.morhpanel.nekowall.data.models.WallpaperItem
 import com.morhpanel.nekowall.data.repository.WallpaperRepository
+import com.morhpanel.nekowall.ui.components.BrandMark
+import com.morhpanel.nekowall.ui.components.CategoryPill
+import com.morhpanel.nekowall.ui.components.EmptyStatePanel
+import com.morhpanel.nekowall.ui.components.SkeletonWallpaperCard
+import com.morhpanel.nekowall.ui.components.WallNiceIconButton
 import com.morhpanel.nekowall.ui.components.WallpaperCard
-import com.morhpanel.nekowall.ui.theme.*
+import com.morhpanel.nekowall.ui.theme.AmoledBlack
+import com.morhpanel.nekowall.ui.theme.NeonCyan
+import com.morhpanel.nekowall.ui.theme.OutlineSubtle
+import com.morhpanel.nekowall.ui.theme.SurfaceLow
+import com.morhpanel.nekowall.ui.theme.TextPrimary
+import com.morhpanel.nekowall.ui.theme.TextSecondary
+import com.morhpanel.nekowall.ui.theme.WallNiceRadii
+import com.morhpanel.nekowall.ui.theme.WallNiceSpacing
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onWallpaperSelected: (WallpaperItem) -> Unit,
@@ -38,27 +73,29 @@ fun HomeScreen(
 ) {
     val coroutineScope = rememberCoroutineScope()
     var selectedCategory by remember { mutableStateOf("All") }
+    var searchQuery by remember { mutableStateOf("") }
     var categories by remember { mutableStateOf(listOf("All")) }
     var wallpapers by remember { mutableStateOf<List<WallpaperItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     fun loadData() {
+        if (isLoading && wallpapers.isNotEmpty()) return
         coroutineScope.launch {
             isLoading = true
             errorMessage = null
-            val result = WallpaperRepository.fetchCatalog()
-            result.onSuccess { response ->
-                categories = response.categories
-                wallpapers = response.wallpapers
-                isLoading = false
-                if (response.updateInfo != null) {
-                    onUpdateAvailable(response.updateInfo)
+            WallpaperRepository.fetchCatalog()
+                .onSuccess { response ->
+                    val nextCategories = response.categories.ifEmpty { listOf("All") }
+                    categories = nextCategories
+                    wallpapers = response.wallpapers
+                    if (selectedCategory !in nextCategories) selectedCategory = "All"
+                    response.updateInfo?.let(onUpdateAvailable)
                 }
-            }.onFailure { error ->
-                isLoading = false
-                errorMessage = error.localizedMessage ?: "Failed to fetch remote catalog"
-            }
+                .onFailure { error ->
+                    errorMessage = error.localizedMessage ?: "The catalog could not be reached."
+                }
+            isLoading = false
         }
     }
 
@@ -66,147 +103,78 @@ fun HomeScreen(
         loadData()
     }
 
-    val filteredList = remember(selectedCategory, wallpapers) {
+    val filteredList = remember(selectedCategory, searchQuery, wallpapers) {
+        val query = searchQuery.trim()
         wallpapers.filter { item ->
-            when (selectedCategory) {
+            val categoryMatches = when (selectedCategory) {
                 "All" -> true
                 "Live Video" -> item.mediaType == MediaType.VIDEO
                 "GIF Loops" -> item.mediaType == MediaType.GIF
                 "AMOLED 4K" -> item.isAmoled
-                "Anime" -> item.category.equals("Anime", ignoreCase = true) || item.url.contains("/Anime/", ignoreCase = true)
+                "Anime" -> item.category.equals("Anime", ignoreCase = true) ||
+                    item.url.contains("/Anime/", ignoreCase = true)
                 else -> item.category.equals(selectedCategory, ignoreCase = true) ||
-                        item.url.contains(selectedCategory.replace(" ", "%20"), ignoreCase = true)
+                    item.url.contains(selectedCategory.replace(" ", "%20"), ignoreCase = true)
             }
+            val searchMatches = query.isBlank() ||
+                item.title.contains(query, ignoreCase = true) ||
+                item.author.contains(query, ignoreCase = true) ||
+                item.category.contains(query, ignoreCase = true)
+            categoryMatches && searchMatches
         }
     }
 
     Scaffold(
-        containerColor = BgDark,
+        containerColor = AmoledBlack,
         topBar = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "NEKOWALL",
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = NeonPink,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.sp
-                        )
-                        Text(
-                            text = "Live & 4K Wallpaper Engine",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextSecondary
-                        )
-                    }
-
-                    IconButton(
-                        onClick = { loadData() },
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(BgCard)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Refresh",
-                            tint = NeonCyan
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(vertical = 4.dp)
-                ) {
-                    items(categories) { cat ->
-                        val isSelected = cat == selectedCategory
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(if (isSelected) NeonPink else BgCard)
-                                .border(
-                                    width = 1.dp,
-                                    color = if (isSelected) NeonPink else GlowBorder,
-                                    shape = RoundedCornerShape(20.dp)
-                                )
-                                .clickable { selectedCategory = cat }
-                                .padding(horizontal = 14.dp, vertical = 7.dp)
-                        ) {
-                            Text(
-                                text = cat,
-                                color = if (isSelected) Color.White else TextSecondary,
-                                fontSize = 13.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                            )
-                        }
-                    }
-                }
-            }
+            CatalogHeader(
+                searchQuery = searchQuery,
+                onSearchQueryChange = { searchQuery = it },
+                categories = categories,
+                selectedCategory = selectedCategory,
+                onCategorySelected = { selectedCategory = it },
+                onRefresh = { loadData() }
+            )
         }
     ) { innerPadding ->
         when {
-            isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    contentAlignment = Alignment.Center
+            isLoading && wallpapers.isEmpty() -> {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = WallNiceSpacing.md,
+                        end = WallNiceSpacing.md,
+                        top = innerPadding.calculateTopPadding() + WallNiceSpacing.sm,
+                        bottom = WallNiceSpacing.xl
+                    ),
+                    horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(WallNiceSpacing.lg),
+                    userScrollEnabled = false
                 ) {
-                    CircularProgressIndicator(color = NeonPink)
-                }
-            }
-            errorMessage != null -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(24.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CloudOff,
-                            contentDescription = null,
-                            tint = TextMuted,
-                            modifier = Modifier.size(64.dp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Connection Error",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = TextPrimary,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = errorMessage ?: "",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextSecondary
-                        )
-                        Spacer(modifier = Modifier.height(20.dp))
-                        Button(
-                            onClick = { loadData() },
-                            colors = ButtonDefaults.buttonColors(containerColor = NeonPink),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("Retry", color = Color.White, fontWeight = FontWeight.Bold)
-                        }
+                    items(6) {
+                        SkeletonWallpaperCard()
                     }
                 }
             }
+
+            errorMessage != null && wallpapers.isEmpty() -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    EmptyStatePanel(
+                        icon = Icons.Default.CloudOff,
+                        title = "You’re offline",
+                        message = "WallNice couldn’t reach the wallpaper catalog. Check your connection and try again.",
+                        actionLabel = "Retry",
+                        onAction = { loadData() }
+                    )
+                }
+            }
+
             wallpapers.isEmpty() -> {
                 Box(
                     modifier = Modifier
@@ -214,33 +182,174 @@ fun HomeScreen(
                         .padding(innerPadding),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "No wallpapers found on server",
-                        color = TextSecondary,
-                        style = MaterialTheme.typography.bodyLarge
+                    EmptyStatePanel(
+                        icon = Icons.Default.CollectionsBookmark,
+                        title = "Catalog is empty",
+                        message = "New wallpapers will appear here as soon as they are published.",
+                        actionLabel = "Refresh",
+                        onAction = { loadData() }
                     )
                 }
             }
+
+            filteredList.isEmpty() -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    EmptyStatePanel(
+                        icon = Icons.Default.Search,
+                        title = "Nothing found",
+                        message = "Try another title, creator, or category.",
+                        actionLabel = "Clear search",
+                        onAction = {
+                            searchQuery = ""
+                            selectedCategory = "All"
+                        }
+                    )
+                }
+            }
+
             else -> {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
+                    modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
-                        start = 16.dp,
-                        end = 16.dp,
-                        top = innerPadding.calculateTopPadding() + 8.dp,
-                        bottom = 24.dp
+                        start = WallNiceSpacing.md,
+                        end = WallNiceSpacing.md,
+                        top = innerPadding.calculateTopPadding() + WallNiceSpacing.sm,
+                        bottom = WallNiceSpacing.xxl
                     ),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxSize()
+                    horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(WallNiceSpacing.sm)
                 ) {
-                    items(filteredList) { item ->
+                    items(filteredList, key = { it.id }) { item ->
                         WallpaperCard(
                             wallpaper = item,
                             onClick = { onWallpaperSelected(item) }
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CatalogHeader(
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    categories: List<String>,
+    selectedCategory: String,
+    onCategorySelected: (String) -> Unit,
+    onRefresh: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(AmoledBlack)
+            .statusBarsPadding()
+            .padding(top = WallNiceSpacing.xs)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = WallNiceSpacing.md),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BrandMark()
+            Spacer(Modifier.size(WallNiceSpacing.sm))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "WallNice",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "Curated for your screen",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextSecondary
+                )
+            }
+            WallNiceIconButton(
+                icon = Icons.Default.Refresh,
+                contentDescription = "Refresh catalog",
+                onClick = onRefresh,
+                tint = NeonCyan
+            )
+        }
+
+        Spacer(Modifier.height(WallNiceSpacing.sm))
+
+        TextField(
+            value = searchQuery,
+            onValueChange = onSearchQueryChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = WallNiceSpacing.md)
+                .height(52.dp)
+                .border(
+                    width = 1.dp,
+                    color = OutlineSubtle,
+                    shape = RoundedCornerShape(WallNiceRadii.medium)
+                ),
+            placeholder = {
+                Text(
+                    text = "Search wallpapers",
+                    color = TextSecondary
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    tint = TextSecondary
+                )
+            },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { onSearchQueryChange("") }) {
+                        Icon(
+                            imageVector = Icons.Default.Clear,
+                            contentDescription = "Clear search",
+                            tint = TextSecondary
+                        )
+                    }
+                }
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(WallNiceRadii.medium),
+            colors = TextFieldDefaults.colors(
+                focusedTextColor = TextPrimary,
+                unfocusedTextColor = TextPrimary,
+                focusedContainerColor = SurfaceLow,
+                unfocusedContainerColor = SurfaceLow,
+                cursorColor = NeonCyan,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            )
+        )
+
+        Spacer(Modifier.height(WallNiceSpacing.xs))
+
+        LazyRow(
+            contentPadding = PaddingValues(
+                start = WallNiceSpacing.md,
+                end = WallNiceSpacing.md,
+                bottom = WallNiceSpacing.xs
+            ),
+            horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.xs)
+        ) {
+            items(categories, key = { it }) { category ->
+                CategoryPill(
+                    text = category,
+                    selected = selectedCategory == category,
+                    onClick = { onCategorySelected(category) }
+                )
             }
         }
     }

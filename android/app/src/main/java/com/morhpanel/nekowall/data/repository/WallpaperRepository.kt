@@ -22,6 +22,8 @@ object WallpaperRepository {
             var appUpdate: AppUpdateInfo? = null
             var categoriesList = mutableListOf<String>("All")
             var wallpapersList = mutableListOf<WallpaperItem>()
+            var sourceReached = false
+            var lastFailure: Throwable? = null
 
             try {
                 val separator = if (remoteCatalogUrl.contains("?")) "&" else "?"
@@ -32,6 +34,7 @@ object WallpaperRepository {
                 catalogConn.setRequestProperty("Cache-Control", "no-cache, no-store")
                 catalogConn.setRequestProperty("Pragma", "no-cache")
                 if (catalogConn.responseCode == HttpURLConnection.HTTP_OK) {
+                    sourceReached = true
                     val rawJson = catalogConn.inputStream.bufferedReader().use { it.readText() }
                     val root = JSONObject(rawJson)
 
@@ -82,13 +85,17 @@ object WallpaperRepository {
                             )
                         }
                     }
+                } else {
+                    lastFailure = Exception("Catalog HTTP: ${catalogConn.responseCode}")
                 }
             } catch (e: Exception) {
+                lastFailure = e
             }
 
             if (wallpapersList.isEmpty()) {
                 val treeResult = fetchDirectFromDlsTree()
                 if (treeResult.isSuccess) {
+                    sourceReached = true
                     val (treeCats, treeWalls) = treeResult.getOrThrow()
                     for (cat in treeCats) {
                         if (!categoriesList.contains(cat)) {
@@ -96,7 +103,15 @@ object WallpaperRepository {
                         }
                     }
                     wallpapersList.addAll(treeWalls)
+                } else {
+                    lastFailure = treeResult.exceptionOrNull() ?: lastFailure
                 }
+            }
+
+            if (!sourceReached) {
+                return@withContext Result.failure(
+                    lastFailure ?: Exception("No wallpaper source is available")
+                )
             }
 
             Result.success(
@@ -117,7 +132,7 @@ object WallpaperRepository {
             val connection = url.openConnection() as HttpURLConnection
             connection.connectTimeout = 8000
             connection.readTimeout = 8000
-            connection.setRequestProperty("User-Agent", "NekoWall-Android-Client")
+            connection.setRequestProperty("User-Agent", "WallNice-Android-Client")
 
             if (connection.responseCode != HttpURLConnection.HTTP_OK) {
                 return Result.failure(Exception("Tree API HTTP: ${connection.responseCode}"))

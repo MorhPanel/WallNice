@@ -1,10 +1,23 @@
 package com.morhpanel.nekowall.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Gif
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
@@ -19,13 +32,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
 import coil.request.ImageRequest
 import com.morhpanel.nekowall.data.models.MediaType
 import com.morhpanel.nekowall.data.models.WallpaperItem
-import com.morhpanel.nekowall.ui.theme.*
+import com.morhpanel.nekowall.ui.theme.NeonCyan
+import com.morhpanel.nekowall.ui.theme.NeonPink
+import com.morhpanel.nekowall.ui.theme.OutlineSubtle
+import com.morhpanel.nekowall.ui.theme.SurfaceLow
+import com.morhpanel.nekowall.ui.theme.TextPrimary
+import com.morhpanel.nekowall.ui.theme.TextSecondary
+import com.morhpanel.nekowall.ui.theme.WallNiceRadii
+import com.morhpanel.nekowall.ui.theme.WallNiceSpacing
 
 @Composable
 fun WallpaperCard(
@@ -33,22 +54,48 @@ fun WallpaperCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val shape = RoundedCornerShape(WallNiceRadii.large)
+
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(260.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(BgCard)
-            .clickable { onClick() }
+            .aspectRatio(9f / 16f)
+            .clip(shape)
+            .background(SurfaceLow)
+            .border(1.dp, OutlineSubtle, shape)
+            .clickable(onClick = onClick)
     ) {
-        AsyncImage(
+        SubcomposeAsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(wallpaper.thumbnailUrl)
-                .crossfade(true)
+                .crossfade(220)
                 .build(),
             contentDescription = wallpaper.title,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            loading = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(SurfaceLow)
+                )
+            },
+            error = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(SurfaceLow),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.BrokenImage,
+                        contentDescription = null,
+                        tint = TextSecondary,
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
+            },
+            success = { SubcomposeAsyncImageContent() }
         )
 
         Box(
@@ -56,81 +103,107 @@ fun WallpaperCard(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            Color.Black.copy(alpha = 0.2f),
-                            Color.Black.copy(alpha = 0.85f)
-                        ),
-                        startY = 100f
+                        colorStops = arrayOf(
+                            0f to Color.Black.copy(alpha = 0.04f),
+                            0.48f to Color.Transparent,
+                            1f to Color.Black.copy(alpha = 0.94f)
+                        )
                     )
                 )
         )
 
-        Row(
+        MediaBadge(
+            mediaType = wallpaper.mediaType,
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            when (wallpaper.mediaType) {
-                MediaType.VIDEO -> {
-                    Badge(text = "LIVE", icon = Icons.Default.PlayArrow, color = NeonPink)
-                }
-                MediaType.GIF -> {
-                    Badge(text = "GIF", icon = Icons.Default.Gif, color = NeonCyan)
-                }
-                MediaType.IMAGE -> {}
-            }
-        }
+                .padding(WallNiceSpacing.sm)
+        )
 
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(12.dp)
+                .fillMaxWidth()
+                .padding(WallNiceSpacing.sm)
         ) {
             Text(
                 text = wallpaper.title,
-                style = MaterialTheme.typography.titleLarge.copy(fontSize = 15.sp),
+                style = MaterialTheme.typography.titleMedium,
                 color = TextPrimary,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = "@${wallpaper.author}",
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
-                color = TextSecondary
-            )
+            Spacer(Modifier.size(3.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = wallpaper.category.ifBlank { "@" + wallpaper.author },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(WallNiceSpacing.xs))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.FavoriteBorder,
+                        contentDescription = null,
+                        tint = NeonPink,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(Modifier.width(3.dp))
+                    Text(
+                        text = wallpaper.likesCount.toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextPrimary
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun Badge(
-    text: String,
-    color: Color,
-    icon: androidx.compose.ui.graphics.vector.ImageVector? = null
+private fun MediaBadge(
+    mediaType: MediaType,
+    modifier: Modifier = Modifier
 ) {
+    val label: String
+    val icon = when (mediaType) {
+        MediaType.VIDEO -> {
+            label = "LIVE"
+            Icons.Default.PlayArrow
+        }
+        MediaType.GIF -> {
+            label = "GIF"
+            Icons.Default.Gif
+        }
+        MediaType.IMAGE -> return
+    }
+    val color = if (mediaType == MediaType.VIDEO) NeonPink else NeonCyan
+
     Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(color.copy(alpha = 0.85f))
-            .padding(horizontal = 6.dp, vertical = 2.dp),
+        modifier = modifier
+            .clip(RoundedCornerShape(WallNiceRadii.small))
+            .background(Color.Black.copy(alpha = 0.78f))
+            .border(1.dp, color.copy(alpha = 0.55f), RoundedCornerShape(WallNiceRadii.small))
+            .padding(horizontal = WallNiceSpacing.xs, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (icon != null) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = Color.Black,
-                modifier = Modifier.size(12.dp)
-            )
-            Spacer(modifier = Modifier.width(2.dp))
-        }
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(13.dp)
+        )
+        Spacer(Modifier.width(3.dp))
         Text(
-            text = text,
-            color = Color.Black,
-            fontSize = 9.sp,
+            text = label,
+            color = TextPrimary,
+            style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.ExtraBold
         )
     }

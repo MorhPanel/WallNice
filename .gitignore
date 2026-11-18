@@ -12,3 +12,4 @@ android/app/build/
 android/.gradle/
 *.keystore
 *.jks
+wallnice-release-signing.env
