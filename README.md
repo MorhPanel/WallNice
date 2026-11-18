@@ -1,44 +1,28 @@
 # WallNice
 
-WallNice is a high-performance Android live wallpaper application and media hub built with Kotlin, Jetpack Compose, Material 3, and Android Media3 (ExoPlayer).
+Ultra-fast Android wallpaper client and live engine. Zero GC lag, zero battery drain.
 
 ## Features
+- **Live Video** — Hardware-accelerated MP4/WebM playback via Media3.
+- **GIF Loops** — Smooth animated background rendering.
+- **4K Images** — Static wallpaper applicator for Home, Lock, or both screens.
+- **Auto Pool** — Dynamic wallpaper feed synchronized from `DLS/`.
+- **In-App Downloader** — Direct saving to system gallery via MediaStore.
+- **Update Engine** — Automatic version check against remote releases.
 
-- **Live Video Wallpapers**: Hardware-accelerated video rendering via `WallpaperService` and Media3 with zero-lag looping and battery-saver lifecycle management.
-- **GIF Loops**: Animated wallpaper rendering powered by Coil decoders.
-- **4K AMOLED Wallpapers**: High-resolution static wallpaper application via `WallpaperManager` for Home, Lock, or both screens.
-- **Dynamic Media Pool**: Automatic catalog synchronization directly from the `DLS/` folder on GitHub.
-- **Built-in Gallery Downloader**: Scoped storage integration using Android MediaStore API for saving media to device storage.
-- **Auto-Update Engine**: Automatic version comparison against remote manifest with instant update notifications.
-- **Interactive Previews**: Clean simulation of Lock Screen (clock, date, notifications) and Home Screen (apps, dockbar) prior to applying wallpapers.
-
-## Media Pool Structure
-
-Drop media files directly into the repository:
+## Media Pool
+Drop files into `DLS/` to automatically serve them to the app:
 ```
 DLS/
-├── img/     # Images (.jpg, .png, .webp)
-├── video/   # Live wallpapers (.mp4, .webm)
-└── gif/     # Looping animations (.gif)
+├── img/     # Static images (.jpg, .png, .webp)
+├── video/   # Live video loops (.mp4, .webm)
+└── gif/     # Animated loops (.gif)
 ```
 
-The catalog is automatically synchronized on every push to `DLS/**` using GitHub Actions.
-
-## Building the Project
-
-Requirements:
-- Android Studio Ladybug or newer
-- JDK 17 or higher
-- Android SDK 35
-
-Build with Gradle:
+## Build
 ```bash
 ./gradlew assembleDebug
 ```
 
-## Repository Rules
-
-All contributions must follow the guidelines outlined in [RULES.md](RULES.md):
-- English language only.
-- Strict zero-comments policy across all code files.
-- Verified, compilable code only.
+## Rules
+See [RULES.md](RULES.md) for contribution guidelines.
