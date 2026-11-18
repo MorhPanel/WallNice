@@ -2,13 +2,18 @@ package com.morhpanel.nekowall.ui.components
 
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,10 +28,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -42,6 +49,7 @@ import com.morhpanel.nekowall.ui.theme.SurfaceLow
 import com.morhpanel.nekowall.ui.theme.TextPrimary
 import com.morhpanel.nekowall.ui.theme.TextSecondary
 import com.morhpanel.nekowall.ui.theme.WallNiceRadii
+import com.morhpanel.nekowall.ui.theme.WallNiceMotion
 import com.morhpanel.nekowall.ui.theme.WallNiceSizes
 import com.morhpanel.nekowall.ui.theme.WallNiceSpacing
 
@@ -74,13 +82,28 @@ fun WallNiceIconButton(
     modifier: Modifier = Modifier,
     tint: Color = TextPrimary
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = tween(WallNiceMotion.fastDurationMillis),
+        label = "IconButtonPress"
+    )
     Box(
         modifier = modifier
             .size(WallNiceSizes.minimumTouchTarget)
+            .graphicsLayer {
+                scaleX = pressScale
+                scaleY = pressScale
+            }
             .clip(RoundedCornerShape(WallNiceRadii.small))
             .background(SurfaceLow)
             .border(1.dp, OutlineSubtle, RoundedCornerShape(WallNiceRadii.small))
-            .clickable(onClick = onClick),
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                onClick = onClick
+            ),
         contentAlignment = Alignment.Center
     ) {
         Icon(
@@ -100,14 +123,29 @@ fun CategoryPill(
     modifier: Modifier = Modifier
 ) {
     val shape = RoundedCornerShape(WallNiceRadii.pill)
+    val backgroundColor by animateColorAsState(
+        targetValue = if (selected) NeonPink else SurfaceLow,
+        animationSpec = tween(WallNiceMotion.fastDurationMillis),
+        label = "CategoryPillBackground"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (selected) NeonPink else OutlineStrong,
+        animationSpec = tween(WallNiceMotion.fastDurationMillis),
+        label = "CategoryPillBorder"
+    )
+    val textColor by animateColorAsState(
+        targetValue = if (selected) Color.White else TextSecondary,
+        animationSpec = tween(WallNiceMotion.fastDurationMillis),
+        label = "CategoryPillText"
+    )
     Row(
         modifier = modifier
             .height(WallNiceSizes.minimumTouchTarget)
             .clip(shape)
-            .background(if (selected) NeonPink else SurfaceLow)
+            .background(backgroundColor)
             .border(
                 width = 1.dp,
-                color = if (selected) NeonPink else OutlineStrong,
+                color = borderColor,
                 shape = shape
             )
             .clickable(onClick = onClick)
@@ -116,7 +154,7 @@ fun CategoryPill(
     ) {
         Text(
             text = text,
-            color = if (selected) Color.White else TextSecondary,
+            color = textColor,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold
         )
     }

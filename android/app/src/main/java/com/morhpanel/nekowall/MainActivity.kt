@@ -7,7 +7,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
@@ -23,6 +26,7 @@ import com.morhpanel.nekowall.ui.screens.HomeScreen
 import com.morhpanel.nekowall.ui.screens.PreviewScreen
 import com.morhpanel.nekowall.ui.theme.AmoledBlack
 import com.morhpanel.nekowall.ui.theme.NekoWallTheme
+import com.morhpanel.nekowall.ui.theme.WallNiceMotion
 
 class MainActivity : ComponentActivity() {
 
@@ -41,7 +45,31 @@ class MainActivity : ComponentActivity() {
 
                     AnimatedContent(
                         targetState = selectedWallpaper,
-                        transitionSpec = { fadeIn() togetherWith fadeOut() },
+                        transitionSpec = {
+                            if (targetState == null) {
+                                (fadeIn(animationSpec = tween(WallNiceMotion.standardDurationMillis)) +
+                                    slideInHorizontally(
+                                        animationSpec = tween(WallNiceMotion.standardDurationMillis),
+                                        initialOffsetX = { -it / 12 }
+                                    )) togetherWith
+                                    (fadeOut(animationSpec = tween(WallNiceMotion.fastDurationMillis)) +
+                                        slideOutHorizontally(
+                                            animationSpec = tween(WallNiceMotion.fastDurationMillis),
+                                            targetOffsetX = { it / 12 }
+                                        ))
+                            } else {
+                                (fadeIn(animationSpec = tween(WallNiceMotion.standardDurationMillis)) +
+                                    slideInHorizontally(
+                                        animationSpec = tween(WallNiceMotion.standardDurationMillis),
+                                        initialOffsetX = { it / 12 }
+                                    )) togetherWith
+                                    (fadeOut(animationSpec = tween(WallNiceMotion.fastDurationMillis)) +
+                                        slideOutHorizontally(
+                                            animationSpec = tween(WallNiceMotion.fastDurationMillis),
+                                            targetOffsetX = { -it / 12 }
+                                        ))
+                            }
+                        },
                         label = "ScreenTransition"
                     ) { wallpaper ->
                         if (wallpaper == null) {

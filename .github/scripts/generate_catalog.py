@@ -13,9 +13,9 @@ CATALOG_PATH = "catalog.json"
 DLS_DIR = "DLS"
 
 existing_update = {
-    "versionCode": 8,
-    "versionName": "0.0.8-beta",
-    "changelog": "System-managed APK downloads, no app install permission, and Play-managed update deferral.",
+    "versionCode": 9,
+    "versionName": "0.0.9-beta",
+    "changelog": "Smoother navigation, refreshed Settings, and system-managed update downloads.",
     "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/latest/download/app-release.apk"
 }
 

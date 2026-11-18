@@ -2,9 +2,14 @@ package com.morhpanel.nekowall.ui.screens
 
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -37,9 +42,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -54,7 +56,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.morhpanel.nekowall.data.models.AppUpdateInfo
@@ -75,12 +76,16 @@ import com.morhpanel.nekowall.ui.theme.SurfaceLow
 import com.morhpanel.nekowall.ui.theme.TextPrimary
 import com.morhpanel.nekowall.ui.theme.TextSecondary
 import com.morhpanel.nekowall.ui.theme.WallNiceRadii
+import com.morhpanel.nekowall.ui.theme.WallNiceMotion
 import com.morhpanel.nekowall.ui.theme.WallNiceSpacing
 import kotlinx.coroutines.launch
 
-enum class MainTab {
-    WALLPAPERS,
-    SETTINGS
+private enum class CatalogContentState {
+    LOADING,
+    OFFLINE,
+    EMPTY,
+    NO_RESULTS,
+    CONTENT
 }
 
 @Composable
@@ -89,7 +94,7 @@ fun HomeScreen(
     onUpdateAvailable: (AppUpdateInfo) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
-    var currentTab by remember { mutableStateOf(MainTab.WALLPAPERS) }
+    var showSettings by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf("All") }
     var searchQuery by remember { mutableStateOf("") }
     var categories by remember { mutableStateOf(listOf("All")) }
@@ -145,10 +150,22 @@ fun HomeScreen(
         }
     }
 
+    val catalogState = when {
+        isLoading && wallpapers.isEmpty() -> CatalogContentState.LOADING
+        errorMessage != null && wallpapers.isEmpty() -> CatalogContentState.OFFLINE
+        wallpapers.isEmpty() -> CatalogContentState.EMPTY
+        filteredList.isEmpty() -> CatalogContentState.NO_RESULTS
+        else -> CatalogContentState.CONTENT
+    }
+
+    BackHandler(enabled = showSettings) {
+        showSettings = false
+    }
+
     Scaffold(
         containerColor = AmoledBlack,
         topBar = {
-            if (currentTab == MainTab.WALLPAPERS) {
+            if (!showSettings) {
                 CatalogHeader(
                     searchQuery = searchQuery,
                     onSearchQueryChange = { searchQuery = it },
@@ -156,30 +173,57 @@ fun HomeScreen(
                     selectedCategory = selectedCategory,
                     onCategorySelected = { selectedCategory = it },
                     onRefresh = { loadData() },
-                    onOpenSettings = { currentTab = MainTab.SETTINGS }
-                )
-            } else {
-                SettingsHeader(
-                    onBack = { currentTab = MainTab.WALLPAPERS }
+                    onOpenSettings = { showSettings = true }
                 )
             }
         },
-        bottomBar = {
-            HomeBottomBar(
-                currentTab = currentTab,
-                onTabSelected = { currentTab = it }
-            )
-        }
     ) { innerPadding ->
         AnimatedContent(
-            targetState = currentTab,
-            transitionSpec = { fadeIn() togetherWith fadeOut() },
-            label = "MainTabTransition"
-        ) { tab ->
-            when (tab) {
-                MainTab.WALLPAPERS -> {
-                    when {
-                        isLoading && wallpapers.isEmpty() -> {
+            targetState = showSettings,
+            transitionSpec = {
+                if (targetState) {
+                    (fadeIn(animationSpec = tween(WallNiceMotion.standardDurationMillis)) +
+                        slideInHorizontally(
+                            animationSpec = tween(WallNiceMotion.standardDurationMillis),
+                            initialOffsetX = { it / 10 }
+                        )) togetherWith
+                        (fadeOut(animationSpec = tween(WallNiceMotion.fastDurationMillis)) +
+                            slideOutHorizontally(
+                                animationSpec = tween(WallNiceMotion.fastDurationMillis),
+                                targetOffsetX = { -it / 12 }
+                            ))
+                } else {
+                    (fadeIn(animationSpec = tween(WallNiceMotion.standardDurationMillis)) +
+                        slideInHorizontally(
+                            animationSpec = tween(WallNiceMotion.standardDurationMillis),
+                            initialOffsetX = { -it / 10 }
+                        )) togetherWith
+                        (fadeOut(animationSpec = tween(WallNiceMotion.fastDurationMillis)) +
+                            slideOutHorizontally(
+                                animationSpec = tween(WallNiceMotion.fastDurationMillis),
+                                targetOffsetX = { it / 12 }
+                            ))
+                }
+            },
+            label = "ScreenTransition"
+        ) { settingsOpen ->
+            if (settingsOpen) {
+                SettingsScreen(
+                    wallpapers = wallpapers,
+                    onBack = { showSettings = false },
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                AnimatedContent(
+                    targetState = catalogState,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(WallNiceMotion.standardDurationMillis)) togetherWith
+                            fadeOut(animationSpec = tween(WallNiceMotion.fastDurationMillis))
+                    },
+                    label = "CatalogStateTransition"
+                ) { state ->
+                    when (state) {
+                        CatalogContentState.LOADING -> {
                             LazyVerticalGrid(
                                 columns = GridCells.Fixed(2),
                                 modifier = Modifier.fillMaxSize(),
@@ -199,7 +243,7 @@ fun HomeScreen(
                             }
                         }
 
-                        errorMessage != null && wallpapers.isEmpty() -> {
+                        CatalogContentState.OFFLINE -> {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -216,7 +260,7 @@ fun HomeScreen(
                             }
                         }
 
-                        wallpapers.isEmpty() -> {
+                        CatalogContentState.EMPTY -> {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -233,7 +277,7 @@ fun HomeScreen(
                             }
                         }
 
-                        filteredList.isEmpty() -> {
+                        CatalogContentState.NO_RESULTS -> {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -253,7 +297,7 @@ fun HomeScreen(
                             }
                         }
 
-                        else -> {
+                        CatalogContentState.CONTENT -> {
                             LazyVerticalGrid(
                                 columns = GridCells.Fixed(2),
                                 modifier = Modifier.fillMaxSize(),
@@ -276,116 +320,8 @@ fun HomeScreen(
                         }
                     }
                 }
-
-                MainTab.SETTINGS -> {
-                    SettingsScreen(
-                        wallpapers = wallpapers,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = innerPadding
-                    )
-                }
             }
         }
-    }
-}
-
-@Composable
-private fun HomeBottomBar(
-    currentTab: MainTab,
-    onTabSelected: (MainTab) -> Unit
-) {
-    NavigationBar(
-        containerColor = SurfaceLow,
-        tonalElevation = 0.dp,
-        modifier = Modifier.border(
-            width = 1.dp,
-            color = OutlineSubtle,
-            shape = RoundedCornerShape(topStart = WallNiceRadii.large, topEnd = WallNiceRadii.large)
-        )
-    ) {
-        NavigationBarItem(
-            selected = currentTab == MainTab.WALLPAPERS,
-            onClick = { onTabSelected(MainTab.WALLPAPERS) },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Collections,
-                    contentDescription = "Wallpapers"
-                )
-            },
-            label = {
-                Text(
-                    text = "Wallpapers",
-                    fontWeight = if (currentTab == MainTab.WALLPAPERS) FontWeight.Bold else FontWeight.Normal
-                )
-            },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = NeonPink,
-                selectedTextColor = NeonPink,
-                indicatorColor = NeonPink.copy(alpha = 0.15f),
-                unselectedIconColor = TextSecondary,
-                unselectedTextColor = TextSecondary
-            )
-        )
-        NavigationBarItem(
-            selected = currentTab == MainTab.SETTINGS,
-            onClick = { onTabSelected(MainTab.SETTINGS) },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Settings"
-                )
-            },
-            label = {
-                Text(
-                    text = "Settings",
-                    fontWeight = if (currentTab == MainTab.SETTINGS) FontWeight.Bold else FontWeight.Normal
-                )
-            },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = NeonPink,
-                selectedTextColor = NeonPink,
-                indicatorColor = NeonPink.copy(alpha = 0.15f),
-                unselectedIconColor = TextSecondary,
-                unselectedTextColor = TextSecondary
-            )
-        )
-    }
-}
-
-@Composable
-private fun SettingsHeader(
-    onBack: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(AmoledBlack)
-            .statusBarsPadding()
-            .padding(horizontal = WallNiceSpacing.md, vertical = WallNiceSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        BrandMark()
-        Spacer(Modifier.width(WallNiceSpacing.sm))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "WallNice",
-                style = MaterialTheme.typography.headlineMedium,
-                color = TextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = "Settings & Info",
-                style = MaterialTheme.typography.labelSmall,
-                color = TextSecondary
-            )
-        }
-        WallNiceIconButton(
-            icon = Icons.Default.Collections,
-            contentDescription = "Back to Wallpapers",
-            onClick = onBack,
-            tint = NeonCyan
-        )
     }
 }
 
@@ -471,7 +407,11 @@ private fun CatalogHeader(
                 )
             },
             trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
+                AnimatedVisibility(
+                    visible = searchQuery.isNotEmpty(),
+                    enter = fadeIn(animationSpec = tween(WallNiceMotion.fastDurationMillis)),
+                    exit = fadeOut(animationSpec = tween(WallNiceMotion.fastDurationMillis))
+                ) {
                     IconButton(onClick = { onSearchQueryChange("") }) {
                         Icon(
                             imageVector = Icons.Default.Clear,

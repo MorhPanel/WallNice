@@ -5,24 +5,26 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -35,15 +37,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.morhpanel.nekowall.BuildConfig
 import com.morhpanel.nekowall.data.models.WallpaperItem
+import com.morhpanel.nekowall.ui.components.WallNiceIconButton
 import com.morhpanel.nekowall.ui.theme.AmoledBlack
 import com.morhpanel.nekowall.ui.theme.NeonCyan
 import com.morhpanel.nekowall.ui.theme.NeonPink
 import com.morhpanel.nekowall.ui.theme.OutlineSubtle
 import com.morhpanel.nekowall.ui.theme.SurfaceHigh
-import com.morhpanel.nekowall.ui.theme.SurfaceLow
 import com.morhpanel.nekowall.ui.theme.SurfaceMid
 import com.morhpanel.nekowall.ui.theme.TextMuted
 import com.morhpanel.nekowall.ui.theme.TextPrimary
@@ -58,12 +61,10 @@ import java.util.TimeZone
 @Composable
 fun SettingsScreen(
     wallpapers: List<WallpaperItem>,
-    modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(0.dp)
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
-
-    val totalWallpapers = wallpapers.size
     val categoryCounts = remember(wallpapers) {
         wallpapers.groupingBy { it.category.ifBlank { "All" } }
             .eachCount()
@@ -72,162 +73,221 @@ fun SettingsScreen(
     }
 
     val localBuildTime = remember {
-        val date = Date(BuildConfig.BUILD_TIME_MILLIS)
         val format = SimpleDateFormat("dd MMMM yyyy, HH:mm:ss", Locale.ENGLISH).apply {
             timeZone = TimeZone.getDefault()
         }
-        format.format(date)
+        format.format(Date(BuildConfig.BUILD_TIME_MILLIS))
     }
 
     val localTimezone = remember {
-        val tz = TimeZone.getDefault()
-        val now = Date()
-        val offsetMinutes = tz.getOffset(now.time) / (1000 * 60)
+        val timezone = TimeZone.getDefault()
+        val offsetMinutes = timezone.getOffset(Date().time) / (1000 * 60)
         val hours = offsetMinutes / 60
-        val minutes = Math.abs(offsetMinutes % 60)
+        val minutes = kotlin.math.abs(offsetMinutes % 60)
         val sign = if (hours >= 0) "+" else ""
         if (minutes == 0) {
-            "${tz.id} (UTC$sign$hours)"
+            "${timezone.id} (UTC$sign$hours)"
         } else {
-            "${tz.id} (UTC$sign$hours:${String.format(Locale.ENGLISH, "%02d", minutes)})"
+            "${timezone.id} (UTC$sign$hours:${String.format(Locale.ENGLISH, "%02d", minutes)})"
         }
     }
 
-    val norwayBuildTime = remember {
-        val date = Date(BuildConfig.BUILD_TIME_MILLIS)
+    val osloBuildTime = remember {
         val format = SimpleDateFormat("dd MMMM yyyy, HH:mm:ss", Locale.ENGLISH).apply {
             timeZone = TimeZone.getTimeZone("Europe/Oslo")
         }
-        format.format(date)
+        format.format(Date(BuildConfig.BUILD_TIME_MILLIS))
     }
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(AmoledBlack)
-            .padding(contentPadding)
-            .verticalScroll(scrollState)
-            .padding(WallNiceSpacing.md)
+    ) {
+        SettingsTopBar(onBack = onBack)
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .navigationBarsPadding()
+                .padding(horizontal = WallNiceSpacing.md)
+        ) {
+            Spacer(Modifier.height(WallNiceSpacing.sm))
+            SettingsHero(
+                wallpaperCount = wallpapers.size,
+                categoryCount = categoryCounts.size
+            )
+
+            Spacer(Modifier.height(WallNiceSpacing.xl))
+            SettingsSectionHeader(
+                icon = Icons.Default.Collections,
+                title = "Collection",
+                tint = NeonCyan,
+                detail = "What is available in this catalog"
+            )
+            Spacer(Modifier.height(WallNiceSpacing.xs))
+            SettingsCard {
+                SettingsValueRow("Total wallpapers", wallpapers.size.toString())
+                SettingsDivider()
+                Text(
+                    text = "Categories",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = TextSecondary,
+                    modifier = Modifier.padding(
+                        start = WallNiceSpacing.md,
+                        end = WallNiceSpacing.md,
+                        top = WallNiceSpacing.sm,
+                        bottom = WallNiceSpacing.xs
+                    )
+                )
+                if (categoryCounts.isEmpty()) {
+                    Text(
+                        text = "No wallpapers loaded",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextMuted,
+                        modifier = Modifier.padding(
+                            horizontal = WallNiceSpacing.md,
+                            vertical = WallNiceSpacing.sm
+                        )
+                    )
+                } else {
+                    categoryCounts.forEachIndexed { index, (category, count) ->
+                        SettingsValueRow(category, count.toString(), valueTint = NeonCyan)
+                        if (index < categoryCounts.lastIndex) SettingsDivider()
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(WallNiceSpacing.xl))
+            SettingsSectionHeader(
+                icon = Icons.Default.Info,
+                title = "Build",
+                tint = NeonPink,
+                detail = "The installed WallNice release"
+            )
+            Spacer(Modifier.height(WallNiceSpacing.xs))
+            SettingsCard {
+                SettingsValueRow("Version", BuildConfig.VERSION_NAME, valueTint = NeonPink)
+                SettingsDivider()
+                SettingsValueRow("Build code", BuildConfig.VERSION_CODE.toString())
+            }
+
+            Spacer(Modifier.height(WallNiceSpacing.xl))
+            SettingsSectionHeader(
+                icon = Icons.Default.Schedule,
+                title = "Environment",
+                tint = NeonCyan,
+                detail = "Useful device and build context"
+            )
+            Spacer(Modifier.height(WallNiceSpacing.xs))
+            SettingsCard {
+                SettingsValueRow("Local build time", localBuildTime)
+                SettingsDivider()
+                SettingsValueRow("Detected timezone", localTimezone)
+                SettingsDivider()
+                SettingsValueRow("Oslo build time", osloBuildTime)
+            }
+
+            Spacer(Modifier.height(WallNiceSpacing.xxl))
+        }
+    }
+}
+
+@Composable
+private fun SettingsTopBar(onBack: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = WallNiceSpacing.md, vertical = WallNiceSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        WallNiceIconButton(
+            icon = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Back to wallpapers",
+            onClick = onBack,
+            tint = NeonCyan
+        )
+        Spacer(Modifier.width(WallNiceSpacing.sm))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Settings",
+                style = MaterialTheme.typography.headlineMedium,
+                color = TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = "WallNice overview",
+                style = MaterialTheme.typography.labelSmall,
+                color = TextSecondary
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(WallNiceRadii.small))
+                .background(SurfaceHigh)
+                .border(1.dp, OutlineSubtle, RoundedCornerShape(WallNiceRadii.small)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = null,
+                tint = NeonPink,
+                modifier = Modifier.size(21.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsHero(
+    wallpaperCount: Int,
+    categoryCount: Int
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, OutlineSubtle, RoundedCornerShape(WallNiceRadii.large)),
+        color = SurfaceMid,
+        shape = RoundedCornerShape(WallNiceRadii.large)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(WallNiceSpacing.lg),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.md)
         ) {
             Box(
                 modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(SurfaceHigh)
-                    .border(1.dp, OutlineSubtle, CircleShape),
+                    .size(52.dp)
+                    .clip(RoundedCornerShape(WallNiceRadii.medium))
+                    .background(NeonPink.copy(alpha = 0.14f))
+                    .border(1.dp, NeonPink.copy(alpha = 0.35f), RoundedCornerShape(WallNiceRadii.medium)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Settings,
+                    imageVector = Icons.Default.Collections,
                     contentDescription = null,
                     tint = NeonPink,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(26.dp)
                 )
             }
-            Spacer(Modifier.width(WallNiceSpacing.md))
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Settings & Info",
+                    text = "Your wallpaper library",
                     style = MaterialTheme.typography.titleLarge,
-                    color = TextPrimary,
-                    fontWeight = FontWeight.Bold
+                    color = TextPrimary
                 )
+                Spacer(Modifier.height(WallNiceSpacing.xxs))
                 Text(
-                    text = "System metrics and collection overview",
-                    style = MaterialTheme.typography.bodySmall,
+                    text = "$wallpaperCount wallpapers · $categoryCount categories",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = TextSecondary
                 )
             }
         }
-
-        Spacer(Modifier.height(WallNiceSpacing.lg))
-
-        SettingsSectionHeader(
-            icon = Icons.Default.Collections,
-            title = "Wallpaper Collection",
-            tint = NeonCyan
-        )
-        Spacer(Modifier.height(WallNiceSpacing.xs))
-        SettingsCard {
-            SettingsRow(label = "Total Wallpapers", value = totalWallpapers.toString())
-            Spacer(Modifier.height(WallNiceSpacing.xs))
-            Text(
-                text = "Categories",
-                style = MaterialTheme.typography.labelMedium,
-                color = TextSecondary,
-                modifier = Modifier.padding(top = WallNiceSpacing.xs, bottom = 6.dp)
-            )
-            if (categoryCounts.isEmpty()) {
-                Text(
-                    text = "No wallpapers loaded",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextMuted
-                )
-            } else {
-                categoryCounts.forEach { (categoryName, count) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = categoryName,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextPrimary
-                        )
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(WallNiceRadii.small))
-                                .background(SurfaceLow)
-                                .border(1.dp, OutlineSubtle, RoundedCornerShape(WallNiceRadii.small))
-                                .padding(horizontal = 10.dp, vertical = 3.dp)
-                        ) {
-                            Text(
-                                text = count.toString(),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = NeonCyan,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        Spacer(Modifier.height(WallNiceSpacing.lg))
-
-        SettingsSectionHeader(
-            icon = Icons.Default.Info,
-            title = "Build Version",
-            tint = NeonPink
-        )
-        Spacer(Modifier.height(WallNiceSpacing.xs))
-        SettingsCard {
-            SettingsRow(label = "Version", value = BuildConfig.VERSION_NAME)
-            SettingsRow(label = "Build Code", value = BuildConfig.VERSION_CODE.toString())
-        }
-
-        Spacer(Modifier.height(WallNiceSpacing.lg))
-
-        SettingsSectionHeader(
-            icon = Icons.Default.Schedule,
-            title = "Build Timestamp",
-            tint = NeonCyan
-        )
-        Spacer(Modifier.height(WallNiceSpacing.xs))
-        SettingsCard {
-            SettingsRow(label = "Local System Time", value = localBuildTime)
-            SettingsRow(label = "Detected Timezone", value = localTimezone)
-            SettingsRow(label = "Norway Time (CET)", value = norwayBuildTime)
-        }
-
-        Spacer(Modifier.height(WallNiceSpacing.xl))
     }
 }
 
@@ -235,9 +295,11 @@ fun SettingsScreen(
 private fun SettingsSectionHeader(
     icon: ImageVector,
     title: String,
-    tint: Color
+    tint: Color,
+    detail: String
 ) {
     Row(
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.xs)
     ) {
@@ -247,55 +309,71 @@ private fun SettingsSectionHeader(
             tint = tint,
             modifier = Modifier.size(18.dp)
         )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = TextPrimary,
-            fontWeight = FontWeight.SemiBold
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = TextPrimary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = detail,
+                style = MaterialTheme.typography.labelSmall,
+                color = TextMuted
+            )
+        }
     }
 }
 
 @Composable
-private fun SettingsCard(
-    content: @Composable () -> Unit
-) {
+private fun SettingsCard(content: @Composable () -> Unit) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(WallNiceRadii.large))
             .border(1.dp, OutlineSubtle, RoundedCornerShape(WallNiceRadii.large)),
-        color = SurfaceMid
+        color = SurfaceMid,
+        shape = RoundedCornerShape(WallNiceRadii.large)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(WallNiceSpacing.md)
-        ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             content()
         }
     }
 }
 
 @Composable
-private fun SettingsRow(label: String, value: String) {
+private fun SettingsValueRow(
+    label: String,
+    value: String,
+    valueTint: Color = TextPrimary
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .padding(horizontal = WallNiceSpacing.md, vertical = WallNiceSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.md),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary
+            color = TextSecondary,
+            modifier = Modifier.weight(1f)
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
-            color = TextPrimary,
-            fontWeight = FontWeight.Medium
+            color = valueTint,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
         )
     }
+}
+
+@Composable
+private fun SettingsDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = WallNiceSpacing.md),
+        color = OutlineSubtle.copy(alpha = 0.7f)
+    )
 }

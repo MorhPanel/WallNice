@@ -12,6 +12,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SystemUpdateAlt
 import androidx.compose.material3.Button
@@ -45,6 +52,7 @@ import com.morhpanel.nekowall.ui.theme.SurfaceMid
 import com.morhpanel.nekowall.ui.theme.TextPrimary
 import com.morhpanel.nekowall.ui.theme.TextSecondary
 import com.morhpanel.nekowall.ui.theme.WallNiceRadii
+import com.morhpanel.nekowall.ui.theme.WallNiceMotion
 import com.morhpanel.nekowall.ui.theme.WallNiceSizes
 import com.morhpanel.nekowall.ui.theme.WallNiceSpacing
 
@@ -90,7 +98,23 @@ fun AppUpdateDialog(
 
                 Spacer(Modifier.height(WallNiceSpacing.lg))
 
-                when (val currentState = state) {
+                AnimatedContent(
+                    targetState = state,
+                    transitionSpec = {
+                        (fadeIn(animationSpec = tween(WallNiceMotion.standardDurationMillis)) +
+                            slideInVertically(
+                                animationSpec = tween(WallNiceMotion.standardDurationMillis),
+                                initialOffsetY = { it / 10 }
+                            )) togetherWith
+                            (fadeOut(animationSpec = tween(WallNiceMotion.fastDurationMillis)) +
+                                slideOutVertically(
+                                    animationSpec = tween(WallNiceMotion.fastDurationMillis),
+                                    targetOffsetY = { -it / 12 }
+                                ))
+                    },
+                    label = "UpdateStateTransition"
+                ) { currentState ->
+                    when (currentState) {
                     UpdateInstallState.Idle -> {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -150,6 +174,7 @@ fun AppUpdateDialog(
                                 color = TextPrimary
                             )
                         }
+                    }
                     }
                 }
 

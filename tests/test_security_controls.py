@@ -66,10 +66,33 @@ class SecurityControlTests(unittest.TestCase):
     def test_release_metadata_is_synchronized(self):
         gradle = (ROOT / "android/app/build.gradle.kts").read_text()
         catalog = json.loads((ROOT / "catalog.json").read_text())
-        self.assertIn("versionCode = 8", gradle)
-        self.assertIn('versionName = "0.0.8-beta"', gradle)
-        self.assertEqual(catalog["appUpdate"]["versionCode"], 8)
-        self.assertEqual(catalog["appUpdate"]["versionName"], "0.0.8-beta")
+        self.assertIn("versionCode = 9", gradle)
+        self.assertIn('versionName = "0.0.9-beta"', gradle)
+        self.assertEqual(catalog["appUpdate"]["versionCode"], 9)
+        self.assertEqual(catalog["appUpdate"]["versionName"], "0.0.9-beta")
+
+    def test_settings_is_header_action_with_back_navigation_and_shared_motion(self):
+        home = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/screens/HomeScreen.kt").read_text()
+        settings = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/screens/SettingsScreen.kt").read_text()
+        motion = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/theme/Motion.kt").read_text()
+
+        self.assertNotIn("NavigationBar", home)
+        self.assertNotIn("NavigationBarItem", home)
+        self.assertNotIn("HomeBottomBar", home)
+        self.assertNotIn("MainTab.SETTINGS", home)
+        self.assertIn("contentDescription = \"Settings and stats\"", home)
+        self.assertIn("onOpenSettings = { showSettings = true }", home)
+        self.assertIn("BackHandler(enabled = showSettings)", home)
+        self.assertIn("SettingsScreen(", home)
+        self.assertIn("onBack = { showSettings = false }", home)
+        self.assertIn("SettingsTopBar", settings)
+        self.assertIn("Icons.AutoMirrored.Filled.ArrowBack", settings)
+        self.assertIn("contentDescription = \"Back to wallpapers\"", settings)
+        self.assertIn("statusBarsPadding()", settings)
+        self.assertIn("navigationBarsPadding()", settings)
+        self.assertIn("WallNiceMotion", home)
+        self.assertIn("WallNiceMotion", motion)
+        self.assertIn("standardDurationMillis = 240", motion)
 
 
 if __name__ == "__main__":
