@@ -6,7 +6,69 @@
     "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/latest"
   },
   "categories": [
-    "All"
+    "All",
+    "Anime"
   ],
-  "wallpapers": []
+  "wallpapers": [
+    {
+      "id": "wp_1",
+      "title": "Miku Nakano 1",
+      "author": "morhpanel",
+      "category": "Anime",
+      "mediaType": "IMAGE",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/miku_nakano_1.jpg",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/miku_nakano_1.jpg",
+      "resolution": "Original",
+      "isAmoled": false,
+      "likesCount": 0
+    },
+    {
+      "id": "wp_2",
+      "title": "Miku Nakano 2",
+      "author": "morhpanel",
+      "category": "Anime",
+      "mediaType": "IMAGE",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/miku_nakano_2.jpg",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/miku_nakano_2.jpg",
+      "resolution": "Original",
+      "isAmoled": false,
+      "likesCount": 0
+    },
+    {
+      "id": "wp_3",
+      "title": "Miku Nakano 3",
+      "author": "morhpanel",
+      "category": "Anime",
+      "mediaType": "IMAGE",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/miku_nakano_3.jpg",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/miku_nakano_3.jpg",
+      "resolution": "Original",
+      "isAmoled": false,
+      "likesCount": 0
+    },
+    {
+      "id": "wp_4",
+      "title": "Miku Nakano 4",
+      "author": "morhpanel",
+      "category": "Anime",
+      "mediaType": "IMAGE",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/miku_nakano_4.jpg",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/miku_nakano_4.jpg",
+      "resolution": "Original",
+      "isAmoled": false,
+      "likesCount": 0
+    },
+    {
+      "id": "wp_5",
+      "title": "Miku Nakano 5",
+      "author": "morhpanel",
+      "category": "Anime",
+      "mediaType": "IMAGE",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/miku_nakano_5.jpg",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/miku_nakano_5.jpg",
+      "resolution": "Original",
+      "isAmoled": false,
+      "likesCount": 0
+    }
+  ]
 }
