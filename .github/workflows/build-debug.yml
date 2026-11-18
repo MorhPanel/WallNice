@@ -25,16 +25,17 @@ jobs:
           distribution: 'temurin'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v4
         with:
           build-root-directory: android
+          gradle-home-cache-cleanup: true
 
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
       - name: Build Debug APK
         working-directory: android
-        run: ./gradlew assembleDebug --stacktrace
+        run: ./gradlew assembleDebug --build-cache --parallel --stacktrace
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
 
