@@ -8,11 +8,24 @@
   "categories": [
     "All",
     "Anime",
+    "Miss Kobayashi's Dragon Maid",
     "The Quintessential Quintuplets"
   ],
   "wallpapers": [
     {
       "id": "wp_1",
+      "title": "Kanna Kamui",
+      "author": "morhpanel",
+      "category": "Anime",
+      "mediaType": "IMAGE",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Miss%20Kobayashi%27s%20Dragon%20Maid/kanna_kamui.jpg",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Miss%20Kobayashi%27s%20Dragon%20Maid/kanna_kamui.jpg",
+      "resolution": "1440x3200",
+      "isAmoled": false,
+      "likesCount": 0
+    },
+    {
+      "id": "wp_2",
       "title": "Ichika Nakano",
       "author": "morhpanel",
       "category": "Anime",
@@ -24,7 +37,7 @@
       "likesCount": 0
     },
     {
-      "id": "wp_2",
+      "id": "wp_3",
       "title": "Itsuki Nakano",
       "author": "morhpanel",
       "category": "Anime",
@@ -36,7 +49,7 @@
       "likesCount": 0
     },
     {
-      "id": "wp_3",
+      "id": "wp_4",
       "title": "Miku Nakano",
       "author": "morhpanel",
       "category": "Anime",
@@ -48,7 +61,7 @@
       "likesCount": 0
     },
     {
-      "id": "wp_4",
+      "id": "wp_5",
       "title": "Nino Nakano",
       "author": "morhpanel",
       "category": "Anime",
@@ -60,7 +73,7 @@
       "likesCount": 0
     },
     {
-      "id": "wp_5",
+      "id": "wp_6",
       "title": "Yotsuba Nakano",
       "author": "morhpanel",
       "category": "Anime",
