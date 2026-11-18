@@ -1,8 +1,8 @@
 {
   "appUpdate": {
-    "versionCode": 2,
-    "versionName": "1.1.0",
-    "changelog": "New 4K AMOLED and Live Video Wallpapers. Engine speed improvements.",
+    "versionCode": 1,
+    "versionName": "0.0.1-beta",
+    "changelog": "Initial beta release of WallNice.",
     "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/latest"
   },
   "categories": [
