@@ -11,6 +11,15 @@ class SecurityControlTests(unittest.TestCase):
         manifest = (ROOT / "android/app/src/main/AndroidManifest.xml").read_text()
         self.assertNotIn("REQUEST_INSTALL_PACKAGES", manifest)
         self.assertNotIn("FileProvider", manifest)
+        source_files = [
+            path for path in (ROOT / "android/app/src/main").rglob("*")
+            if path.is_file() and path.suffix in {".kt", ".xml"}
+        ]
+        source = "\n".join(path.read_text() for path in source_files)
+        self.assertNotIn("REQUEST_INSTALL_PACKAGES", source)
+        self.assertNotIn("ACTION_INSTALL_PACKAGE", source)
+        self.assertNotIn("MANAGE_UNKNOWN_APP_SOURCES", source)
+        self.assertNotIn("FileProvider", source)
 
     def test_update_flow_uses_only_the_trusted_direct_apk_url(self):
         updater = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/engine/AppUpdateManager.kt").read_text()
@@ -26,8 +35,14 @@ class SecurityControlTests(unittest.TestCase):
         self.assertIn("Intent(Intent.ACTION_VIEW, Uri.parse(safeUrl))", updater)
         self.assertIn("isPlayManagedInstall", updater)
         self.assertIn('source.host != "github.com"', updater)
+        self.assertIn("source.port != -1", updater)
+        self.assertIn("source.query != null", updater)
+        self.assertIn("source.fragment != null", updater)
+        self.assertIn("releaseTagPattern", updater)
         self.assertNotIn("downloadApk(", updater)
         self.assertNotIn("launchInstaller", updater)
+        self.assertNotIn("ACTION_INSTALL_PACKAGE", updater)
+        self.assertNotIn("application/vnd.android.package-archive", updater)
         self.assertNotIn("context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(updateInfo.downloadUrl))", dialog)
 
     def test_release_signing_stays_fail_closed(self):
@@ -45,14 +60,16 @@ class SecurityControlTests(unittest.TestCase):
         ):
             self.assertIn(name, workflow)
         self.assertIn("All permanent release signing secrets are required.", workflow)
+        self.assertIn("Release signing credentials are required.", gradle)
+        self.assertIn("gradle.taskGraph.whenReady", gradle)
 
     def test_release_metadata_is_synchronized(self):
         gradle = (ROOT / "android/app/build.gradle.kts").read_text()
         catalog = json.loads((ROOT / "catalog.json").read_text())
-        self.assertIn("versionCode = 5", gradle)
-        self.assertIn('versionName = "0.0.5-beta"', gradle)
-        self.assertEqual(catalog["appUpdate"]["versionCode"], 5)
-        self.assertEqual(catalog["appUpdate"]["versionName"], "0.0.5-beta")
+        self.assertIn("versionCode = 8", gradle)
+        self.assertIn('versionName = "0.0.8-beta"', gradle)
+        self.assertEqual(catalog["appUpdate"]["versionCode"], 8)
+        self.assertEqual(catalog["appUpdate"]["versionName"], "0.0.8-beta")
 
 
 if __name__ == "__main__":

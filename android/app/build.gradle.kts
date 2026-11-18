@@ -43,6 +43,20 @@ android {
         }
     }
 
+    val releaseSigningConfigured = listOf(
+        System.getenv("RELEASE_KEYSTORE_PATH"),
+        System.getenv("RELEASE_KEYSTORE_PASSWORD"),
+        System.getenv("RELEASE_KEY_ALIAS"),
+        System.getenv("RELEASE_KEY_PASSWORD")
+    ).all { !it.isNullOrBlank() } &&
+        System.getenv("RELEASE_KEYSTORE_PATH")?.let { file(it).isFile } == true
+
+    gradle.taskGraph.whenReady {
+        if (allTasks.any { it.name.contains("Release") } && !releaseSigningConfigured) {
+            throw GradleException("Release signing credentials are required.")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true

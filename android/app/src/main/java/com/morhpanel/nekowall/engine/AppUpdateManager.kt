@@ -17,29 +17,30 @@ object AppUpdateManager {
     const val LATEST_APK_URL =
         "https://github.com/MorhPanel/WallNice/releases/latest/download/app-release.apk"
 
+    private const val RELEASES_PATH = "/MorhPanel/WallNice/releases"
+    private const val TAG_PATH = "$RELEASES_PATH/tag/"
+    private val releaseTagPattern = Regex("[A-Za-z0-9][A-Za-z0-9._-]*")
+
     fun resolveApkUrl(originalUrl: String): String? {
-        val trimmed = originalUrl.trim().trimEnd('/')
-
-        if (trimmed.endsWith(".apk", ignoreCase = true)) {
-            return trimmed.takeIf(::isTrustedGithubApkUrl)
-        }
-
-        val source = Uri.parse(trimmed)
-        if (source.scheme != "https" || source.host != "github.com" ||
-            source.path?.startsWith("/MorhPanel/WallNice/releases") != true
+        val source = Uri.parse(originalUrl.trim().trimEnd('/'))
+        if (source.scheme != "https" || source.host != "github.com" || source.port != -1 ||
+            source.userInfo != null || source.query != null || source.fragment != null
         ) {
             return null
         }
 
-        return if (trimmed.endsWith("/releases/latest", ignoreCase = true)) {
-            LATEST_APK_URL
-        } else if (trimmed.contains("/releases/tag/", ignoreCase = true)) {
-            val tag = trimmed.substringAfter("/releases/tag/").substringBefore('/')
-            "https://github.com/MorhPanel/WallNice/releases/download/$tag/app-release.apk"
-        } else if (trimmed.endsWith("/releases", ignoreCase = true)) {
-            LATEST_APK_URL
-        } else {
-            null
+        val path = source.path ?: return null
+        return when {
+            path.equals(RELEASES_PATH, ignoreCase = true) ||
+                path.equals("$RELEASES_PATH/latest", ignoreCase = true) -> LATEST_APK_URL
+            isTrustedGithubApkPath(path) -> "https://github.com$path"
+            path.startsWith(TAG_PATH, ignoreCase = true) -> {
+                val tag = path.substring(TAG_PATH.length)
+                    .takeIf { it.isNotEmpty() && releaseTagPattern.matches(it) }
+                    ?: return null
+                "https://github.com$RELEASES_PATH/download/$tag/app-release.apk"
+            }
+            else -> null
         }
     }
 
@@ -70,12 +71,8 @@ object AppUpdateManager {
         return installerPackage == "com.android.vending"
     }
 
-    private fun isTrustedGithubApkUrl(value: String): Boolean {
-        val uri = Uri.parse(value)
-        val path = uri.path ?: return false
-        return uri.scheme == "https" &&
-            uri.host == "github.com" &&
-            path.startsWith("/MorhPanel/WallNice/releases/") &&
+    private fun isTrustedGithubApkPath(path: String): Boolean {
+        return path.startsWith("$RELEASES_PATH/download/", ignoreCase = true) &&
             path.endsWith("/app-release.apk", ignoreCase = true)
     }
 }
