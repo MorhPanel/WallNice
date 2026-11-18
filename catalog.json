@@ -1,8 +1,8 @@
 {
   "appUpdate": {
-    "versionCode": 6,
-    "versionName": "0.0.6-beta",
-    "changelog": "Settings and metrics now featured as a dedicated navigation tab.",
+    "versionCode": 7,
+    "versionName": "0.0.7-beta",
+    "changelog": "New AI upscaled 4K wallpapers and navigation tabs.",
     "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/latest/download/app-release.apk"
   },
   "categories": [
