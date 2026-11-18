@@ -1,5 +1,7 @@
 package com.morhpanel.nekowall.ui.screens
 
+import android.net.Uri
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -111,20 +113,23 @@ fun HomeScreen(
     val filteredList = remember(selectedCategory, searchQuery, wallpapers) {
         val query = searchQuery.trim()
         wallpapers.filter { item ->
+            val decodedUrl = Uri.decode(item.url)
             val categoryMatches = when (selectedCategory) {
                 "All" -> true
                 "Live Video" -> item.mediaType == MediaType.VIDEO
                 "GIF Loops" -> item.mediaType == MediaType.GIF
                 "AMOLED 4K" -> item.isAmoled
                 "Anime" -> item.category.equals("Anime", ignoreCase = true) ||
-                    item.url.contains("/Anime/", ignoreCase = true)
+                    decodedUrl.contains("/Anime/", ignoreCase = true)
                 else -> item.category.equals(selectedCategory, ignoreCase = true) ||
-                    item.url.contains(selectedCategory.replace(" ", "%20"), ignoreCase = true)
+                    decodedUrl.contains("/$selectedCategory/", ignoreCase = true) ||
+                    decodedUrl.contains(selectedCategory, ignoreCase = true)
             }
             val searchMatches = query.isBlank() ||
                 item.title.contains(query, ignoreCase = true) ||
                 item.author.contains(query, ignoreCase = true) ||
-                item.category.contains(query, ignoreCase = true)
+                item.category.contains(query, ignoreCase = true) ||
+                decodedUrl.contains(query, ignoreCase = true)
             categoryMatches && searchMatches
         }
     }
