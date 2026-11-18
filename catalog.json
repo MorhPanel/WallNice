@@ -16,54 +16,6 @@
   "wallpapers": [
     {
       "id": "wp_1",
-      "title": "Midnight Kitsune",
-      "author": "morhpanel",
-      "category": "Anime",
-      "mediaType": "IMAGE",
-      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Gothic/midnight_kitsune_b9e0d763.jpg",
-      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Gothic/midnight_kitsune_b9e0d763.jpg",
-      "resolution": "1440x3200",
-      "isAmoled": false,
-      "likesCount": 0
-    },
-    {
-      "id": "wp_2",
-      "title": "Twin Queens",
-      "author": "morhpanel",
-      "category": "Anime",
-      "mediaType": "IMAGE",
-      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Gothic/twin_queens_8b4f1c9a.jpg",
-      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Gothic/twin_queens_8b4f1c9a.jpg",
-      "resolution": "1440x3200",
-      "isAmoled": false,
-      "likesCount": 0
-    },
-    {
-      "id": "wp_3",
-      "title": "Kanna Kamui",
-      "author": "morhpanel",
-      "category": "Anime",
-      "mediaType": "IMAGE",
-      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Miss%20Kobayashi%27s%20Dragon%20Maid/kanna_kamui.jpg",
-      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Miss%20Kobayashi%27s%20Dragon%20Maid/kanna_kamui.jpg",
-      "resolution": "1440x3200",
-      "isAmoled": false,
-      "likesCount": 0
-    },
-    {
-      "id": "wp_4",
-      "title": "D Killer Wife",
-      "author": "morhpanel",
-      "category": "Anime",
-      "mediaType": "IMAGE",
-      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Nikke/d_killer_wife_e23c764c.jpg",
-      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Nikke/d_killer_wife_e23c764c.jpg",
-      "resolution": "1440x3200",
-      "isAmoled": false,
-      "likesCount": 0
-    },
-    {
-      "id": "wp_5",
       "title": "Ichika Nakano",
       "author": "morhpanel",
       "category": "Anime",
@@ -75,7 +27,7 @@
       "likesCount": 0
     },
     {
-      "id": "wp_6",
+      "id": "wp_2",
       "title": "Ichika Nakano",
       "author": "morhpanel",
       "category": "Anime",
@@ -87,7 +39,7 @@
       "likesCount": 0
     },
     {
-      "id": "wp_7",
+      "id": "wp_3",
       "title": "Itsuki Nakano",
       "author": "morhpanel",
       "category": "Anime",
@@ -99,7 +51,7 @@
       "likesCount": 0
     },
     {
-      "id": "wp_8",
+      "id": "wp_4",
       "title": "Itsuki Nakano",
       "author": "morhpanel",
       "category": "Anime",
@@ -111,7 +63,7 @@
       "likesCount": 0
     },
     {
-      "id": "wp_9",
+      "id": "wp_5",
       "title": "Itsuki Nakano",
       "author": "morhpanel",
       "category": "Anime",
@@ -123,7 +75,7 @@
       "likesCount": 0
     },
     {
-      "id": "wp_10",
+      "id": "wp_6",
       "title": "Miku Nakano",
       "author": "morhpanel",
       "category": "Anime",
@@ -135,7 +87,7 @@
       "likesCount": 0
     },
     {
-      "id": "wp_11",
+      "id": "wp_7",
       "title": "Miku Nakano",
       "author": "morhpanel",
       "category": "Anime",
@@ -147,7 +99,7 @@
       "likesCount": 0
     },
     {
-      "id": "wp_12",
+      "id": "wp_8",
       "title": "Nino Nakano",
       "author": "morhpanel",
       "category": "Anime",
@@ -159,7 +111,7 @@
       "likesCount": 0
     },
     {
-      "id": "wp_13",
+      "id": "wp_9",
       "title": "Nino Nakano",
       "author": "morhpanel",
       "category": "Anime",
@@ -171,7 +123,7 @@
       "likesCount": 0
     },
     {
-      "id": "wp_14",
+      "id": "wp_10",
       "title": "Yotsuba Nakano",
       "author": "morhpanel",
       "category": "Anime",
@@ -183,13 +135,61 @@
       "likesCount": 0
     },
     {
-      "id": "wp_15",
+      "id": "wp_11",
       "title": "Yotsuba Nakano",
       "author": "morhpanel",
       "category": "Anime",
       "mediaType": "IMAGE",
       "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/The%20Quintessential%20Quintuplets/yotsuba_nakano_5c7a2e8d.jpg",
       "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/The%20Quintessential%20Quintuplets/yotsuba_nakano_5c7a2e8d.jpg",
+      "resolution": "1440x3200",
+      "isAmoled": false,
+      "likesCount": 0
+    },
+    {
+      "id": "wp_12",
+      "title": "Kanna Kamui",
+      "author": "morhpanel",
+      "category": "Anime",
+      "mediaType": "IMAGE",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Miss%20Kobayashi%27s%20Dragon%20Maid/kanna_kamui.jpg",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Miss%20Kobayashi%27s%20Dragon%20Maid/kanna_kamui.jpg",
+      "resolution": "1440x3200",
+      "isAmoled": false,
+      "likesCount": 0
+    },
+    {
+      "id": "wp_13",
+      "title": "D Killer Wife",
+      "author": "morhpanel",
+      "category": "Anime",
+      "mediaType": "IMAGE",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Nikke/d_killer_wife_e23c764c.jpg",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Nikke/d_killer_wife_e23c764c.jpg",
+      "resolution": "1440x3200",
+      "isAmoled": false,
+      "likesCount": 0
+    },
+    {
+      "id": "wp_14",
+      "title": "Midnight Kitsune",
+      "author": "morhpanel",
+      "category": "Anime",
+      "mediaType": "IMAGE",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Gothic/midnight_kitsune_b9e0d763.jpg",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Gothic/midnight_kitsune_b9e0d763.jpg",
+      "resolution": "1440x3200",
+      "isAmoled": false,
+      "likesCount": 0
+    },
+    {
+      "id": "wp_15",
+      "title": "Twin Queens",
+      "author": "morhpanel",
+      "category": "Anime",
+      "mediaType": "IMAGE",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Gothic/twin_queens_8b4f1c9a.jpg",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Gothic/twin_queens_8b4f1c9a.jpg",
       "resolution": "1440x3200",
       "isAmoled": false,
       "likesCount": 0
