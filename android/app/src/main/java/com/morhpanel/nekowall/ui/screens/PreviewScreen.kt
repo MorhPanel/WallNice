@@ -25,7 +25,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BrokenImage
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PhoneAndroid
@@ -123,8 +122,6 @@ fun PreviewScreen(
     var isMuted by remember { mutableStateOf(true) }
     var showApplyDialog by remember { mutableStateOf(false) }
     var isApplying by remember { mutableStateOf(false) }
-    var isDownloading by remember { mutableStateOf(false) }
-    var downloadProgress by remember { mutableIntStateOf(0) }
     var videoPlaybackState by remember { mutableIntStateOf(Player.STATE_IDLE) }
     var videoError by remember { mutableStateOf(false) }
 
@@ -163,7 +160,7 @@ fun PreviewScreen(
         exoPlayer?.volume = if (isMuted) 0f else 1f
     }
 
-    val isBusy = isApplying || isDownloading
+    val isBusy = isApplying
 
     Box(
         modifier = Modifier
@@ -193,29 +190,8 @@ fun PreviewScreen(
             modifier = Modifier.align(Alignment.BottomCenter),
             wallpaper = wallpaper,
             isMuted = isMuted,
-            isDownloading = isDownloading,
-            downloadProgress = downloadProgress,
             isApplying = isApplying,
             onMuteToggle = { isMuted = !isMuted },
-            onSave = {
-                if (!isBusy) {
-                    coroutineScope.launch {
-                        isDownloading = true
-                        downloadProgress = 0
-                        val success = DownloadHelper.saveToGallery(
-                            context = context,
-                            fileUrl = wallpaper.url,
-                            title = wallpaper.title,
-                            isVideo = wallpaper.mediaType == MediaType.VIDEO,
-                            onProgress = { downloadProgress = it }
-                        )
-                        isDownloading = false
-                        snackbarHostState.showSnackbar(
-                            if (success) "Saved to gallery" else "Download failed"
-                        )
-                    }
-                }
-            },
             onApply = {
                 if (!isBusy) {
                     if (wallpaper.mediaType == MediaType.VIDEO) {
@@ -499,11 +475,8 @@ private fun PreviewBottomPanel(
     modifier: Modifier = Modifier,
     wallpaper: WallpaperItem,
     isMuted: Boolean,
-    isDownloading: Boolean,
-    downloadProgress: Int,
     isApplying: Boolean,
     onMuteToggle: () -> Unit,
-    onSave: () -> Unit,
     onApply: () -> Unit
 ) {
     Column(
@@ -569,81 +542,37 @@ private fun PreviewBottomPanel(
 
         Spacer(Modifier.height(WallNiceSpacing.md))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.sm)
+        Button(
+            onClick = onApply,
+            enabled = !isApplying,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(WallNiceSizes.primaryActionHeight),
+            shape = RoundedCornerShape(WallNiceRadii.medium),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = NeonPink,
+                disabledContainerColor = NeonPink.copy(alpha = 0.5f)
+            )
         ) {
-            Button(
-                onClick = onSave,
-                enabled = !isDownloading && !isApplying,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(WallNiceSizes.primaryActionHeight),
-                shape = RoundedCornerShape(WallNiceRadii.medium),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = SurfaceHigh,
-                    disabledContainerColor = SurfaceHigh.copy(alpha = 0.65f)
+            if (isApplying) {
+                CircularProgressIndicator(
+                    color = Color.White,
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(19.dp)
                 )
-            ) {
-                if (isDownloading) {
-                    CircularProgressIndicator(
-                        color = NeonCyan,
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(WallNiceSpacing.xs))
-                    Text(
-                        text = downloadProgress.toString() + "%",
-                        color = TextPrimary
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Download,
-                        contentDescription = null,
-                        tint = NeonCyan,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(Modifier.width(WallNiceSpacing.xs))
-                    Text(
-                        text = "Save",
-                        color = TextPrimary,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            Button(
-                onClick = onApply,
-                enabled = !isApplying && !isDownloading,
-                modifier = Modifier
-                    .weight(1.25f)
-                    .height(WallNiceSizes.primaryActionHeight),
-                shape = RoundedCornerShape(WallNiceRadii.medium),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = NeonPink,
-                    disabledContainerColor = NeonPink.copy(alpha = 0.5f)
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Wallpaper,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
                 )
-            ) {
-                if (isApplying) {
-                    CircularProgressIndicator(
-                        color = Color.White,
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(19.dp)
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Wallpaper,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(Modifier.width(WallNiceSpacing.xs))
-                    Text(
-                        text = "Apply",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Spacer(Modifier.width(WallNiceSpacing.xs))
+                Text(
+                    text = "Set Wallpaper",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }

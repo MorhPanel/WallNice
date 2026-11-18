@@ -19,6 +19,7 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        buildConfigField("Long", "BUILD_TIME_MILLIS", "${System.currentTimeMillis()}L")
     }
 
     signingConfigs {

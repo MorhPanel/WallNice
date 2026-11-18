@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrokenImage
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Gif
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
@@ -133,35 +132,13 @@ fun WallpaperCard(
                 overflow = TextOverflow.Ellipsis
             )
             Spacer(Modifier.size(3.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = wallpaper.category.ifBlank { "@" + wallpaper.author },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-                Spacer(Modifier.width(WallNiceSpacing.xs))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.FavoriteBorder,
-                        contentDescription = null,
-                        tint = NeonPink,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(Modifier.width(3.dp))
-                    Text(
-                        text = wallpaper.likesCount.toString(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextPrimary
-                    )
-                }
-            }
+            Text(
+                text = wallpaper.category.ifBlank { "@" + wallpaper.author },
+                style = MaterialTheme.typography.labelSmall,
+                color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }

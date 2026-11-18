@@ -26,6 +26,9 @@ import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.CollectionsBookmark
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.foundation.layout.width
+import com.morhpanel.nekowall.ui.components.SettingsDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -58,6 +61,7 @@ import com.morhpanel.nekowall.ui.components.WallNiceIconButton
 import com.morhpanel.nekowall.ui.components.WallpaperCard
 import com.morhpanel.nekowall.ui.theme.AmoledBlack
 import com.morhpanel.nekowall.ui.theme.NeonCyan
+import com.morhpanel.nekowall.ui.theme.NeonPink
 import com.morhpanel.nekowall.ui.theme.OutlineSubtle
 import com.morhpanel.nekowall.ui.theme.SurfaceLow
 import com.morhpanel.nekowall.ui.theme.TextPrimary
@@ -78,6 +82,7 @@ fun HomeScreen(
     var wallpapers by remember { mutableStateOf<List<WallpaperItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
 
     fun loadData() {
         if (isLoading && wallpapers.isNotEmpty()) return
@@ -133,7 +138,8 @@ fun HomeScreen(
                 categories = categories,
                 selectedCategory = selectedCategory,
                 onCategorySelected = { selectedCategory = it },
-                onRefresh = { loadData() }
+                onRefresh = { loadData() },
+                onOpenSettings = { showSettingsDialog = true }
             )
         }
     ) { innerPadding ->
@@ -234,6 +240,13 @@ fun HomeScreen(
                 }
             }
         }
+
+        if (showSettingsDialog) {
+            SettingsDialog(
+                wallpapers = wallpapers,
+                onDismiss = { showSettingsDialog = false }
+            )
+        }
     }
 }
 
@@ -244,7 +257,8 @@ private fun CatalogHeader(
     categories: List<String>,
     selectedCategory: String,
     onCategorySelected: (String) -> Unit,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    onOpenSettings: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -280,6 +294,13 @@ private fun CatalogHeader(
                 contentDescription = "Refresh catalog",
                 onClick = onRefresh,
                 tint = NeonCyan
+            )
+            Spacer(Modifier.width(WallNiceSpacing.xs))
+            WallNiceIconButton(
+                icon = Icons.Default.Settings,
+                contentDescription = "Settings and stats",
+                onClick = onOpenSettings,
+                tint = NeonPink
             )
         }
 
