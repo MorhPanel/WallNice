@@ -13,9 +13,9 @@ CATALOG_PATH = "catalog.json"
 DLS_DIR = "DLS"
 
 existing_update = {
-    "versionCode": 13,
-    "versionName": "0.0.13-beta",
-    "changelog": "Restores seamless in-app updater with download progress and direct system package installer handoff.",
+    "versionCode": 14,
+    "versionName": "0.0.13.1-beta",
+    "changelog": "Validation build for seamless in-app updater.",
     "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/latest/download/app-release.apk"
 }
 
