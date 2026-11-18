@@ -10,19 +10,21 @@ A sleek, lightweight cross-platform experience for discovering, downloading, and
 
 <br />
 
-![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Windows%20%7C%20Linux-10151D?style=for-the-badge&logo=android&logoColor=3DDC84)
-![Kotlin](https://img.shields.io/badge/Android-Kotlin%20%2B%20Compose-10151D?style=for-the-badge&logo=kotlin&logoColor=AA78FF)
-![Status](https://img.shields.io/badge/Status-Beta%20v0.0.1-10151D?style=for-the-badge&logo=github&logoColor=white)
-![License](https://img.shields.io/badge/License-Not%20Specified-10151D?style=for-the-badge)
+[![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Windows%20%7C%20Linux-10151D?style=for-the-badge&logo=android&logoColor=3DDC84)](#platforms)
+[![Kotlin](https://img.shields.io/badge/Android-Kotlin%20%2B%20Compose-10151D?style=for-the-badge&logo=kotlin&logoColor=AA78FF)](android/)
+[![Status](https://img.shields.io/badge/Status-Beta%20v0.0.1-10151D?style=for-the-badge&logo=github&logoColor=white)](https://github.com/MorhPanel/WallNice/releases)
+[![License](https://img.shields.io/badge/License-Not%20Specified-10151D?style=for-the-badge)](#license)
 
 <br />
 
-**[Overview](#-overview) · [Platforms](#-platform-support) · [Features](#-features) · [Architecture](#-architecture) · [Getting Started](#-getting-started) · [Roadmap](#-roadmap)**
+**[Overview](#overview) · [Platforms](#platforms) · [Features](#features) · [Architecture](#architecture) · [Getting Started](#getting-started) · [Roadmap](#roadmap)**
 
 </div>
 
 ---
 
+<a id="overview"></a>
+<a id="-overview"></a>
 ## ✦ Overview
 
 **WallNice** is a cross-platform live wallpaper engine and media hub focused on motion, battery efficiency, and simplicity. Browse a curated collection of live video backgrounds, high-contrast AMOLED art, and looping animations, preview them in full resolution, and apply them directly to your screen.
@@ -31,6 +33,10 @@ The goal is a smooth, distraction-free experience with a remotely maintained cat
 
 > **Project status:** Android is in active public Beta (v0.0.1-beta). Desktop clients for Windows and Linux are in development.
 
+<a id="platforms"></a>
+<a id="-platforms"></a>
+<a id="platform-support"></a>
+<a id="-platform-support"></a>
 ## ⊞ Platform Support
 
 | Platform | Directory | Runtime & Stack | Status |
@@ -39,6 +45,8 @@ The goal is a smooth, distraction-free experience with a remotely maintained cat
 | **Windows** | `./windows` | Win32 API · DirectX 11 · Desktop Window Manager (DWM) | 🔜 Coming Soon |
 | **Linux (Fedora / GNOME)** | `./linux` | Wayland · `swww` daemon · Portal API | 🔜 Coming Soon |
 
+<a id="features"></a>
+<a id="-features"></a>
 ## ✧ Features
 
 | | Feature | Description |
@@ -51,6 +59,8 @@ The goal is a smooth, distraction-free experience with a remotely maintained cat
 | ↻ | **Auto-syncing catalog** | Catalog metadata updates automatically on repository push via GitHub Actions. |
 | ⇪ | **In-app updates** | Remote version check on launch with instant GitHub Release update dialog. |
 
+<a id="architecture"></a>
+<a id="-architecture"></a>
 ## ⌘ Architecture
 
 ```text
@@ -80,6 +90,8 @@ The goal is a smooth, distraction-free experience with a remotely maintained cat
 - **Catalog Automation:** Python workflow script auto-indexing `DLS/` on git push
 - **Storage:** Android 10+ scoped storage via `MediaStore` API
 
+<a id="getting-started"></a>
+<a id="-getting-started"></a>
 ## ◇ Getting Started
 
 ### Android Installation
@@ -99,6 +111,8 @@ cd WallNice/android
 ./gradlew assembleRelease
 ```
 
+<a id="repository-structure"></a>
+<a id="-repository-structure"></a>
 ## ▤ Repository Structure
 
 ```text
@@ -115,6 +129,10 @@ WallNice/
 └── RULES.md                 # Contributor guidelines
 ```
 
+<a id="roadmap"></a>
+<a id="-roadmap"></a>
+<a id="roadmap--todo"></a>
+<a id="-roadmap--todo"></a>
 ## ⚑ Roadmap & TODO
 
 | # | Task | Platform | Priority | Status |
@@ -132,6 +150,8 @@ WallNice/
 | 11 | Wayland `swww` daemon integration | Linux | 🔴 High | ⬜ Not Started |
 | 12 | GNOME and KDE Plasma wallpaper plugin | Linux | 🟡 Medium | ⬜ Not Started |
 
+<a id="design-principles"></a>
+<a id="-design-principles"></a>
 ## ◈ Design Principles
 
 **Zero battery waste.** Video decoding pauses instantly when your screen is locked or covered by another application.
@@ -142,6 +162,10 @@ WallNice/
 
 **Independent media pool.** Add new wallpapers to `DLS/` at any time without updating the application code.
 
+<a id="license"></a>
+<a id="-license"></a>
+<a id="license--content"></a>
+<a id="-license--content"></a>
 ## ⚖ License & Content
 
 No software license has been specified yet. All original application source code is maintained by MorhPanel.
