@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Gif
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
@@ -101,31 +100,11 @@ fun WallpaperCard(
                 maxLines = 1
             )
             Spacer(modifier = Modifier.height(2.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "@${wallpaper.author}",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
-                    color = TextSecondary
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Favorite,
-                        contentDescription = "Likes",
-                        tint = NeonPink,
-                        modifier = Modifier.size(13.dp)
-                    )
-                    Spacer(modifier = Modifier.width(3.dp))
-                    Text(
-                        text = "${wallpaper.likesCount}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextPrimary
-                    )
-                }
-            }
+            Text(
+                text = "@${wallpaper.author}",
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
+                color = TextSecondary
+            )
         }
     }
 }
