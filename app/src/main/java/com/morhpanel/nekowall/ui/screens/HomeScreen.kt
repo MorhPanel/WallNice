@@ -73,7 +73,9 @@ fun HomeScreen(
                 "Live Video" -> item.mediaType == MediaType.VIDEO
                 "GIF Loops" -> item.mediaType == MediaType.GIF
                 "AMOLED 4K" -> item.isAmoled
-                else -> item.category.equals(selectedCategory, ignoreCase = true)
+                "Anime" -> item.category.equals("Anime", ignoreCase = true) || item.url.contains("/Anime/", ignoreCase = true)
+                else -> item.category.equals(selectedCategory, ignoreCase = true) ||
+                        item.url.contains(selectedCategory.replace(" ", "%20"), ignoreCase = true)
             }
         }
     }

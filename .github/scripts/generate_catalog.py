@@ -1,5 +1,6 @@
 import os
 import json
+import urllib.parse
 
 REPO_BASE = "https://raw.githubusercontent.com/MorhPanel/WallNice/main"
 CATALOG_PATH = "catalog.json"
@@ -36,29 +37,40 @@ for root, _, files in os.walk(DLS_DIR):
         rel_to_dls = os.path.relpath(full_path, DLS_DIR).replace("\\", "/")
         parts = rel_to_dls.split("/")
         
-        folder = parts[0].lower() if len(parts) > 1 else ""
-        category = parts[1] if len(parts) > 2 else "All"
-        if category != "All":
-            categories.add(category)
-
+        folder = parts[0].lower() if len(parts) > 0 else ""
         ext = os.path.splitext(file)[1].lower()
+
         if ext in valid_vid or folder == "video":
             media_type = "VIDEO"
-            if category == "All":
-                category = "Live Video"
-                categories.add(category)
+            category = "Live Video"
+            if len(parts) > 2:
+                category = parts[1]
+            categories.add(category)
         elif ext in valid_gif or folder == "gif":
             media_type = "GIF"
-            if category == "All":
-                category = "GIF Loops"
-                categories.add(category)
+            category = "GIF Loops"
+            if len(parts) > 2:
+                category = parts[1]
+            categories.add(category)
         elif ext in valid_img or folder == "img":
             media_type = "IMAGE"
+            if len(parts) >= 4 and parts[1].lower() == "anime":
+                category = "Anime"
+                anime_name = parts[2]
+                categories.add("Anime")
+                categories.add(anime_name)
+            elif len(parts) >= 3:
+                category = parts[1]
+                categories.add(category)
+            else:
+                category = "All"
         else:
             continue
 
         title = os.path.splitext(file)[0].replace("_", " ").replace("-", " ").title()
-        raw_url = f"{REPO_BASE}/{full_path}"
+        
+        encoded_path = "/".join(urllib.parse.quote(part) for part in full_path.split("/"))
+        raw_url = f"{REPO_BASE}/{encoded_path}"
 
         wallpapers.append({
             "id": f"wp_{len(wallpapers) + 1}",

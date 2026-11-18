@@ -9,6 +9,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 
 object WallpaperRepository {
 
@@ -141,19 +142,29 @@ object WallpaperRepository {
 
                 val segments = path.split("/")
                 val subFolder = if (segments.size > 1) segments[1].lowercase() else ""
-                var category = if (segments.size > 3) segments[2] else "All"
+                var category = "All"
 
                 val ext = fileName.substringAfterLast(".", "").lowercase()
                 val mediaType = when {
                     ext in listOf("mp4", "webm", "mkv") || subFolder == "video" -> {
-                        if (category == "All") category = "Live Video"
+                        category = "Live Video"
                         MediaType.VIDEO
                     }
                     ext in listOf("gif") || subFolder == "gif" -> {
-                        if (category == "All") category = "GIF Loops"
+                        category = "GIF Loops"
                         MediaType.GIF
                     }
-                    else -> MediaType.IMAGE
+                    else -> {
+                        if (subFolder == "img" && segments.size >= 4 && segments[2].equals("Anime", ignoreCase = true)) {
+                            category = "Anime"
+                            val animeTitle = segments[3]
+                            if (!categories.contains("Anime")) categories.add("Anime")
+                            if (!categories.contains(animeTitle)) categories.add(animeTitle)
+                        } else if (segments.size > 2) {
+                            category = segments[2]
+                        }
+                        MediaType.IMAGE
+                    }
                 }
 
                 if (category != "All" && !categories.contains(category)) {
@@ -163,9 +174,13 @@ object WallpaperRepository {
                 val title = fileName.substringBeforeLast(".")
                     .replace("_", " ")
                     .replace("-", " ")
-                    .replaceFirstChar { it.uppercase() }
+                    .split(" ")
+                    .joinToString(" ") { word -> word.replaceFirstChar { it.uppercase() } }
 
-                val rawUrl = "$RAW_BASE_URL/$path"
+                val encodedPath = path.split("/").joinToString("/") { segment ->
+                    URLEncoder.encode(segment, "UTF-8").replace("+", "%20")
+                }
+                val rawUrl = "$RAW_BASE_URL/$encodedPath"
 
                 wallpapers.add(
                     WallpaperItem(
