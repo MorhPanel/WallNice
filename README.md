@@ -1,97 +1,161 @@
-# WallNice
+<div align="center">
 
-Ultra-fast, cross-platform live wallpaper engine and media hub. Zero lag, zero battery drain.
+# WALLNICE
+
+### WALLPAPER ENGINE
+
+**Make your screen feel alive.**
+
+A sleek, lightweight cross-platform experience for discovering, downloading, and applying animated live and 4K wallpapers.
+
+<br />
+
+![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Windows%20%7C%20Linux-10151D?style=for-the-badge&logo=android&logoColor=3DDC84)
+![Kotlin](https://img.shields.io/badge/Android-Kotlin%20%2B%20Compose-10151D?style=for-the-badge&logo=kotlin&logoColor=AA78FF)
+![Status](https://img.shields.io/badge/Status-Beta%20v0.0.1-10151D?style=for-the-badge&logo=github&logoColor=white)
+![License](https://img.shields.io/badge/License-Not%20Specified-10151D?style=for-the-badge)
+
+<br />
+
+**[Overview](#-overview) · [Platforms](#-platform-support) · [Features](#-features) · [Architecture](#-architecture) · [Getting Started](#-getting-started) · [Roadmap](#-roadmap)**
+
+</div>
 
 ---
 
-## Repository Structure
+## ✦ Overview
 
+**WallNice** is a cross-platform live wallpaper engine and media hub focused on motion, battery efficiency, and simplicity. Browse a curated collection of live video backgrounds, high-contrast AMOLED art, and looping animations, preview them in full resolution, and apply them directly to your screen.
+
+The goal is a smooth, distraction-free experience with a remotely maintained catalog and zero battery drain.
+
+> **Project status:** Android is in active public Beta (v0.0.1-beta). Desktop clients for Windows and Linux are in development.
+
+## ⊞ Platform Support
+
+| Platform | Directory | Runtime & Stack | Status |
+|:--:|---|---|---|
+| **Android** | `./android` | Jetpack Compose · AndroidX Media3 · `WallpaperService` | 🟢 Working Beta |
+| **Windows** | `./windows` | Win32 API · DirectX 11 · Desktop Window Manager (DWM) | 🔜 Coming Soon |
+| **Linux (Fedora / GNOME)** | `./linux` | Wayland · `swww` daemon · Portal API | 🔜 Coming Soon |
+
+## ✧ Features
+
+| | Feature | Description |
+|:--:|---|---|
+| ◈ | **Live video wallpapers** | Hardware-accelerated MP4/WebM video playback via AndroidX Media3 with zero-copy surface rendering. |
+| ▣ | **Instant 9:20 previews** | Explore high-resolution wallpapers with dedicated safe-zone preview modes for Home and Lock screens. |
+| ◉ | **AMOLED 4K static art** | Pure black (`#000000`) high-contrast backgrounds with zero battery penalty on OLED displays. |
+| ⌕ | **Discover & categories** | Filter by Anime, series, resolution, and media types with reactive category chips. |
+| ↓ | **Scoped storage downloads** | One-tap gallery export using Android MediaStore without legacy storage permissions. |
+| ↻ | **Auto-syncing catalog** | Catalog metadata updates automatically on repository push via GitHub Actions. |
+| ⇪ | **In-app updates** | Remote version check on launch with instant GitHub Release update dialog. |
+
+## ⌘ Architecture
+
+```text
+                          WALLNICE ENGINE
+                                 │
+         ┌───────────────────────┼───────────────────────┐
+         │                       │                       │
+   Android Client          Windows Client           Linux Client
+  Kotlin + Compose        DirectX 11 + DWM         Wayland + swww
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+                   ┌─────────────┴─────────────┐
+                   │                           │
+              Catalog API                 Shared Pool
+             (static JSON)              (DLS/ directory)
+                   │                           │
+           GitHub Raw CDN              GitHub Releases
+          catalog.json manifest         Signed APK & AAB
 ```
+
+**Technology stack**
+
+- **Android:** Kotlin 2.0, Jetpack Compose, Material 3, AndroidX Media3 (ExoPlayer), Coil 2.7
+- **Media Engine:** Android `WallpaperService` with lifecycle-aware player detachment
+- **Continuous Integration:** GitHub Actions (R8 shrinker, release signing, artifact publishing)
+- **Catalog Automation:** Python workflow script auto-indexing `DLS/` on git push
+- **Storage:** Android 10+ scoped storage via `MediaStore` API
+
+## ◇ Getting Started
+
+### Android Installation
+
+1. Navigate to the **[Releases](https://github.com/MorhPanel/WallNice/releases)** section.
+2. Download the latest signed **`app-release.apk`**.
+3. Install the APK on your Android device (Android 8.0+ / API 26+).
+4. Launch WallNice, pick your favorite wallpaper, and tap **Apply**.
+
+> Only install APKs from trusted sources. Android may prompt you to permit installation from your browser or file manager.
+
+### Building from Source
+
+```bash
+git clone https://github.com/MorhPanel/WallNice.git
+cd WallNice/android
+./gradlew assembleRelease
+```
+
+## ▤ Repository Structure
+
+```text
 WallNice/
-├── android/                 # Android client (Kotlin, Compose, Media3)
+├── android/                 # Android application (Kotlin, Compose, Media3)
 ├── windows/                 # Windows client (Win32, DirectX 11, DWM overlay)
 ├── linux/                   # Linux client (Wayland, swww daemon)
 ├── DLS/                     # Shared cross-platform media pool
-│   ├── img/                 # Static images by category/title
-│   ├── video/               # Live video wallpapers
-│   └── gif/                 # Looping animations
-├── .github/                 # Workflows & CI automation
-└── catalog.json             # Dynamic catalog manifest
+│   ├── img/                 # Static images sorted by category and series
+│   ├── video/               # Live video wallpapers (.mp4, .webm)
+│   └── gif/                 # Looping animations (.gif)
+├── .github/                 # Workflows (Release CI, Catalog generation)
+├── catalog.json             # Remote catalog manifest
+└── RULES.md                 # Contributor guidelines
 ```
 
----
-
-## Platform Support
-
-| Platform | Directory | Runtime | Status |
-|---|---|---|---|
-| **Android** | `./android` | `WallpaperService` + Media3 | 🟢 Working Beta |
-| **Windows** | `./windows` | DirectX 11 / DWM overlay + Win32 API | 🔜 Coming Soon |
-| **Linux (Fedora / GNOME)** | `./linux` | `swww` daemon (Wayland) | 🔜 Coming Soon |
-
----
-
-## Features (Android)
-- **Live Video** — Hardware-accelerated MP4/WebM via Media3, zero-copy surface pipeline.
-- **GIF Loops** — Animated rendering via Coil ImageDecoder.
-- **4K Static** — Direct `WallpaperManager` injection for Home, Lock, or both screens.
-- **Auto Pool** — Live catalog sync from GitHub `DLS/` folder via raw CDN.
-- **In-App Downloader** — MediaStore scoped storage, no extra permissions on Android 10+.
-- **Auto-Update Engine** — Remote version check on launch with one-tap update dialog.
-
----
-
-## Media Pool Structure
-
-Drop files into `DLS/` — catalog auto-rebuilds on every push via GitHub Actions:
-
-```
-DLS/
-├── img/
-│   ├── Anime/
-│   │   └── <Anime Title>/   ← each title in its own folder
-│   │       └── character.jpg
-│   └── <Category>/
-│       └── wallpaper.jpg
-├── video/                   ← live video wallpapers (.mp4, .webm)
-└── gif/                     ← looping animations (.gif)
-```
-
----
-
-## TODO
+## ⚑ Roadmap & TODO
 
 | # | Task | Platform | Priority | Status |
-|---|---|---|---|---|
-| 1 | Live video wallpaper engine | Android | 🔴 High | 🟢 Completed |
-| 2 | GitHub catalog auto-sync | Android | 🔴 High | 🟢 Completed |
-| 3 | Auto-update dialog | Android | 🔴 High | 🟢 Completed |
-| 4 | Category filter + search | Android | 🟡 Medium | 🟡 In Progress |
-| 5 | Favorites / local collection | Android | 🟡 Medium | 🔜 Planned |
-| 6 | Custom thumbnail for video preview | Android | 🟡 Medium | 🔜 Planned |
-| 7 | Win32 DWM live wallpaper layer | Windows | 🔴 High | ⬜ Not Started |
-| 8 | DirectX 11 video renderer | Windows | 🔴 High | ⬜ Not Started |
-| 9 | Windows system tray app + hotkeys | Windows | 🟡 Medium | ⬜ Not Started |
-| 10 | Wayland `swww` daemon integration | Linux | 🔴 High | ⬜ Not Started |
-| 11 | GNOME static portal support | Linux | 🟡 Medium | ⬜ Not Started |
-| 12 | KDE Plasma wallpaper plugin | Linux | 🟢 Low | ⬜ Not Started |
-| 13 | Unified cross-platform catalog CLI | All | 🟡 Medium | ⬜ Not Started |
+|:--:|---|---|:--:|:--:|
+| 1 | Hardware-accelerated live video engine | Android | 🔴 High | 🟢 Completed |
+| 2 | Dynamic GitHub catalog auto-sync | Android | 🔴 High | 🟢 Completed |
+| 3 | In-app release updater dialog | Android | 🔴 High | 🟢 Completed |
+| 4 | Portrait 9:20 AMOLED safe-zone adaptation | Android | 🔴 High | 🟢 Completed |
+| 5 | Release signing pipeline & Play Protect compliance | Android | 🔴 High | 🟢 Completed |
+| 6 | Category filtering and multi-tag search | Android | 🟡 Medium | 🟢 Completed |
+| 7 | Offline wallpaper cache and favorites | Android | 🟡 Medium | 🔜 Planned |
+| 8 | Win32 DWM live wallpaper desktop injection | Windows | 🔴 High | ⬜ Not Started |
+| 9 | DirectX 11 hardware video renderer | Windows | 🔴 High | ⬜ Not Started |
+| 10 | System tray controls and hotkey manager | Windows | 🟡 Medium | ⬜ Not Started |
+| 11 | Wayland `swww` daemon integration | Linux | 🔴 High | ⬜ Not Started |
+| 12 | GNOME and KDE Plasma wallpaper plugin | Linux | 🟡 Medium | ⬜ Not Started |
+
+## ◈ Design Principles
+
+**Zero battery waste.** Video decoding pauses instantly when your screen is locked or covered by another application.
+
+**Minimal by default.** Content takes center stage with a clean AMOLED UI and zero clutter.
+
+**No tracking or accounts.** Browse, preview, and apply wallpapers instantly without registration.
+
+**Independent media pool.** Add new wallpapers to `DLS/` at any time without updating the application code.
+
+## ⚖ License & Content
+
+No software license has been specified yet. All original application source code is maintained by MorhPanel.
+
+Wallpaper media remains subject to the rights and licenses of their respective creators. Only content intended for personal customization is included.
 
 ---
 
-## Build
+<div align="center">
 
-**Android:**
-```bash
-cd android
-./gradlew assembleDebug
-```
+### WALLNICE / ENGINE
 
-**CI:** Every push to `android/**` triggers automated APK builds via GitHub Actions.
-Releases → [github.com/MorhPanel/WallNice/releases](https://github.com/MorhPanel/WallNice/releases)
+*Less static. More alive.*
 
----
+<sub>Designed for Android, Windows & Linux · Active Beta</sub>
 
-## Rules
-
-See [RULES.md](RULES.md) — English only, zero comments, verified code.
+</div>
