@@ -21,10 +21,10 @@ class SecurityControlTests(unittest.TestCase):
         updater = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/engine/AppUpdateManager.kt").read_text()
         dialog = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/components/AppUpdateDialog.kt").read_text()
         catalog = json.loads((ROOT / "catalog.json").read_text())
-        direct_url = "https://github.com/MorhPanel/WallNice/releases/latest/download/app-release.apk"
+        expected_url = "https://github.com/MorhPanel/WallNice/releases/download/v0.0.13.2-beta/app-release.apk"
 
-        self.assertIn(direct_url, updater)
-        self.assertEqual(catalog["appUpdate"]["downloadUrl"], direct_url)
+        self.assertIn("https://github.com/MorhPanel/WallNice/releases/latest/download/app-release.apk", updater)
+        self.assertEqual(catalog["appUpdate"]["downloadUrl"], expected_url)
         self.assertIn("downloadApk", updater)
         self.assertIn("launchInstaller", updater)
         self.assertIn("hasMatchingPackageSignature", updater)
