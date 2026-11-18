@@ -21,18 +21,38 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            val keystorePath = System.getenv("RELEASE_KEYSTORE_PATH") ?: "../release.keystore"
+            val keystoreFile = file(keystorePath)
+            if (keystoreFile.exists()) {
+                storeFile = keystoreFile
+            } else if (file("release.keystore").exists()) {
+                storeFile = file("release.keystore")
+            }
+            storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: "wallnice123"
+            keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: "wallnice"
+            keyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: "wallnice123"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            isDebuggable = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
+            val releaseSigning = signingConfigs.getByName("release")
+            if (releaseSigning.storeFile != null && releaseSigning.storeFile!!.exists()) {
+                signingConfig = releaseSigning
+            }
         }
         debug {
             applicationIdSuffix = ".debug"
+            isDebuggable = true
         }
     }
 

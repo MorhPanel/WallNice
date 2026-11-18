@@ -1,0 +1,91 @@
+name: Build Android Release
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'android/**'
+      - '.github/workflows/build-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          build-root-directory: android
+          gradle-home-cache-cleanup: true
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Configure Keystore
+        run: |
+          if [ -n "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
+            echo "RELEASE_KEYSTORE_PASSWORD=${{ secrets.RELEASE_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+            echo "RELEASE_KEY_ALIAS=${{ secrets.RELEASE_KEY_ALIAS }}" >> $GITHUB_ENV
+            echo "RELEASE_KEY_PASSWORD=${{ secrets.RELEASE_KEY_PASSWORD }}" >> $GITHUB_ENV
+          else
+            keytool -genkeypair -v -keystore android/app/release.keystore -alias wallnice -keyalg RSA -keysize 2048 -validity 10000 -storepass wallnice123 -keypass wallnice123 -dname "CN=WallNice, OU=MorhPanel, O=WallNice, L=Tokyo, C=JP"
+            echo "RELEASE_KEYSTORE_PASSWORD=wallnice123" >> $GITHUB_ENV
+            echo "RELEASE_KEY_ALIAS=wallnice" >> $GITHUB_ENV
+            echo "RELEASE_KEY_PASSWORD=wallnice123" >> $GITHUB_ENV
+          fi
+          echo "RELEASE_KEYSTORE_PATH=release.keystore" >> $GITHUB_ENV
+
+      - name: Build Signed Release APK and AAB
+        working-directory: android
+        run: ./gradlew assembleRelease bundleRelease --build-cache --parallel --stacktrace
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+
+      - name: Get version name
+        id: version
+        run: |
+          VERSION=$(grep "versionName" android/app/build.gradle.kts | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WallNice-release-${{ steps.version.outputs.version }}
+          path: android/app/build/outputs/apk/release/*.apk
+          retention-days: 30
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WallNice-bundle-${{ steps.version.outputs.version }}
+          path: android/app/build/outputs/bundle/release/*.aab
+          retention-days: 30
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        if: success()
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: WallNice v${{ steps.version.outputs.version }}
+          body: |
+            Release build v${{ steps.version.outputs.version }}.
+          files: |
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/bundle/release/*.aab
+          prerelease: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
