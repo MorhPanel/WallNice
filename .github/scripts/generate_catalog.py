@@ -13,9 +13,9 @@ CATALOG_PATH = "catalog.json"
 DLS_DIR = "DLS"
 
 existing_update = {
-    "versionCode": 4,
-    "versionName": "0.0.4-beta",
-    "changelog": "Trusted-source, same-signing-key update validation and fail-closed release signing.",
+    "versionCode": 5,
+    "versionName": "0.0.5-beta",
+    "changelog": "High definition 4K wallpapers, new settings with stats, and clean UI.",
     "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/latest/download/app-release.apk"
 }
 
