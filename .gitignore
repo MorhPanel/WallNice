@@ -12,4 +12,11 @@ android/app/build/
 android/.gradle/
 *.keystore
 *.jks
+*.p12
+*.pfx
+*.pem
+**/release.keystore
+**/keystore.properties
+**/signing.properties
 wallnice-release-signing.env
+**/*-signing.env

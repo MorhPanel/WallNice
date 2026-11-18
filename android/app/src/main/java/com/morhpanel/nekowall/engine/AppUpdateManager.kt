@@ -2,6 +2,7 @@ package com.morhpanel.nekowall.engine
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -12,6 +13,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.security.MessageDigest
 
 sealed class UpdateInstallState {
     object Idle : UpdateInstallState()
@@ -23,11 +25,26 @@ sealed class UpdateInstallState {
 
 object AppUpdateManager {
 
-    fun resolveApkUrl(originalUrl: String): String {
-        if (originalUrl.endsWith(".apk", ignoreCase = true)) {
-            return originalUrl
+    private val trustedRedirectHosts = setOf(
+        "github.com",
+        "objects.githubusercontent.com",
+        "release-assets.githubusercontent.com"
+    )
+
+    fun resolveApkUrl(originalUrl: String): String? {
+        val trimmed = originalUrl.trim().trimEnd('/')
+
+        if (trimmed.endsWith(".apk", ignoreCase = true)) {
+            return trimmed.takeIf(::isTrustedGithubApkUrl)
         }
-        val trimmed = originalUrl.trimEnd('/')
+
+        val source = Uri.parse(trimmed)
+        if (source.scheme != "https" || source.host != "github.com" ||
+            source.path?.startsWith("/MorhPanel/WallNice/releases") != true
+        ) {
+            return null
+        }
+
         return if (trimmed.endsWith("/releases/latest", ignoreCase = true)) {
             "$trimmed/download/app-release.apk"
         } else if (trimmed.contains("/releases/tag/", ignoreCase = true)) {
@@ -36,7 +53,7 @@ object AppUpdateManager {
         } else if (trimmed.endsWith("/releases", ignoreCase = true)) {
             "https://github.com/MorhPanel/WallNice/releases/latest/download/app-release.apk"
         } else {
-            "https://github.com/MorhPanel/WallNice/releases/latest/download/app-release.apk"
+            null
         }
     }
 
@@ -48,6 +65,7 @@ object AppUpdateManager {
     ): Result<File> = withContext(Dispatchers.IO) {
         try {
             val targetUrl = resolveApkUrl(urlStr)
+                ?: return@withContext Result.failure(Exception("The update source is not trusted"))
             val updatesDir = File(context.cacheDir, "updates")
             if (!updatesDir.exists()) {
                 updatesDir.mkdirs()
@@ -61,8 +79,12 @@ object AppUpdateManager {
             var connection: HttpURLConnection? = null
             var redirects = 0
             val maxRedirects = 6
+            var downloadReady = false
 
             while (redirects < maxRedirects) {
+                if (!isTrustedDownloadUrl(currentUrl, redirects > 0)) {
+                    return@withContext Result.failure(Exception("The update redirect is not trusted"))
+                }
                 val url = URL(currentUrl)
                 connection = url.openConnection() as HttpURLConnection
                 connection.instanceFollowRedirects = false
@@ -80,11 +102,17 @@ object AppUpdateManager {
                     currentUrl = if (newUrl.startsWith("http")) newUrl else URL(url, newUrl).toString()
                     redirects++
                 } else if (status == HttpURLConnection.HTTP_OK) {
+                    downloadReady = true
                     break
                 } else {
                     connection.disconnect()
                     return@withContext Result.failure(Exception("HTTP error $status"))
                 }
+            }
+
+            if (!downloadReady) {
+                connection?.disconnect()
+                return@withContext Result.failure(Exception("Too many redirects"))
             }
 
             val finalConn = connection ?: return@withContext Result.failure(Exception("Connection failed"))
@@ -111,13 +139,99 @@ object AppUpdateManager {
             finalConn.disconnect()
 
             if (destinationFile.exists() && destinationFile.length() > 0) {
-                Result.success(destinationFile)
+                if (hasMatchingPackageSignature(context, destinationFile)) {
+                    Result.success(destinationFile)
+                } else {
+                    destinationFile.delete()
+                    Result.failure(Exception("The downloaded APK is not a trusted WallNice update"))
+                }
             } else {
                 Result.failure(Exception("Downloaded file is empty"))
             }
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    private fun isTrustedGithubApkUrl(value: String): Boolean {
+        val uri = Uri.parse(value)
+        val path = uri.path ?: return false
+        return uri.scheme == "https" &&
+            uri.host == "github.com" &&
+            path.startsWith("/MorhPanel/WallNice/releases/") &&
+            path.endsWith("/app-release.apk", ignoreCase = true)
+    }
+
+    private fun isTrustedDownloadUrl(value: String, isRedirect: Boolean): Boolean {
+        val uri = Uri.parse(value)
+        if (uri.scheme != "https") {
+            return false
+        }
+        val host = uri.host?.lowercase() ?: return false
+        return if (isRedirect) {
+            if (host == "github.com") {
+                uri.path?.startsWith("/MorhPanel/WallNice/releases/") == true
+            } else {
+                host in trustedRedirectHosts
+            }
+        } else {
+            isTrustedGithubApkUrl(value)
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun hasMatchingPackageSignature(context: Context, apkFile: File): Boolean {
+        val packageManager = context.packageManager
+        val installedInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            packageManager.getPackageInfo(
+                context.packageName,
+                PackageManager.GET_SIGNING_CERTIFICATES
+            )
+        } else {
+            packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES)
+        }
+        val archiveInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            packageManager.getPackageArchiveInfo(
+                apkFile.absolutePath,
+                PackageManager.GET_SIGNING_CERTIFICATES
+            )
+        } else {
+            packageManager.getPackageArchiveInfo(apkFile.absolutePath, PackageManager.GET_SIGNATURES)
+        } ?: return false
+
+        if (archiveInfo.packageName != context.packageName) {
+            return false
+        }
+
+        val installedSignatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val signingInfo = installedInfo.signingInfo ?: return false
+            if (signingInfo.hasMultipleSigners()) {
+                signingInfo.apkContentsSigners
+            } else {
+                signingInfo.signingCertificateHistory
+            }
+        } else {
+            installedInfo.signatures ?: return false
+        }
+        val archiveSignatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val signingInfo = archiveInfo.signingInfo ?: return false
+            if (signingInfo.hasMultipleSigners()) {
+                signingInfo.apkContentsSigners
+            } else {
+                signingInfo.signingCertificateHistory
+            }
+        } else {
+            archiveInfo.signatures ?: return false
+        }
+
+        val installedDigests = installedSignatures.map(::certificateDigest).toSet()
+        return archiveSignatures.any { certificateDigest(it) in installedDigests }
+    }
+
+    private fun certificateDigest(signature: android.content.pm.Signature): String {
+        return MessageDigest.getInstance("SHA-256")
+            .digest(signature.toByteArray())
+            .joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) }
     }
 
     fun canInstallApk(context: Context): Boolean {

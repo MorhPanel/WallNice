@@ -277,12 +277,11 @@ fun AppUpdateDialog(
                         UpdateSecondaryButton(
                             text = "Open in browser",
                             onClick = {
-                                context.startActivity(
-                                    Intent(
-                                        Intent.ACTION_VIEW,
-                                        Uri.parse(updateInfo.downloadUrl)
+                                AppUpdateManager.resolveApkUrl(updateInfo.downloadUrl)?.let { safeUrl ->
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse(safeUrl))
                                     )
-                                )
+                                }
                                 closeDialog()
                             }
                         )

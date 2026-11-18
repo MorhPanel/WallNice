@@ -12,8 +12,8 @@ android {
         applicationId = "com.morhpanel.nekowall"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.0.3-beta"
+        versionCode = 4
+        versionName = "0.0.4-beta"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -23,16 +23,18 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystorePath = System.getenv("RELEASE_KEYSTORE_PATH") ?: "../release.keystore"
-            val keystoreFile = file(keystorePath)
-            if (keystoreFile.exists()) {
+            val keystorePath = System.getenv("RELEASE_KEYSTORE_PATH")?.takeIf { it.isNotBlank() }
+            val keystorePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")?.takeIf { it.isNotBlank() }
+            val keyAlias = System.getenv("RELEASE_KEY_ALIAS")?.takeIf { it.isNotBlank() }
+            val keyPassword = System.getenv("RELEASE_KEY_PASSWORD")?.takeIf { it.isNotBlank() }
+            val keystoreFile = keystorePath?.let { file(it) }
+
+            if (keystoreFile?.isFile == true && keystorePassword != null && keyAlias != null && keyPassword != null) {
                 storeFile = keystoreFile
-            } else if (file("release.keystore").exists()) {
-                storeFile = file("release.keystore")
+                storePassword = keystorePassword
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword
             }
-            storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: "wallnice123"
-            keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: "wallnice"
-            keyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: "wallnice123"
         }
     }
 
@@ -46,9 +48,7 @@ android {
                 "proguard-rules.pro"
             )
             val releaseSigning = signingConfigs.getByName("release")
-            if (releaseSigning.storeFile != null && releaseSigning.storeFile!!.exists()) {
-                signingConfig = releaseSigning
-            }
+            signingConfig = releaseSigning
         }
         debug {
             applicationIdSuffix = ".debug"
