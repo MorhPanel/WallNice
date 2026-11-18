@@ -118,7 +118,7 @@ object WallpaperRepository {
                 CatalogResponse(
                     updateInfo = appUpdate,
                     categories = categoriesList,
-                    wallpapers = wallpapersList
+                    wallpapers = wallpapersList.reversed()
                 )
             )
         } catch (e: Exception) {
@@ -217,7 +217,7 @@ object WallpaperRepository {
                 )
             }
 
-            Result.success(Pair(categories, wallpapers))
+            Result.success(Pair(categories, wallpapers.reversed()))
         } catch (e: Exception) {
             Result.failure(e)
         }

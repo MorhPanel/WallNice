@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import urllib.parse
 
@@ -88,7 +89,9 @@ for root, _, files in os.walk(DLS_DIR):
         else:
             continue
 
-        title = os.path.splitext(file)[0].replace("_", " ").replace("-", " ").title()
+        base_name = os.path.splitext(file)[0]
+        clean_name = re.sub(r'_[a-f0-9]{8}$', '', base_name, flags=re.IGNORECASE)
+        title = clean_name.replace("_", " ").replace("-", " ").title()
         
         encoded_path = "/".join(urllib.parse.quote(part) for part in full_path.split("/"))
         raw_url = f"{REPO_BASE}/{encoded_path}"
