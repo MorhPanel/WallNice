@@ -7,21 +7,17 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class SecurityControlTests(unittest.TestCase):
-    def test_manifest_has_no_app_initiated_package_install_authority(self):
+    def test_manifest_declares_package_install_and_file_provider(self):
         manifest = (ROOT / "android/app/src/main/AndroidManifest.xml").read_text()
-        self.assertNotIn("REQUEST_INSTALL_PACKAGES", manifest)
-        self.assertNotIn("FileProvider", manifest)
-        source_files = [
-            path for path in (ROOT / "android/app/src/main").rglob("*")
-            if path.is_file() and path.suffix in {".kt", ".xml"}
-        ]
-        source = "\n".join(path.read_text() for path in source_files)
-        self.assertNotIn("REQUEST_INSTALL_PACKAGES", source)
-        self.assertNotIn("ACTION_INSTALL_PACKAGE", source)
-        self.assertNotIn("MANAGE_UNKNOWN_APP_SOURCES", source)
-        self.assertNotIn("FileProvider", source)
+        paths = (ROOT / "android/app/src/main/res/xml/provider_paths.xml").read_text()
 
-    def test_update_flow_uses_only_the_trusted_direct_apk_url(self):
+        self.assertIn("REQUEST_INSTALL_PACKAGES", manifest)
+        self.assertIn("androidx.core.content.FileProvider", manifest)
+        self.assertIn("${applicationId}.fileprovider", manifest)
+        self.assertIn("cached_updates", paths)
+        self.assertIn("external_cached_updates", paths)
+
+    def test_update_flow_uses_in_app_download_with_progress_and_signature_verification(self):
         updater = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/engine/AppUpdateManager.kt").read_text()
         dialog = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/components/AppUpdateDialog.kt").read_text()
         catalog = json.loads((ROOT / "catalog.json").read_text())
@@ -29,24 +25,16 @@ class SecurityControlTests(unittest.TestCase):
 
         self.assertIn(direct_url, updater)
         self.assertEqual(catalog["appUpdate"]["downloadUrl"], direct_url)
-        self.assertIn("openApkDownload(context, updateInfo.downloadUrl)", dialog)
-        self.assertIn("resolveApkUrl(originalUrl)", updater)
-        self.assertIn("val safeUrl = resolveApkUrl(originalUrl)", updater)
-        self.assertIn('path.equals("$RELEASES_PATH/latest/download/app-release.apk", ignoreCase = true)', updater)
-        self.assertIn("Intent(Intent.ACTION_VIEW, Uri.parse(safeUrl))", updater)
-        self.assertIn("isPlayManagedInstall", updater)
-        self.assertIn('source.host != "github.com"', updater)
-        self.assertIn("source.port != -1", updater)
-        self.assertIn("source.query != null", updater)
-        self.assertIn("source.fragment != null", updater)
-        self.assertIn("releaseTagPattern", updater)
-        self.assertNotIn("downloadApk(", updater)
-        self.assertNotIn("launchInstaller", updater)
-        self.assertNotIn("ACTION_INSTALL_PACKAGE", updater)
-        self.assertNotIn("application/vnd.android.package-archive", updater)
-        self.assertNotIn("context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(updateInfo.downloadUrl))", dialog)
-        self.assertIn("Column(\n                            modifier = Modifier.fillMaxWidth(),\n                            verticalArrangement = Arrangement.spacedBy(WallNiceSpacing.md)", dialog)
-        self.assertIn("if (updateInfo.changelog.isNotBlank())", dialog)
+        self.assertIn("downloadApk", updater)
+        self.assertIn("launchInstaller", updater)
+        self.assertIn("hasMatchingPackageSignature", updater)
+        self.assertIn("application/vnd.android.package-archive", updater)
+        self.assertIn("LinearProgressIndicator", dialog)
+        self.assertIn("formatProgress", dialog)
+        self.assertIn("startDownload()", dialog)
+        self.assertIn("ACTION_MANAGE_UNKNOWN_APP_SOURCES", updater)
+        self.assertIn("trustedRedirectHosts", updater)
+        self.assertIn("resolveApkUrl", updater)
 
     def test_release_signing_stays_fail_closed(self):
         gradle = (ROOT / "android/app/build.gradle.kts").read_text()
@@ -69,10 +57,10 @@ class SecurityControlTests(unittest.TestCase):
     def test_release_metadata_is_synchronized(self):
         gradle = (ROOT / "android/app/build.gradle.kts").read_text()
         catalog = json.loads((ROOT / "catalog.json").read_text())
-        self.assertIn("versionCode = 12", gradle)
-        self.assertIn('versionName = "0.0.12-beta"', gradle)
-        self.assertEqual(catalog["appUpdate"]["versionCode"], 12)
-        self.assertEqual(catalog["appUpdate"]["versionName"], "0.0.12-beta")
+        self.assertIn("versionCode = 13", gradle)
+        self.assertIn('versionName = "0.0.13-beta"', gradle)
+        self.assertEqual(catalog["appUpdate"]["versionCode"], 13)
+        self.assertEqual(catalog["appUpdate"]["versionName"], "0.0.13-beta")
 
     def test_settings_is_header_action_with_back_navigation_and_shared_motion(self):
         home = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/screens/HomeScreen.kt").read_text()
