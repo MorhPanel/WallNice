@@ -1,7 +1,11 @@
 import os
 import json
 import urllib.parse
-from PIL import Image
+
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
 
 REPO_BASE = "https://raw.githubusercontent.com/MorhPanel/WallNice/main"
 CATALOG_PATH = "catalog.json"
@@ -58,17 +62,18 @@ for root, _, files in os.walk(DLS_DIR):
             categories.add(category)
         elif ext in valid_img or folder == "img":
             media_type = "IMAGE"
-            try:
-                with Image.open(full_path) as im:
-                    resolution = f"{im.width}x{im.height}"
-                    colors = im.getcolors(maxcolors=1000000)
-                    if colors:
-                        total_pixels = im.width * im.height
-                        black_pixels = sum(count for count, col in colors if max(col[:3]) < 10)
-                        if (black_pixels / total_pixels) > 0.4:
-                            is_amoled = True
-            except Exception:
-                pass
+            if Image:
+                try:
+                    with Image.open(full_path) as im:
+                        resolution = f"{im.width}x{im.height}"
+                        colors = im.getcolors(maxcolors=1000000)
+                        if colors:
+                            total_pixels = im.width * im.height
+                            black_pixels = sum(count for count, col in colors if max(col[:3]) < 10)
+                            if (black_pixels / total_pixels) > 0.4:
+                                is_amoled = True
+                except Exception:
+                    pass
 
             if len(parts) >= 4 and parts[1].lower() == "anime":
                 category = "Anime"

@@ -21,6 +21,9 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install dependencies
+        run: pip install pillow
+
       - name: Generate catalog.json
         run: |
           python3 .github/scripts/generate_catalog.py
