@@ -2,77 +2,11 @@
   "appUpdate": {
     "versionCode": 1,
     "versionName": "0.0.1-beta",
-    "changelog": "Initial beta release of WallNice.",
+    "changelog": "Initial beta release.",
     "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/latest"
   },
   "categories": [
-    "All",
-    "Cyberpunk",
-    "Anime",
-    "AMOLED 4K",
-    "Live Video",
-    "GIF Loops",
-    "Retrowave",
-    "Sci-Fi",
-    "Minimalism"
+    "All"
   ],
-  "wallpapers": [
-    {
-      "id": "wp_01",
-      "title": "Neon Samurai",
-      "author": "morhpanel",
-      "category": "Cyberpunk",
-      "mediaType": "IMAGE",
-      "url": "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1440",
-      "thumbnailUrl": "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=500",
-      "resolution": "1440x3120",
-      "isAmoled": true,
-      "likesCount": 1890
-    },
-    {
-      "id": "wp_02",
-      "title": "Tokyo Rain",
-      "author": "TokerNya",
-      "category": "Live Video",
-      "mediaType": "VIDEO",
-      "url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-      "thumbnailUrl": "https://images.unsplash.com/photo-1514565131-fce0801e5785?q=80&w=500",
-      "resolution": "1080x1920",
-      "likesCount": 3410
-    },
-    {
-      "id": "wp_03",
-      "title": "Pixel Cyber Cat",
-      "author": "TokerNya",
-      "category": "GIF Loops",
-      "mediaType": "GIF",
-      "url": "https://media.giphy.com/media/26tn33aiTi1jkl6H6/giphy.gif",
-      "thumbnailUrl": "https://media.giphy.com/media/26tn33aiTi1jkl6H6/200w.gif",
-      "resolution": "800x1200",
-      "likesCount": 4210
-    },
-    {
-      "id": "wp_04",
-      "title": "Deep Void Matrix",
-      "author": "VoidWalker",
-      "category": "AMOLED 4K",
-      "mediaType": "IMAGE",
-      "url": "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?q=80&w=1440",
-      "thumbnailUrl": "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?q=80&w=500",
-      "resolution": "2160x3840",
-      "isAmoled": true,
-      "likesCount": 1250
-    },
-    {
-      "id": "wp_05",
-      "title": "Outrun Highway",
-      "author": "OutrunBoy",
-      "category": "Live Video",
-      "mediaType": "VIDEO",
-      "url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-      "thumbnailUrl": "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=500",
-      "resolution": "1080x1920",
-      "likesCount": 2740
-    }
-  ]
+  "wallpapers": []
 }
