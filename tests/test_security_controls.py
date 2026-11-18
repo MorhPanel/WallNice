@@ -57,10 +57,10 @@ class SecurityControlTests(unittest.TestCase):
     def test_release_metadata_is_synchronized(self):
         gradle = (ROOT / "android/app/build.gradle.kts").read_text()
         catalog = json.loads((ROOT / "catalog.json").read_text())
-        self.assertIn("versionCode = 14", gradle)
-        self.assertIn('versionName = "0.0.13.1-beta"', gradle)
-        self.assertEqual(catalog["appUpdate"]["versionCode"], 14)
-        self.assertEqual(catalog["appUpdate"]["versionName"], "0.0.13.1-beta")
+        self.assertIn("versionCode = 15", gradle)
+        self.assertIn('versionName = "0.0.13.2-beta"', gradle)
+        self.assertEqual(catalog["appUpdate"]["versionCode"], 15)
+        self.assertEqual(catalog["appUpdate"]["versionName"], "0.0.13.2-beta")
 
     def test_settings_is_header_action_with_back_navigation_and_shared_motion(self):
         home = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/screens/HomeScreen.kt").read_text()

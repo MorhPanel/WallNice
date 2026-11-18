@@ -35,7 +35,9 @@ object AppUpdateManager {
     private val trustedRedirectHosts = setOf(
         "github.com",
         "objects.githubusercontent.com",
-        "release-assets.githubusercontent.com"
+        "release-assets.githubusercontent.com",
+        "github-releases.githubusercontent.com",
+        "raw.githubusercontent.com"
     )
 
     fun resolveApkUrl(originalUrl: String): String? {
@@ -207,8 +209,10 @@ object AppUpdateManager {
     }
 
     private fun isTrustedGithubApkPath(path: String): Boolean {
-        return path.startsWith("$RELEASES_PATH/download/", ignoreCase = true) &&
-            path.endsWith("/app-release.apk", ignoreCase = true)
+        return (path.startsWith("$RELEASES_PATH/download/", ignoreCase = true) &&
+            path.endsWith("/app-release.apk", ignoreCase = true)) ||
+            path.equals("$RELEASES_PATH/latest/download/app-release.apk", ignoreCase = true) ||
+            path.startsWith("$RELEASES_PATH/latest", ignoreCase = true)
     }
 
     private fun isTrustedDownloadUrl(value: String, isRedirect: Boolean): Boolean {
@@ -220,9 +224,10 @@ object AppUpdateManager {
         return if (isRedirect) {
             if (host == "github.com") {
                 val path = uri.path ?: return false
-                path.startsWith("$RELEASES_PATH/download/") || path.startsWith("$RELEASES_PATH/latest")
+                path.startsWith("$RELEASES_PATH/download/", ignoreCase = true) ||
+                    path.startsWith("$RELEASES_PATH/latest", ignoreCase = true)
             } else {
-                host in trustedRedirectHosts
+                host in trustedRedirectHosts || host.endsWith(".githubusercontent.com")
             }
         } else {
             val path = uri.path ?: return false
