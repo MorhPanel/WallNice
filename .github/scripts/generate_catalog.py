@@ -16,7 +16,7 @@ existing_update = {
     "versionCode": 15,
     "versionName": "0.0.13.2-beta",
     "changelog": "Fixes release download redirect validation for GitHub CDN assets.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/latest/download/app-release.apk"
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.13.2-beta/app-release.apk"
 }
 
 if os.path.exists(CATALOG_PATH):
