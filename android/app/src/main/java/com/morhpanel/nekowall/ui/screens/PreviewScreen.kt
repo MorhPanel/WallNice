@@ -167,7 +167,7 @@ fun PreviewScreen(
                     .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
                     .setUsage(C.USAGE_MEDIA)
                     .build()
-                setAudioAttributes(audioAttributes, true)
+                setAudioAttributes(audioAttributes, false)
                 setMediaItem(MediaItem.fromUri(mediaUri))
                 repeatMode = Player.REPEAT_MODE_ALL
                 volume = if (isMuted) 0f else 1f

@@ -31,7 +31,7 @@ A sleek, lightweight cross-platform experience for discovering, downloading, and
 
 The goal is a smooth, distraction-free experience with a remotely maintained catalog and zero battery drain.
 
-> **Project status:** Android is in active public Beta (v0.0.28-beta). Desktop clients for Windows and Linux are planned on the [Engineering Roadmap](ROADMAP.md).
+> **Project status:** Android is in active public Beta (v0.0.29-beta). Desktop clients for Windows and Linux are planned on the [Engineering Roadmap](ROADMAP.md).
 
 <a id="platforms"></a>
 <a id="-platforms"></a>
@@ -41,7 +41,7 @@ The goal is a smooth, distraction-free experience with a remotely maintained cat
 
 | Platform | Directory | Runtime & Stack | Status |
 |:--:|---|---|---|
-| **Android** | `./android` | Jetpack Compose · AndroidX Media3 · `WallpaperService` | 🟢 Working Beta (v0.0.28-beta) |
+| **Android** | `./android` | Jetpack Compose · AndroidX Media3 · `WallpaperService` | 🟢 Working Beta (v0.0.29-beta) |
 | **Windows** | Planned | Win32 API · DirectX 11 · Desktop Window Manager (DWM) | 🔜 Planned |
 | **Linux (Fedora / GNOME)** | Planned | Wayland · `swww` daemon · Portal API | 🔜 Planned |
 
