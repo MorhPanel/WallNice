@@ -1,9 +1,9 @@
 {
   "appUpdate": {
-    "versionCode": 28,
-    "versionName": "0.0.26-beta",
-    "changelog": "Unified wallpaper target selector across all media types and fixed system live wallpaper preview rendering.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.26-beta/app-release.apk"
+    "versionCode": 29,
+    "versionName": "0.0.27-beta",
+    "changelog": "Restored full audio playback for video live wallpapers with native media focus and call muting.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.27-beta/app-release.apk"
   },
   "categories": [
     "All",

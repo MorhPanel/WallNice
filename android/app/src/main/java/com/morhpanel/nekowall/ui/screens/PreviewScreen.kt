@@ -135,7 +135,7 @@ fun PreviewScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     var overlayMode by remember { mutableStateOf(PreviewOverlayMode.CLEAN) }
-    var isMuted by remember { mutableStateOf(WallpaperHelper.isVideoMuted(context)) }
+    var isMuted by remember { mutableStateOf(false) }
     var showApplyDialog by remember { mutableStateOf(false) }
     var isApplying by remember { mutableStateOf(false) }
     var showFullscreenPreview by remember { mutableStateOf(false) }
