@@ -1,6 +1,7 @@
 package com.morhpanel.nekowall.ui.screens
 
 import android.graphics.drawable.BitmapDrawable
+import android.media.AudioManager
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import kotlin.OptIn
@@ -207,8 +208,13 @@ fun PreviewScreen(
         }
     }
 
+    val audioManager = remember(context) {
+        context.getSystemService(android.content.Context.AUDIO_SERVICE) as? AudioManager
+    }
+
     LaunchedEffect(isMuted, exoPlayer) {
-        exoPlayer?.volume = if (isMuted) 0f else 1f
+        val otherActive = audioManager?.isMusicActive == true || (audioManager?.mode ?: AudioManager.MODE_NORMAL) != AudioManager.MODE_NORMAL
+        exoPlayer?.volume = if (isMuted || otherActive) 0f else 1f
     }
 
     val isBusy = isApplying

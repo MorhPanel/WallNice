@@ -1,23 +1,26 @@
 package com.morhpanel.nekowall.engine
 
+import android.content.Context
 import android.content.SharedPreferences
+import android.media.AudioAttributes as AndroidAudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
+import android.media.AudioPlaybackConfiguration
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.service.wallpaper.WallpaperService
 import android.view.SurfaceHolder
-import androidx.annotation.OptIn
+import androidx.media3.common.AudioAttributes as Media3AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 
 class VideoLiveWallpaperService : WallpaperService() {
 
     override fun onCreateEngine(): Engine = VideoEngine()
 
-    @OptIn(UnstableApi::class)
     inner class VideoEngine : Engine(), SharedPreferences.OnSharedPreferenceChangeListener {
 
         private var player: ExoPlayer? = null
@@ -25,6 +28,34 @@ class VideoLiveWallpaperService : WallpaperService() {
         private val mainHandler = Handler(Looper.getMainLooper())
         private val prefs by lazy {
             getSharedPreferences("nekowall_prefs", MODE_PRIVATE)
+        }
+        private var audioManager: AudioManager? = null
+        private var audioFocusRequest: AudioFocusRequest? = null
+        private var hasAudioFocus = false
+
+        private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
+            runOnMainThread {
+                when (focusChange) {
+                    AudioManager.AUDIOFOCUS_GAIN -> {
+                        hasAudioFocus = true
+                        updateVolumeState()
+                    }
+                    AudioManager.AUDIOFOCUS_LOSS,
+                    AudioManager.AUDIOFOCUS_LOSS_TRANSIENT,
+                    AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
+                        hasAudioFocus = false
+                        updateVolumeState()
+                    }
+                }
+            }
+        }
+
+        private val playbackCallback = object : AudioManager.AudioPlaybackCallback() {
+            override fun onPlaybackConfigChanged(configs: MutableList<AudioPlaybackConfiguration>) {
+                runOnMainThread {
+                    updateVolumeState()
+                }
+            }
         }
 
         private fun runOnMainThread(action: () -> Unit) {
@@ -35,9 +66,74 @@ class VideoLiveWallpaperService : WallpaperService() {
             }
         }
 
+        private fun isOtherAudioActive(): Boolean {
+            val am = audioManager ?: return false
+            if (am.mode != AudioManager.MODE_NORMAL) {
+                return true
+            }
+            if (am.isMusicActive) {
+                return true
+            }
+            return false
+        }
+
+        private fun requestAudioFocusIfNeeded() {
+            val am = audioManager ?: return
+            val isUserMuted = WallpaperHelper.isVideoMuted(this@VideoLiveWallpaperService)
+            if (isUserMuted || !isVisible) {
+                abandonAudioFocus()
+                return
+            }
+            if (hasAudioFocus) return
+
+            val playbackAttrs = AndroidAudioAttributes.Builder()
+                .setUsage(AndroidAudioAttributes.USAGE_MEDIA)
+                .setContentType(AndroidAudioAttributes.CONTENT_TYPE_MOVIE)
+                .build()
+
+            val focusReq = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                .setAudioAttributes(playbackAttrs)
+                .setOnAudioFocusChangeListener(audioFocusChangeListener, mainHandler)
+                .setWillPauseWhenDucked(true)
+                .build()
+
+            audioFocusRequest = focusReq
+            val res = am.requestAudioFocus(focusReq)
+            hasAudioFocus = (res == AudioManager.AUDIOFOCUS_REQUEST_GRANTED)
+        }
+
+        private fun abandonAudioFocus() {
+            audioFocusRequest?.let { req ->
+                audioManager?.abandonAudioFocusRequest(req)
+            }
+            audioFocusRequest = null
+            hasAudioFocus = false
+        }
+
+        private fun updateVolumeState() {
+            val isUserMuted = WallpaperHelper.isVideoMuted(this@VideoLiveWallpaperService)
+            if (isUserMuted || !isVisible) {
+                abandonAudioFocus()
+                player?.volume = 0f
+                return
+            }
+
+            if (!hasAudioFocus) {
+                requestAudioFocusIfNeeded()
+            }
+
+            val shouldSilence = !hasAudioFocus || isOtherAudioActive()
+            player?.volume = if (shouldSilence) 0f else 1f
+        }
+
         override fun onCreate(holder: SurfaceHolder) {
             super.onCreate(holder)
             surfaceHolder = holder
+            audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+            try {
+                audioManager?.registerAudioPlaybackCallback(playbackCallback, mainHandler)
+            } catch (_: Exception) {
+            }
             prefs.registerOnSharedPreferenceChangeListener(this)
         }
 
@@ -78,8 +174,10 @@ class VideoLiveWallpaperService : WallpaperService() {
             runOnMainThread {
                 if (visible) {
                     player?.play()
+                    updateVolumeState()
                 } else {
                     player?.pause()
+                    updateVolumeState()
                 }
             }
         }
@@ -88,7 +186,7 @@ class VideoLiveWallpaperService : WallpaperService() {
             when (key) {
                 WallpaperHelper.KEY_IS_MUTED -> {
                     runOnMainThread {
-                        player?.volume = if (WallpaperHelper.isVideoMuted(this@VideoLiveWallpaperService)) 0f else 1f
+                        updateVolumeState()
                     }
                 }
                 WallpaperHelper.KEY_VIDEO_URI -> {
@@ -117,8 +215,13 @@ class VideoLiveWallpaperService : WallpaperService() {
                         repeatMode = Player.REPEAT_MODE_ALL
                         videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
 
+                        val media3Attrs = Media3AudioAttributes.Builder()
+                            .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                            .setUsage(C.USAGE_MEDIA)
+                            .build()
+                        setAudioAttributes(media3Attrs, false)
+
                         val isMuted = WallpaperHelper.isVideoMuted(this@VideoLiveWallpaperService)
-                        volume = if (isMuted) 0f else 1f
                         if (isMuted) {
                             trackSelectionParameters = trackSelectionParameters.buildUpon()
                                 .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true)
@@ -136,6 +239,7 @@ class VideoLiveWallpaperService : WallpaperService() {
 
                         if (isVisible) {
                             play()
+                            updateVolumeState()
                         }
                     }
                 } catch (e: Exception) {
@@ -145,6 +249,7 @@ class VideoLiveWallpaperService : WallpaperService() {
 
         private fun releasePlayer() {
             runOnMainThread {
+                abandonAudioFocus()
                 player?.apply {
                     stop()
                     clearVideoSurfaceHolder(surfaceHolder)
@@ -156,6 +261,11 @@ class VideoLiveWallpaperService : WallpaperService() {
 
         override fun onDestroy() {
             prefs.unregisterOnSharedPreferenceChangeListener(this)
+            try {
+                audioManager?.unregisterAudioPlaybackCallback(playbackCallback)
+            } catch (_: Exception) {
+            }
+            abandonAudioFocus()
             mainHandler.removeCallbacksAndMessages(null)
             player?.apply {
                 stop()
@@ -164,6 +274,7 @@ class VideoLiveWallpaperService : WallpaperService() {
             }
             player = null
             surfaceHolder = null
+            audioManager = null
             super.onDestroy()
         }
     }
