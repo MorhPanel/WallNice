@@ -1,9 +1,9 @@
 {
   "appUpdate": {
-    "versionCode": 18,
-    "versionName": "0.0.16-beta",
-    "changelog": "Multi-selection media type filters with checkmark indicators.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.16-beta/app-release.apk"
+    "versionCode": 19,
+    "versionName": "0.0.17-beta",
+    "changelog": "Multi-selection support for anime collection subcategories.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.17-beta/app-release.apk"
   },
   "categories": [
     "All",

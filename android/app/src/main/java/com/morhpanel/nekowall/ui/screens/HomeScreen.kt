@@ -112,6 +112,39 @@ private enum class CatalogContentState {
     CONTENT
 }
 
+private val AnimeSubcategorySetSaver: Saver<Set<String>, List<String>> = Saver(
+    save = { it.toList() },
+    restore = { it.toSet().ifEmpty { setOf("All Anime") } }
+)
+
+private fun toggleAnimeSubcategory(
+    current: Set<String>,
+    subcategory: String,
+    allAvailable: List<String>
+): Set<String> {
+    val specificSubs = allAvailable.filter { it != "All Anime" }.toSet()
+    if (subcategory == "All Anime") {
+        return setOf("All Anime")
+    }
+
+    val activeSpecific = if ("All Anime" in current) {
+        emptySet()
+    } else {
+        current.filter { it != "All Anime" }.toSet()
+    }
+
+    val nextSpecific = if (subcategory in activeSpecific) {
+        activeSpecific - subcategory
+    } else {
+        activeSpecific + subcategory
+    }
+
+    return when {
+        nextSpecific.isEmpty() || (specificSubs.isNotEmpty() && nextSpecific == specificSubs) -> setOf("All Anime")
+        else -> nextSpecific
+    }
+}
+
 private val MediaFilterSetSaver: Saver<Set<MediaFilter>, List<String>> = Saver(
     save = { set -> set.map { it.name } },
     restore = { list ->
@@ -160,7 +193,7 @@ fun HomeScreen(
     val favoriteIds by FavoritesManager.favoriteIds
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var selectedCategory by rememberSaveable { mutableStateOf("All") }
-    var selectedAnimeSubcategory by rememberSaveable { mutableStateOf("All Anime") }
+    var selectedAnimeSubcategories by rememberSaveable(stateSaver = AnimeSubcategorySetSaver) { mutableStateOf(setOf("All Anime")) }
     var isAnimeDropdownOpen by rememberSaveable { mutableStateOf(false) }
     var selectedMediaFilter by rememberSaveable(stateSaver = MediaFilterSetSaver) { mutableStateOf(setOf(MediaFilter.ALL)) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
@@ -249,7 +282,7 @@ fun HomeScreen(
         }
     }
 
-    val filteredList = remember(selectedCategory, selectedAnimeSubcategory, selectedMediaFilter, searchQuery, searchableWallpapers, favoriteIds) {
+    val filteredList = remember(selectedCategory, selectedAnimeSubcategories, selectedMediaFilter, searchQuery, searchableWallpapers, favoriteIds) {
         val query = searchQuery.trim()
         searchableWallpapers.mapNotNull { entry ->
             val item = entry.item
@@ -267,11 +300,13 @@ fun HomeScreen(
                         decodedUrl.contains("/Anime/", ignoreCase = true)
                     if (!isAnime) {
                         false
-                    } else if (selectedAnimeSubcategory == "All Anime") {
+                    } else if ("All Anime" in selectedAnimeSubcategories || selectedAnimeSubcategories.isEmpty()) {
                         true
                     } else {
-                        item.subcategory.equals(selectedAnimeSubcategory, ignoreCase = true) ||
-                            decodedUrl.contains("/$selectedAnimeSubcategory/", ignoreCase = true)
+                        selectedAnimeSubcategories.any { sub ->
+                            item.subcategory.equals(sub, ignoreCase = true) ||
+                                decodedUrl.contains("/$sub/", ignoreCase = true)
+                        }
                     }
                 }
                 else -> item.category.equals(selectedCategory, ignoreCase = true) ||
@@ -326,12 +361,15 @@ fun HomeScreen(
                         }
                     },
                     animeSubcategories = animeSubcategories,
-                    selectedAnimeSubcategory = selectedAnimeSubcategory,
+                    selectedAnimeSubcategories = selectedAnimeSubcategories,
                     isAnimeDropdownOpen = isAnimeDropdownOpen,
                     animeSubcategoryCounts = animeSubcategoryCounts,
                     onAnimeSubcategorySelected = { sub ->
-                        selectedAnimeSubcategory = sub
-                        isAnimeDropdownOpen = false
+                        selectedAnimeSubcategories = toggleAnimeSubcategory(
+                            current = selectedAnimeSubcategories,
+                            subcategory = sub,
+                            allAvailable = animeSubcategories
+                        )
                     },
                     onCloseAnimeDropdown = { isAnimeDropdownOpen = false },
                     selectedMediaFilter = selectedMediaFilter,
@@ -469,7 +507,7 @@ fun HomeScreen(
                                         onAction = {
                                             searchQuery = ""
                                             selectedCategory = "All"
-                                            selectedAnimeSubcategory = "All Anime"
+                                            selectedAnimeSubcategories = setOf("All Anime")
                                             selectedMediaFilter = setOf(MediaFilter.ALL)
                                         }
                                     )
@@ -513,7 +551,7 @@ private fun CatalogHeader(
     selectedCategory: String,
     onCategorySelected: (String) -> Unit,
     animeSubcategories: List<String>,
-    selectedAnimeSubcategory: String,
+    selectedAnimeSubcategories: Set<String>,
     isAnimeDropdownOpen: Boolean,
     animeSubcategoryCounts: Map<String, Int>,
     onAnimeSubcategorySelected: (String) -> Unit,
@@ -635,8 +673,12 @@ private fun CatalogHeader(
             items(categories, key = { it }) { category ->
                 val isAnime = category == "Anime"
                 val isSelected = selectedCategory == category
-                val pillText = if (isAnime && isSelected && selectedAnimeSubcategory != "All Anime") {
-                    "Anime: $selectedAnimeSubcategory"
+                val pillText = if (isAnime && isSelected) {
+                    when {
+                        "All Anime" in selectedAnimeSubcategories || selectedAnimeSubcategories.isEmpty() -> "Anime"
+                        selectedAnimeSubcategories.size == 1 -> "Anime: ${selectedAnimeSubcategories.first()}"
+                        else -> "Anime (${selectedAnimeSubcategories.size})"
+                    }
                 } else {
                     category
                 }
@@ -674,7 +716,7 @@ private fun CatalogHeader(
         ) {
             AnimeSubcategoryDropdown(
                 subcategories = animeSubcategories,
-                selectedSubcategory = selectedAnimeSubcategory,
+                selectedSubcategories = selectedAnimeSubcategories,
                 subcategoryCounts = animeSubcategoryCounts,
                 onSubcategorySelected = onAnimeSubcategorySelected,
                 onClose = onCloseAnimeDropdown
@@ -728,7 +770,7 @@ private fun CatalogHeader(
 @Composable
 private fun AnimeSubcategoryDropdown(
     subcategories: List<String>,
-    selectedSubcategory: String,
+    selectedSubcategories: Set<String>,
     subcategoryCounts: Map<String, Int>,
     onSubcategorySelected: (String) -> Unit,
     onClose: () -> Unit
@@ -786,7 +828,11 @@ private fun AnimeSubcategoryDropdown(
             Spacer(Modifier.height(WallNiceSpacing.xs))
 
             subcategories.forEach { subcategory ->
-                val isSelected = subcategory == selectedSubcategory
+                val isSelected = if (subcategory == "All Anime") {
+                    "All Anime" in selectedSubcategories || selectedSubcategories.isEmpty()
+                } else {
+                    subcategory in selectedSubcategories
+                }
                 val count = subcategoryCounts[subcategory] ?: 0
                 val shape = RoundedCornerShape(WallNiceRadii.medium)
 
