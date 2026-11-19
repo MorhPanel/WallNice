@@ -3,6 +3,7 @@ import re
 import json
 import urllib.parse
 import hashlib
+import subprocess
 
 try:
     from PIL import Image
@@ -69,7 +70,14 @@ for root, _, files in os.walk(DLS_DIR):
 
         if ext in valid_vid or folder == "video":
             media_type = "VIDEO"
-            resolution = "1080x1920"
+            resolution = "2160x3840"
+            try:
+                probe_cmd = ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=s=x:p=0", full_path]
+                res_out = subprocess.check_output(probe_cmd, text=True).strip()
+                if res_out:
+                    resolution = res_out
+            except Exception:
+                pass
         elif ext in valid_gif or folder == "gif":
             media_type = "GIF"
             resolution = "1080x1920"
