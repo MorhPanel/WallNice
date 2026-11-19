@@ -21,7 +21,7 @@ object WallpaperHelper {
     const val KEY_VIDEO_URI = "current_video_uri"
     const val KEY_IS_MUTED = "is_video_muted"
 
-    fun saveLiveWallpaperConfig(context: Context, videoUri: String, isMuted: Boolean = true) {
+    fun saveLiveWallpaperConfig(context: Context, videoUri: String, isMuted: Boolean = false) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit()
             .putString(KEY_VIDEO_URI, videoUri)
@@ -36,10 +36,10 @@ object WallpaperHelper {
 
     fun isVideoMuted(context: Context): Boolean {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getBoolean(KEY_IS_MUTED, true)
+        return prefs.getBoolean(KEY_IS_MUTED, false)
     }
 
-    fun openLiveWallpaperChooser(context: Context, videoUri: String, isMuted: Boolean = true) {
+    fun openLiveWallpaperChooser(context: Context, videoUri: String, isMuted: Boolean = false) {
         saveLiveWallpaperConfig(context, videoUri, isMuted)
 
         try {
@@ -48,13 +48,17 @@ object WallpaperHelper {
                     WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,
                     ComponentName(context, VideoLiveWallpaperService::class.java)
                 )
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                if (context !is android.app.Activity) {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
             }
             context.startActivity(intent)
         } catch (_: Exception) {
             try {
                 val fallbackIntent = Intent(WallpaperManager.ACTION_LIVE_WALLPAPER_CHOOSER).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    if (context !is android.app.Activity) {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
                 }
                 context.startActivity(fallbackIntent)
             } catch (_: Exception) {

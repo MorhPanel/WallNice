@@ -1,7 +1,6 @@
 package com.morhpanel.nekowall.ui.screens
 
 import android.graphics.drawable.BitmapDrawable
-import android.media.AudioManager
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import kotlin.OptIn
@@ -136,7 +135,7 @@ fun PreviewScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     var overlayMode by remember { mutableStateOf(PreviewOverlayMode.CLEAN) }
-    var isMuted by remember { mutableStateOf(true) }
+    var isMuted by remember { mutableStateOf(WallpaperHelper.isVideoMuted(context)) }
     var showApplyDialog by remember { mutableStateOf(false) }
     var isApplying by remember { mutableStateOf(false) }
     var showFullscreenPreview by remember { mutableStateOf(false) }
@@ -171,7 +170,7 @@ fun PreviewScreen(
                 setAudioAttributes(audioAttributes, true)
                 setMediaItem(MediaItem.fromUri(mediaUri))
                 repeatMode = Player.REPEAT_MODE_ALL
-                volume = 0f
+                volume = if (isMuted) 0f else 1f
                 prepare()
                 playWhenReady = true
             }
@@ -208,13 +207,8 @@ fun PreviewScreen(
         }
     }
 
-    val audioManager = remember(context) {
-        context.getSystemService(android.content.Context.AUDIO_SERVICE) as? AudioManager
-    }
-
     LaunchedEffect(isMuted, exoPlayer) {
-        val otherActive = audioManager?.isMusicActive == true || (audioManager?.mode ?: AudioManager.MODE_NORMAL) != AudioManager.MODE_NORMAL
-        exoPlayer?.volume = if (isMuted || otherActive) 0f else 1f
+        exoPlayer?.volume = if (isMuted) 0f else 1f
     }
 
     val isBusy = isApplying

@@ -1,9 +1,9 @@
 {
   "appUpdate": {
-    "versionCode": 26,
-    "versionName": "0.0.24-beta",
-    "changelog": "Smart audio ducking and focus management, isolated offline favorites persistence, and performance polish.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.24-beta/app-release.apk"
+    "versionCode": 27,
+    "versionName": "0.0.25-beta",
+    "changelog": "Restored video and live wallpaper sound, responsive audio focus yielding for calls and music, and seamless in-app live wallpaper flow.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.25-beta/app-release.apk"
   },
   "categories": [
     "All",

@@ -40,7 +40,11 @@ class VideoLiveWallpaperService : WallpaperService() {
                         hasAudioFocus = true
                         updateVolumeState()
                     }
-                    AudioManager.AUDIOFOCUS_LOSS,
+                    AudioManager.AUDIOFOCUS_LOSS -> {
+                        hasAudioFocus = false
+                        abandonAudioFocus()
+                        updateVolumeState()
+                    }
                     AudioManager.AUDIOFOCUS_LOSS_TRANSIENT,
                     AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
                         hasAudioFocus = false
@@ -53,7 +57,9 @@ class VideoLiveWallpaperService : WallpaperService() {
         private val playbackCallback = object : AudioManager.AudioPlaybackCallback() {
             override fun onPlaybackConfigChanged(configs: MutableList<AudioPlaybackConfiguration>) {
                 runOnMainThread {
-                    updateVolumeState()
+                    if (!hasAudioFocus) {
+                        updateVolumeState()
+                    }
                 }
             }
         }
@@ -71,7 +77,7 @@ class VideoLiveWallpaperService : WallpaperService() {
             if (am.mode != AudioManager.MODE_NORMAL) {
                 return true
             }
-            if (am.isMusicActive) {
+            if (!hasAudioFocus && am.isMusicActive) {
                 return true
             }
             return false
@@ -80,7 +86,7 @@ class VideoLiveWallpaperService : WallpaperService() {
         private fun requestAudioFocusIfNeeded() {
             val am = audioManager ?: return
             val isUserMuted = WallpaperHelper.isVideoMuted(this@VideoLiveWallpaperService)
-            if (isUserMuted || !isVisible) {
+            if (isUserMuted || !isVisible || isOtherAudioActive()) {
                 abandonAudioFocus()
                 return
             }
@@ -118,12 +124,17 @@ class VideoLiveWallpaperService : WallpaperService() {
                 return
             }
 
+            if (isOtherAudioActive()) {
+                abandonAudioFocus()
+                player?.volume = 0f
+                return
+            }
+
             if (!hasAudioFocus) {
                 requestAudioFocusIfNeeded()
             }
 
-            val shouldSilence = !hasAudioFocus || isOtherAudioActive()
-            player?.volume = if (shouldSilence) 0f else 1f
+            player?.volume = if (hasAudioFocus) 1f else 0f
         }
 
         override fun onCreate(holder: SurfaceHolder) {
@@ -186,6 +197,10 @@ class VideoLiveWallpaperService : WallpaperService() {
             when (key) {
                 WallpaperHelper.KEY_IS_MUTED -> {
                     runOnMainThread {
+                        val isMuted = WallpaperHelper.isVideoMuted(this@VideoLiveWallpaperService)
+                        player?.trackSelectionParameters = player?.trackSelectionParameters?.buildUpon()
+                            ?.setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, isMuted)
+                            ?.build() ?: return@runOnMainThread
                         updateVolumeState()
                     }
                 }
@@ -222,11 +237,9 @@ class VideoLiveWallpaperService : WallpaperService() {
                         setAudioAttributes(media3Attrs, false)
 
                         val isMuted = WallpaperHelper.isVideoMuted(this@VideoLiveWallpaperService)
-                        if (isMuted) {
-                            trackSelectionParameters = trackSelectionParameters.buildUpon()
-                                .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true)
-                                .build()
-                        }
+                        trackSelectionParameters = trackSelectionParameters.buildUpon()
+                            .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, isMuted)
+                            .build()
 
                         val uri = Uri.parse(videoUriString)
                         setMediaItem(MediaItem.fromUri(uri))
