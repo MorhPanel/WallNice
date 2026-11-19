@@ -259,7 +259,11 @@ fun PreviewScreen(
                     val nowFav = FavoritesManager.toggleFavorite(context, wallpaper.id)
                     if (nowFav) {
                         coroutineScope.launch {
-                            DownloadHelper.downloadToCache(context, wallpaper.url, extension)
+                            DownloadHelper.downloadFavorite(context, wallpaper.url, extension)
+                        }
+                    } else {
+                        coroutineScope.launch {
+                            DownloadHelper.removeFavoriteFile(context, wallpaper.url, extension)
                         }
                     }
                 },

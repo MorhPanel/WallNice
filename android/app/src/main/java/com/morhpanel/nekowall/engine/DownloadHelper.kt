@@ -31,7 +31,37 @@ object DownloadHelper {
         return digest.joinToString("") { "%02x".format(it) }.take(24)
     }
 
+    fun getFavoriteFile(context: Context, fileUrl: String, extension: String): File? {
+        if (!fileUrl.startsWith("https://", ignoreCase = true)) {
+            return null
+        }
+        val safeExt = sanitizeExtension(extension, "jpg")
+        val favoritesDir = File(context.filesDir, "favorites")
+        val targetFile = File(favoritesDir, "fav_wp_${urlHash(fileUrl)}.$safeExt")
+        if (!targetFile.canonicalPath.startsWith(favoritesDir.canonicalPath)) {
+            return null
+        }
+        return if (targetFile.exists() && targetFile.isFile && targetFile.length() > 0L && !targetFile.name.endsWith(".tmp")) {
+            targetFile
+        } else {
+            null
+        }
+    }
+
+    fun removeFavoriteFile(context: Context, fileUrl: String, extension: String): Boolean {
+        return try {
+            val file = getFavoriteFile(context, fileUrl, extension)
+            file?.delete() ?: false
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     fun getCachedFile(context: Context, fileUrl: String, extension: String): File? {
+        val favorite = getFavoriteFile(context, fileUrl, extension)
+        if (favorite != null) {
+            return favorite
+        }
         if (!fileUrl.startsWith("https://", ignoreCase = true)) {
             return null
         }
@@ -50,6 +80,42 @@ object DownloadHelper {
 
     fun isCached(context: Context, fileUrl: String, extension: String): Boolean {
         return getCachedFile(context, fileUrl, extension) != null
+    }
+
+    suspend fun downloadFavorite(context: Context, fileUrl: String, extension: String): File? = withContext(Dispatchers.IO) {
+        val existingFav = getFavoriteFile(context, fileUrl, extension)
+        if (existingFav != null) {
+            return@withContext existingFav
+        }
+        val safeExt = sanitizeExtension(extension, "jpg")
+        val favoritesDir = File(context.filesDir, "favorites")
+        if (!favoritesDir.exists()) {
+            favoritesDir.mkdirs()
+        }
+        val targetFile = File(favoritesDir, "fav_wp_${urlHash(fileUrl)}.$safeExt")
+
+        val cached = getCachedFile(context, fileUrl, extension)
+        if (cached != null && cached != targetFile) {
+            try {
+                cached.copyTo(targetFile, overwrite = true)
+                if (targetFile.exists() && targetFile.length() > 0L) {
+                    return@withContext targetFile
+                }
+            } catch (_: Exception) {
+            }
+        }
+
+        val downloaded = downloadToCache(context, fileUrl, extension)
+        if (downloaded != null) {
+            try {
+                downloaded.copyTo(targetFile, overwrite = true)
+                if (targetFile.exists() && targetFile.length() > 0L) {
+                    return@withContext targetFile
+                }
+            } catch (_: Exception) {
+            }
+        }
+        null
     }
 
     fun trimCacheIfNeeded(context: Context, maxSizeBytes: Long = 200L * 1024 * 1024) {

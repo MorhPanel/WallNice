@@ -43,7 +43,7 @@ This document provides a comprehensive roadmap, system architecture summary, and
 ```
 
 ### Milestone 1 — Media Resilience & Offline Persistence
-- [ ] **Dedicated Favorites Storage**:
+- [x] **Dedicated Favorites Storage**:
   - Automatically copy downloaded media for favorited wallpapers into `filesDir/favorites/` instead of temporary `cacheDir`.
   - Provide 100% offline playback with zero risk of cache eviction.
 - [ ] **Seamless Video Ping-Pong Looping**:
