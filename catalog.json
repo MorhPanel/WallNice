@@ -1,9 +1,9 @@
 {
   "appUpdate": {
-    "versionCode": 20,
-    "versionName": "0.0.18-beta",
-    "changelog": "Looping video previews on visible cards in feed and Diavolo Boss live wallpaper.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.18-beta/app-release.apk"
+    "versionCode": 21,
+    "versionName": "0.0.19-beta",
+    "changelog": "Clean full-screen 9:16 vertical live video wallpaper without duplicate ambient blur.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.19-beta/app-release.apk"
   },
   "categories": [
     "All",
