@@ -11,6 +11,7 @@ data class WallpaperItem(
     val title: String,
     val author: String,
     val category: String,
+    val subcategory: String = "",
     val mediaType: MediaType,
     val url: String,
     val thumbnailUrl: String,

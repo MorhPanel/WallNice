@@ -77,11 +77,11 @@ for root, _, files in os.walk(DLS_DIR):
                 except Exception:
                     pass
 
+            subcategory = ""
             if len(parts) >= 4 and parts[1].lower() == "anime":
                 category = "Anime"
-                anime_name = parts[2]
+                subcategory = parts[2]
                 categories.add("Anime")
-                categories.add(anime_name)
             elif len(parts) >= 3:
                 category = parts[1]
                 categories.add(category)
@@ -104,6 +104,7 @@ for root, _, files in os.walk(DLS_DIR):
             "title": title,
             "author": "morhpanel",
             "category": category,
+            "subcategory": subcategory,
             "mediaType": media_type,
             "url": raw_url,
             "thumbnailUrl": raw_url,

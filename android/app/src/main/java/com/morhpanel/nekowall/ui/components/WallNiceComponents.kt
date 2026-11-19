@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -120,7 +121,8 @@ fun CategoryPill(
     text: String,
     selected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    trailingIcon: (@Composable () -> Unit)? = null
 ) {
     val shape = RoundedCornerShape(WallNiceRadii.pill)
     val backgroundColor by animateColorAsState(
@@ -157,6 +159,10 @@ fun CategoryPill(
             color = textColor,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold
         )
+        if (trailingIcon != null) {
+            Spacer(Modifier.width(WallNiceSpacing.xs))
+            trailingIcon()
+        }
     }
 }
 

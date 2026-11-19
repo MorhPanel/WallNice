@@ -3,15 +3,19 @@ package com.morhpanel.nekowall.ui.screens
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,13 +36,17 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.ui.platform.LocalContext
-import com.morhpanel.nekowall.data.repository.FavoritesManager
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.CollectionsBookmark
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -46,6 +54,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -60,7 +69,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.morhpanel.nekowall.data.models.AppUpdateInfo
@@ -68,6 +80,7 @@ import com.morhpanel.nekowall.data.models.MediaFilter
 import com.morhpanel.nekowall.data.models.MediaType
 import com.morhpanel.nekowall.data.models.WallpaperItem
 import com.morhpanel.nekowall.data.models.matches
+import com.morhpanel.nekowall.data.repository.FavoritesManager
 import com.morhpanel.nekowall.data.repository.WallpaperRepository
 import com.morhpanel.nekowall.ui.components.BrandMark
 import com.morhpanel.nekowall.ui.components.CategoryPill
@@ -78,12 +91,15 @@ import com.morhpanel.nekowall.ui.components.WallpaperCard
 import com.morhpanel.nekowall.ui.theme.AmoledBlack
 import com.morhpanel.nekowall.ui.theme.NeonCyan
 import com.morhpanel.nekowall.ui.theme.NeonPink
+import com.morhpanel.nekowall.ui.theme.OutlineStrong
 import com.morhpanel.nekowall.ui.theme.OutlineSubtle
 import com.morhpanel.nekowall.ui.theme.SurfaceLow
+import com.morhpanel.nekowall.ui.theme.SurfaceMid
+import com.morhpanel.nekowall.ui.theme.TextMuted
 import com.morhpanel.nekowall.ui.theme.TextPrimary
 import com.morhpanel.nekowall.ui.theme.TextSecondary
-import com.morhpanel.nekowall.ui.theme.WallNiceRadii
 import com.morhpanel.nekowall.ui.theme.WallNiceMotion
+import com.morhpanel.nekowall.ui.theme.WallNiceRadii
 import com.morhpanel.nekowall.ui.theme.WallNiceSpacing
 import kotlinx.coroutines.launch
 
@@ -117,6 +133,8 @@ fun HomeScreen(
     val favoriteIds by FavoritesManager.favoriteIds
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var selectedCategory by rememberSaveable { mutableStateOf("All") }
+    var selectedAnimeSubcategory by rememberSaveable { mutableStateOf("All Anime") }
+    var isAnimeDropdownOpen by rememberSaveable { mutableStateOf(false) }
     var selectedMediaFilter by rememberSaveable(stateSaver = MediaFilterSaver) { mutableStateOf(MediaFilter.ALL) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var categories by remember { mutableStateOf(listOf("All")) }
@@ -135,7 +153,9 @@ fun HomeScreen(
                     val nextCategories = listOf("All", "Favorites") + baseCategories
                     categories = nextCategories
                     wallpapers = response.wallpapers
-                    if (selectedCategory !in nextCategories) selectedCategory = "All"
+                    if (selectedCategory !in nextCategories && selectedCategory != "Anime") {
+                        selectedCategory = "All"
+                    }
                     response.updateInfo?.let(onUpdateAvailable)
                 }
                 .onFailure { error ->
@@ -159,7 +179,50 @@ fun HomeScreen(
         }
     }
 
-    val filteredList = remember(selectedCategory, selectedMediaFilter, searchQuery, searchableWallpapers, favoriteIds) {
+    val animeSubcategories = remember(searchableWallpapers) {
+        val subs = mutableSetOf<String>()
+        searchableWallpapers.forEach { entry ->
+            val sub = entry.item.subcategory.ifBlank {
+                if (entry.decodedUrl.contains("/Anime/", ignoreCase = true)) {
+                    entry.decodedUrl.substringAfter("/Anime/", "").substringBefore("/")
+                } else {
+                    ""
+                }
+            }
+            if (sub.isNotBlank() && !sub.endsWith(".jpg", ignoreCase = true) && !sub.endsWith(".png", ignoreCase = true)) {
+                subs.add(sub)
+            }
+        }
+        listOf("All Anime") + subs.sorted()
+    }
+
+    val animeSubcategoryCounts = remember(searchableWallpapers, animeSubcategories) {
+        animeSubcategories.associateWith { sub ->
+            if (sub == "All Anime") {
+                searchableWallpapers.count { entry ->
+                    entry.item.category.equals("Anime", ignoreCase = true) ||
+                        entry.decodedUrl.contains("/Anime/", ignoreCase = true)
+                }
+            } else {
+                searchableWallpapers.count { entry ->
+                    (entry.item.category.equals("Anime", ignoreCase = true) || entry.decodedUrl.contains("/Anime/", ignoreCase = true)) &&
+                        (entry.item.subcategory.equals(sub, ignoreCase = true) || entry.decodedUrl.contains("/$sub/", ignoreCase = true))
+                }
+            }
+        }
+    }
+
+    val displayCategories = remember(categories, animeSubcategories) {
+        val subSet = animeSubcategories.filter { it != "All Anime" }.toSet()
+        val cleaned = categories.filter { it !in subSet }
+        if ("Anime" !in cleaned) {
+            cleaned + "Anime"
+        } else {
+            cleaned
+        }
+    }
+
+    val filteredList = remember(selectedCategory, selectedAnimeSubcategory, selectedMediaFilter, searchQuery, searchableWallpapers, favoriteIds) {
         val query = searchQuery.trim()
         searchableWallpapers.mapNotNull { entry ->
             val item = entry.item
@@ -172,8 +235,18 @@ fun HomeScreen(
                 "Live Video" -> item.mediaType == MediaType.VIDEO
                 "GIF Loops" -> item.mediaType == MediaType.GIF
                 "AMOLED 4K" -> item.isAmoled
-                "Anime" -> item.category.equals("Anime", ignoreCase = true) ||
-                    decodedUrl.contains("/Anime/", ignoreCase = true)
+                "Anime" -> {
+                    val isAnime = item.category.equals("Anime", ignoreCase = true) ||
+                        decodedUrl.contains("/Anime/", ignoreCase = true)
+                    if (!isAnime) {
+                        false
+                    } else if (selectedAnimeSubcategory == "All Anime") {
+                        true
+                    } else {
+                        item.subcategory.equals(selectedAnimeSubcategory, ignoreCase = true) ||
+                            decodedUrl.contains("/$selectedAnimeSubcategory/", ignoreCase = true)
+                    }
+                }
                 else -> item.category.equals(selectedCategory, ignoreCase = true) ||
                     decodedUrl.contains("/$selectedCategory/", ignoreCase = true) ||
                     decodedUrl.contains(selectedCategory, ignoreCase = true)
@@ -184,6 +257,7 @@ fun HomeScreen(
                 item.title.contains(query, ignoreCase = true) ||
                 item.author.contains(query, ignoreCase = true) ||
                 item.category.contains(query, ignoreCase = true) ||
+                item.subcategory.contains(query, ignoreCase = true) ||
                 decodedUrl.contains(query, ignoreCase = true)
 
             if (searchMatches) item else null
@@ -209,9 +283,30 @@ fun HomeScreen(
                 CatalogHeader(
                     searchQuery = searchQuery,
                     onSearchQueryChange = { searchQuery = it },
-                    categories = categories,
+                    categories = displayCategories,
                     selectedCategory = selectedCategory,
-                    onCategorySelected = { selectedCategory = it },
+                    onCategorySelected = { category ->
+                        if (category == "Anime") {
+                            if (selectedCategory == "Anime") {
+                                isAnimeDropdownOpen = !isAnimeDropdownOpen
+                            } else {
+                                selectedCategory = "Anime"
+                                isAnimeDropdownOpen = true
+                            }
+                        } else {
+                            selectedCategory = category
+                            isAnimeDropdownOpen = false
+                        }
+                    },
+                    animeSubcategories = animeSubcategories,
+                    selectedAnimeSubcategory = selectedAnimeSubcategory,
+                    isAnimeDropdownOpen = isAnimeDropdownOpen,
+                    animeSubcategoryCounts = animeSubcategoryCounts,
+                    onAnimeSubcategorySelected = { sub ->
+                        selectedAnimeSubcategory = sub
+                        isAnimeDropdownOpen = false
+                    },
+                    onCloseAnimeDropdown = { isAnimeDropdownOpen = false },
                     selectedMediaFilter = selectedMediaFilter,
                     onMediaFilterSelected = { selectedMediaFilter = it },
                     onRefresh = { loadData() },
@@ -345,6 +440,7 @@ fun HomeScreen(
                                         onAction = {
                                             searchQuery = ""
                                             selectedCategory = "All"
+                                            selectedAnimeSubcategory = "All Anime"
                                             selectedMediaFilter = MediaFilter.ALL
                                         }
                                     )
@@ -387,6 +483,12 @@ private fun CatalogHeader(
     categories: List<String>,
     selectedCategory: String,
     onCategorySelected: (String) -> Unit,
+    animeSubcategories: List<String>,
+    selectedAnimeSubcategory: String,
+    isAnimeDropdownOpen: Boolean,
+    animeSubcategoryCounts: Map<String, Int>,
+    onAnimeSubcategorySelected: (String) -> Unit,
+    onCloseAnimeDropdown: () -> Unit,
     selectedMediaFilter: MediaFilter,
     onMediaFilterSelected: (MediaFilter) -> Unit,
     onRefresh: () -> Unit,
@@ -502,12 +604,52 @@ private fun CatalogHeader(
             horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.xs)
         ) {
             items(categories, key = { it }) { category ->
+                val isAnime = category == "Anime"
+                val isSelected = selectedCategory == category
+                val pillText = if (isAnime && isSelected && selectedAnimeSubcategory != "All Anime") {
+                    "Anime: $selectedAnimeSubcategory"
+                } else {
+                    category
+                }
+
                 CategoryPill(
-                    text = category,
-                    selected = selectedCategory == category,
-                    onClick = { onCategorySelected(category) }
+                    text = pillText,
+                    selected = isSelected,
+                    onClick = { onCategorySelected(category) },
+                    trailingIcon = if (isAnime) {
+                        {
+                            Icon(
+                                imageVector = if (isAnimeDropdownOpen) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                contentDescription = if (isAnimeDropdownOpen) "Collapse anime list" else "Expand anime list",
+                                tint = if (isSelected) Color.White else TextSecondary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    } else null
                 )
             }
+        }
+
+        AnimatedVisibility(
+            visible = isAnimeDropdownOpen && selectedCategory == "Anime",
+            enter = expandVertically(
+                animationSpec = tween(WallNiceMotion.standardDurationMillis)
+            ) + fadeIn(
+                animationSpec = tween(WallNiceMotion.standardDurationMillis)
+            ),
+            exit = shrinkVertically(
+                animationSpec = tween(WallNiceMotion.fastDurationMillis)
+            ) + fadeOut(
+                animationSpec = tween(WallNiceMotion.fastDurationMillis)
+            )
+        ) {
+            AnimeSubcategoryDropdown(
+                subcategories = animeSubcategories,
+                selectedSubcategory = selectedAnimeSubcategory,
+                subcategoryCounts = animeSubcategoryCounts,
+                onSubcategorySelected = onAnimeSubcategorySelected,
+                onClose = onCloseAnimeDropdown
+            )
         }
 
         Row(
@@ -535,5 +677,118 @@ private fun CatalogHeader(
             }
         }
         Spacer(Modifier.height(WallNiceSpacing.xs))
+    }
+}
+
+@Composable
+private fun AnimeSubcategoryDropdown(
+    subcategories: List<String>,
+    selectedSubcategory: String,
+    subcategoryCounts: Map<String, Int>,
+    onSubcategorySelected: (String) -> Unit,
+    onClose: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = WallNiceSpacing.md, vertical = WallNiceSpacing.xs),
+        shape = RoundedCornerShape(WallNiceRadii.large),
+        color = SurfaceMid,
+        border = BorderStroke(1.dp, OutlineStrong)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(WallNiceSpacing.sm)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = WallNiceSpacing.sm, vertical = WallNiceSpacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.xs)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = NeonCyan,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "Anime Collections",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = TextSecondary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                IconButton(
+                    onClick = onClose,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close dropdown",
+                        tint = TextSecondary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(WallNiceSpacing.xs))
+
+            subcategories.forEach { subcategory ->
+                val isSelected = subcategory == selectedSubcategory
+                val count = subcategoryCounts[subcategory] ?: 0
+                val shape = RoundedCornerShape(WallNiceRadii.medium)
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(shape)
+                        .background(if (isSelected) NeonPink.copy(alpha = 0.12f) else Color.Transparent)
+                        .border(
+                            width = 1.dp,
+                            color = if (isSelected) NeonPink.copy(alpha = 0.4f) else Color.Transparent,
+                            shape = shape
+                        )
+                        .clickable { onSubcategorySelected(subcategory) }
+                        .padding(horizontal = WallNiceSpacing.sm, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                        contentDescription = null,
+                        tint = if (isSelected) NeonPink else TextMuted,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(WallNiceSpacing.sm))
+                    Text(
+                        text = subcategory,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (isSelected) TextPrimary else TextSecondary,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(WallNiceRadii.pill))
+                            .background(SurfaceLow)
+                            .border(1.dp, OutlineSubtle, RoundedCornerShape(WallNiceRadii.pill))
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = count.toString(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isSelected) NeonPink else NeonCyan,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
     }
 }

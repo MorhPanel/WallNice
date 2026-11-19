@@ -1,6 +1,7 @@
 package com.morhpanel.nekowall.data.repository
 
 import android.content.Context
+import android.net.Uri
 import com.morhpanel.nekowall.data.models.AppUpdateInfo
 import com.morhpanel.nekowall.data.models.CatalogResponse
 import com.morhpanel.nekowall.data.models.MediaType
@@ -76,12 +77,22 @@ object WallpaperRepository {
                     url = url
                 )
 
+                val rawSubcategory = item.optString("subcategory", "")
+                val resolvedSubcategory = if (rawSubcategory.isNotBlank()) {
+                    rawSubcategory
+                } else if (url.contains("/Anime/", ignoreCase = true)) {
+                    Uri.decode(url).substringAfter("/Anime/", "").substringBefore("/")
+                } else {
+                    ""
+                }
+
                 wallpapersList.add(
                     WallpaperItem(
                         id = item.optString("id", "wp_$i"),
                         title = item.optString("title", "Untitled"),
                         author = item.optString("author", "morhpanel"),
                         category = item.optString("category", "All"),
+                        subcategory = resolvedSubcategory,
                         mediaType = type,
                         url = url,
                         thumbnailUrl = item.optString("thumbnailUrl", url),
@@ -232,12 +243,19 @@ object WallpaperRepository {
                 val rawUrl = "$RAW_BASE_URL/$encodedPath"
                 val pathHash = java.security.MessageDigest.getInstance("SHA-256").digest(path.toByteArray()).joinToString("") { "%02x".format(it) }.take(8)
 
+                val subcategory = if (path.startsWith("img/Anime/", ignoreCase = true)) {
+                    path.split("/").getOrNull(2) ?: ""
+                } else {
+                    ""
+                }
+
                 wallpapers.add(
                     WallpaperItem(
                         id = "dls_$pathHash",
                         title = title,
                         author = "morhpanel",
                         category = category,
+                        subcategory = subcategory,
                         mediaType = mediaType,
                         url = rawUrl,
                         thumbnailUrl = rawUrl,

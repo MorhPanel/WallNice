@@ -46,7 +46,8 @@ private val WallpaperItemSaver: Saver<WallpaperItem?, Any> = Saver(
                 item.thumbnailUrl,
                 item.resolution,
                 item.isAmoled.toString(),
-                item.likesCount.toString()
+                item.likesCount.toString(),
+                item.subcategory
             )
         }
     },
@@ -58,6 +59,7 @@ private val WallpaperItemSaver: Saver<WallpaperItem?, Any> = Saver(
                     title = list[1] as? String ?: "",
                     author = list[2] as? String ?: "",
                     category = list[3] as? String ?: "",
+                    subcategory = if (list.size >= 11) list[10] as? String ?: "" else "",
                     mediaType = (list[4] as? String)?.let { name ->
                         runCatching { MediaType.valueOf(name) }.getOrNull()
                     } ?: MediaType.IMAGE,
