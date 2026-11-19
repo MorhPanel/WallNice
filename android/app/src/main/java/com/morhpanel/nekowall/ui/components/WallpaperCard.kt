@@ -1,11 +1,19 @@
 package com.morhpanel.nekowall.ui.components
 
 import android.net.Uri
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -75,29 +83,69 @@ import com.morhpanel.nekowall.ui.theme.WallNiceRadii
 import com.morhpanel.nekowall.ui.theme.WallNiceSpacing
 import com.morhpanel.nekowall.util.WallNiceImageLoader
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun WallpaperCard(
     wallpaper: WallpaperItem,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    autoPlay: Boolean = false
+    autoPlay: Boolean = false,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
     val shape = RoundedCornerShape(WallNiceRadii.large)
     val context = LocalContext.current
     val imageLoader = remember(context) { WallNiceImageLoader.get(context) }
+    val interactionSource = remember { MutableInteractionSource() }
+
+    val isVideoActive = wallpaper.mediaType == MediaType.VIDEO && autoPlay
+    val pulseAlpha = if (isVideoActive) {
+        val transition = rememberInfiniteTransition(label = "ActiveVideoPulse")
+        transition.animateFloat(
+            initialValue = 0.45f,
+            targetValue = 0.90f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1000, easing = WallNiceMotion.easeStandard),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "PulseAlpha"
+        ).value
+    } else {
+        1f
+    }
+    val borderColor = if (isVideoActive) NeonCyan.copy(alpha = pulseAlpha) else OutlineSubtle
+    val borderWidth = if (isVideoActive) 1.5.dp else 1.dp
+
+    val sharedModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+        with(sharedTransitionScope) {
+            Modifier.sharedElement(
+                state = rememberSharedContentState(key = "wallpaper_bounds_${wallpaper.id}"),
+                animatedVisibilityScope = animatedVisibilityScope,
+                clipInOverlayDuringTransition = OverlayClip(shape)
+            )
+        }
+    } else {
+        Modifier
+    }
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(9f / 16f)
+            .then(sharedModifier)
+            .springPressBounce(interactionSource)
             .clip(shape)
             .background(SurfaceLow)
-            .border(1.dp, OutlineSubtle, shape)
-            .clickable(onClick = onClick)
+            .border(borderWidth, borderColor, shape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
     ) {
         SubcomposeAsyncImage(
             model = ImageRequest.Builder(context)
-                .data(wallpaper.thumbnailUrl)
+                .data(wallpaper.thumbnailUrl.ifBlank { wallpaper.url })
                 .crossfade(220)
                 .build(),
             imageLoader = imageLoader,
@@ -119,7 +167,7 @@ fun WallpaperCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.BrokenImage,
+                        imageVector = if (wallpaper.mediaType == MediaType.VIDEO) Icons.Default.PlayArrow else Icons.Default.BrokenImage,
                         contentDescription = null,
                         tint = TextSecondary,
                         modifier = Modifier.size(30.dp)

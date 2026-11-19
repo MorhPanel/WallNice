@@ -125,6 +125,7 @@ fun CategoryPill(
     trailingIcon: (@Composable () -> Unit)? = null
 ) {
     val shape = RoundedCornerShape(WallNiceRadii.pill)
+    val interactionSource = remember { MutableInteractionSource() }
     val backgroundColor by animateColorAsState(
         targetValue = if (selected) NeonPink else SurfaceLow,
         animationSpec = tween(WallNiceMotion.fastDurationMillis),
@@ -143,6 +144,7 @@ fun CategoryPill(
     Row(
         modifier = modifier
             .height(WallNiceSizes.minimumTouchTarget)
+            .springPressBounce(interactionSource, targetScale = 0.96f)
             .clip(shape)
             .background(backgroundColor)
             .border(
@@ -150,7 +152,11 @@ fun CategoryPill(
                 color = borderColor,
                 shape = shape
             )
-            .clickable(onClick = onClick)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
             .padding(horizontal = WallNiceSpacing.md),
         verticalAlignment = Alignment.CenterVertically
     ) {

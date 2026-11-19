@@ -3,7 +3,10 @@ package com.morhpanel.nekowall.ui.screens
 import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import androidx.activity.compose.BackHandler
-import androidx.annotation.OptIn
+import kotlin.OptIn
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -92,6 +95,9 @@ import com.morhpanel.nekowall.data.models.WallpaperItem
 import com.morhpanel.nekowall.engine.DownloadHelper
 import com.morhpanel.nekowall.engine.WallpaperHelper
 import com.morhpanel.nekowall.engine.WallpaperTarget
+import com.morhpanel.nekowall.ui.components.HeartBurstButton
+import com.morhpanel.nekowall.ui.components.ScanlineSuccessOverlay
+import com.morhpanel.nekowall.ui.components.SlidingSegmentedPill
 import com.morhpanel.nekowall.ui.theme.AmoledBlack
 import com.morhpanel.nekowall.ui.theme.NeonCyan
 import com.morhpanel.nekowall.ui.theme.NeonPink
@@ -117,11 +123,13 @@ enum class PreviewOverlayMode {
     HOME_SCREEN
 }
 
-@OptIn(UnstableApi::class)
+@OptIn(UnstableApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun PreviewScreen(
     wallpaper: WallpaperItem,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -132,6 +140,7 @@ fun PreviewScreen(
     var showApplyDialog by remember { mutableStateOf(false) }
     var isApplying by remember { mutableStateOf(false) }
     var showFullscreenPreview by remember { mutableStateOf(false) }
+    var showScanline by remember { mutableStateOf(false) }
     var videoPlaybackState by remember { mutableIntStateOf(Player.STATE_IDLE) }
     var videoError by remember { mutableStateOf(false) }
 
@@ -205,19 +214,37 @@ fun PreviewScreen(
 
     val isBusy = isApplying
 
+    val sharedMediaModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+        with(sharedTransitionScope) {
+            Modifier.sharedElement(
+                state = rememberSharedContentState(key = "wallpaper_bounds_${wallpaper.id}"),
+                animatedVisibilityScope = animatedVisibilityScope,
+                clipInOverlayDuringTransition = OverlayClip(RoundedCornerShape(0.dp))
+            )
+        }
+    } else {
+        Modifier
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(AmoledBlack)
     ) {
         if (!showFullscreenPreview) {
-            WallpaperMedia(
-                wallpaper = wallpaper,
-                exoPlayer = exoPlayer,
-                videoPlaybackState = videoPlaybackState,
-                videoError = videoError,
-                cachedFile = cachedFile
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(sharedMediaModifier)
+            ) {
+                WallpaperMedia(
+                    wallpaper = wallpaper,
+                    exoPlayer = exoPlayer,
+                    videoPlaybackState = videoPlaybackState,
+                    videoError = videoError,
+                    cachedFile = cachedFile
+                )
+            }
 
             when (overlayMode) {
                 PreviewOverlayMode.CLEAN -> Unit
@@ -267,6 +294,7 @@ fun PreviewScreen(
                                         val permanentFile = File(liveDir, "active_live_wallpaper.mp4")
                                         readyFile.copyTo(permanentFile, overwrite = true)
                                         val videoUri = Uri.fromFile(permanentFile).toString()
+                                        showScanline = true
                                         WallpaperHelper.openLiveWallpaperChooser(
                                             context = context,
                                             videoUri = videoUri,
@@ -314,6 +342,9 @@ fun PreviewScreen(
                                 target = target
                             )
                             isApplying = false
+                            if (success) {
+                                showScanline = true
+                            }
                             snackbarHostState.showSnackbar(
                                 if (success) "Wallpaper applied" else "Couldn’t apply wallpaper"
                             )
@@ -333,6 +364,11 @@ fun PreviewScreen(
                 onBack = { showFullscreenPreview = false }
             )
         }
+
+        ScanlineSuccessOverlay(
+            trigger = showScanline,
+            onFinished = { showScanline = false }
+        )
     }
 }
 
@@ -546,53 +582,19 @@ private fun PreviewTopBar(
             )
         }
 
-        Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(WallNiceRadii.pill))
-                .background(Color.Black.copy(alpha = 0.76f))
-                .border(
-                    1.dp,
-                    OutlineSubtle,
-                    RoundedCornerShape(WallNiceRadii.pill)
-                )
-                .padding(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OverlayTab(
-                text = "Clean",
-                selected = selectedMode == PreviewOverlayMode.CLEAN,
-                onClick = { onModeSelected(PreviewOverlayMode.CLEAN) }
-            )
-            OverlayTab(
-                text = "Lock",
-                selected = selectedMode == PreviewOverlayMode.LOCK_SCREEN,
-                onClick = { onModeSelected(PreviewOverlayMode.LOCK_SCREEN) }
-            )
-            OverlayTab(
-                text = "Home",
-                selected = selectedMode == PreviewOverlayMode.HOME_SCREEN,
-                onClick = { onModeSelected(PreviewOverlayMode.HOME_SCREEN) }
-            )
-        }
+        SlidingSegmentedPill(
+            items = listOf("Clean", "Lock", "Home"),
+            selectedIndex = selectedMode.ordinal,
+            onItemSelected = { index ->
+                onModeSelected(PreviewOverlayMode.entries[index])
+            },
+            modifier = Modifier.width(220.dp)
+        )
 
-        IconButton(
-            onClick = onToggleFavorite,
-            modifier = Modifier
-                .size(WallNiceSizes.minimumTouchTarget)
-                .clip(CircleShape)
-                .background(Color.Black.copy(alpha = 0.72f))
-                .border(
-                    1.dp,
-                    if (isFavorite) NeonPink.copy(alpha = 0.7f) else OutlineSubtle,
-                    CircleShape
-                )
-        ) {
-            Icon(
-                imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
-                tint = if (isFavorite) NeonPink else Color.White
-            )
-        }
+        HeartBurstButton(
+            isFavorite = isFavorite,
+            onClick = onToggleFavorite
+        )
     }
 }
 

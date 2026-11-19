@@ -3,6 +3,9 @@ package com.morhpanel.nekowall.ui.screens
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -33,6 +36,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -100,6 +104,7 @@ import com.morhpanel.nekowall.ui.components.EmptyStatePanel
 import com.morhpanel.nekowall.ui.components.SkeletonWallpaperCard
 import com.morhpanel.nekowall.ui.components.WallNiceIconButton
 import com.morhpanel.nekowall.ui.components.WallpaperCard
+import com.morhpanel.nekowall.ui.components.staggeredEntrance
 import com.morhpanel.nekowall.ui.theme.AmoledBlack
 import com.morhpanel.nekowall.ui.theme.NeonCyan
 import com.morhpanel.nekowall.ui.theme.NeonPink
@@ -194,11 +199,14 @@ private data class SearchableWallpaper(
     val decodedUrl: String
 )
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun HomeScreen(
     isActive: Boolean = true,
     onWallpaperSelected: (WallpaperItem) -> Unit,
-    onUpdateAvailable: (AppUpdateInfo) -> Unit
+    onUpdateAvailable: (AppUpdateInfo) -> Unit,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -594,12 +602,18 @@ fun HomeScreen(
                                 horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.sm),
                                 verticalArrangement = Arrangement.spacedBy(WallNiceSpacing.sm)
                             ) {
-                                items(filteredList, key = { it.id }) { item ->
+                                itemsIndexed(filteredList, key = { _, it -> it.id }) { index, item ->
                                     val autoPlay = item.id in visibleItemKeys
                                     WallpaperCard(
                                         wallpaper = item,
                                         autoPlay = autoPlay,
-                                        onClick = { onWallpaperSelected(item) }
+                                        onClick = { onWallpaperSelected(item) },
+                                        sharedTransitionScope = sharedTransitionScope,
+                                        animatedVisibilityScope = animatedVisibilityScope,
+                                        modifier = Modifier.staggeredEntrance(
+                                            index = index,
+                                            enabled = !gridState.canScrollBackward
+                                        )
                                     )
                                 }
                             }

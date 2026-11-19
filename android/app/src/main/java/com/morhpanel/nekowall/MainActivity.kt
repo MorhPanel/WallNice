@@ -5,10 +5,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
@@ -93,52 +93,38 @@ class MainActivity : ComponentActivity() {
                     }
                     var pendingUpdate by remember { mutableStateOf<AppUpdateInfo?>(null) }
 
-                    AnimatedContent(
-                        targetState = selectedWallpaper,
-                        transitionSpec = {
-                            if (targetState == null) {
-                                (fadeIn(animationSpec = tween(WallNiceMotion.standardDurationMillis)) +
-                                    slideInHorizontally(
-                                        animationSpec = tween(WallNiceMotion.standardDurationMillis),
-                                        initialOffsetX = { -it / 12 }
-                                    )) togetherWith
-                                    (fadeOut(animationSpec = tween(WallNiceMotion.fastDurationMillis)) +
-                                        slideOutHorizontally(
-                                            animationSpec = tween(WallNiceMotion.fastDurationMillis),
-                                            targetOffsetX = { it / 12 }
-                                        ))
+                    @OptIn(ExperimentalSharedTransitionApi::class)
+                    SharedTransitionLayout {
+                        AnimatedContent(
+                            targetState = selectedWallpaper,
+                            transitionSpec = {
+                                fadeIn(animationSpec = tween(WallNiceMotion.sharedElementDurationMillis)) togetherWith
+                                    fadeOut(animationSpec = tween(WallNiceMotion.fastDurationMillis))
+                            },
+                            label = "ScreenTransition"
+                        ) { wallpaper ->
+                            if (wallpaper == null) {
+                                HomeScreen(
+                                    isActive = (selectedWallpaper == null),
+                                    onWallpaperSelected = { selectedWallpaper = it },
+                                    onUpdateAvailable = { updateInfo ->
+                                        if (updateInfo.versionCode > BuildConfig.VERSION_CODE &&
+                                            !AppUpdateManager.isPlayManagedInstall(this@MainActivity)
+                                        ) {
+                                            pendingUpdate = updateInfo
+                                        }
+                                    },
+                                    sharedTransitionScope = this@SharedTransitionLayout,
+                                    animatedVisibilityScope = this@AnimatedContent
+                                )
                             } else {
-                                (fadeIn(animationSpec = tween(WallNiceMotion.standardDurationMillis)) +
-                                    slideInHorizontally(
-                                        animationSpec = tween(WallNiceMotion.standardDurationMillis),
-                                        initialOffsetX = { it / 12 }
-                                    )) togetherWith
-                                    (fadeOut(animationSpec = tween(WallNiceMotion.fastDurationMillis)) +
-                                        slideOutHorizontally(
-                                            animationSpec = tween(WallNiceMotion.fastDurationMillis),
-                                            targetOffsetX = { -it / 12 }
-                                        ))
+                                PreviewScreen(
+                                    wallpaper = wallpaper,
+                                    onBack = { selectedWallpaper = null },
+                                    sharedTransitionScope = this@SharedTransitionLayout,
+                                    animatedVisibilityScope = this@AnimatedContent
+                                )
                             }
-                        },
-                        label = "ScreenTransition"
-                    ) { wallpaper ->
-                        if (wallpaper == null) {
-                            HomeScreen(
-                                isActive = (selectedWallpaper == null),
-                                onWallpaperSelected = { selectedWallpaper = it },
-                                onUpdateAvailable = { updateInfo ->
-                                    if (updateInfo.versionCode > BuildConfig.VERSION_CODE &&
-                                        !AppUpdateManager.isPlayManagedInstall(this@MainActivity)
-                                    ) {
-                                        pendingUpdate = updateInfo
-                                    }
-                                }
-                            )
-                        } else {
-                            PreviewScreen(
-                                wallpaper = wallpaper,
-                                onBack = { selectedWallpaper = null }
-                            )
                         }
                     }
 
