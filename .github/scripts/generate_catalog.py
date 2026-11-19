@@ -2,6 +2,7 @@ import os
 import re
 import json
 import urllib.parse
+import hashlib
 
 try:
     from PIL import Image
@@ -96,8 +97,10 @@ for root, _, files in os.walk(DLS_DIR):
         encoded_path = "/".join(urllib.parse.quote(part) for part in full_path.split("/"))
         raw_url = f"{REPO_BASE}/{encoded_path}"
 
+        wp_id = f"wp_{hashlib.sha256(rel_to_dls.encode('utf-8')).hexdigest()[:8]}"
+
         wallpapers.append({
-            "id": f"wp_{len(wallpapers) + 1}",
+            "id": wp_id,
             "title": title,
             "author": "morhpanel",
             "category": category,

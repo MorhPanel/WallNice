@@ -145,6 +145,22 @@ class SecurityControlTests(unittest.TestCase):
         self.assertIn("FavoritesManager.isFavorite(wallpaper.id)", card)
         self.assertIn("| 7 | Offline wallpaper cache and favorites | Android | 🟡 Medium | 🟢 Completed |", readme)
 
+    def test_ui_state_preservation_and_search_optimization_are_present(self):
+        main = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/MainActivity.kt").read_text()
+        home = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/screens/HomeScreen.kt").read_text()
+
+        self.assertIn("rememberSaveable", main)
+        self.assertIn("WallpaperItemSaver", main)
+        self.assertIn("selectedWallpaper by rememberSaveable", main)
+
+        self.assertIn("rememberSaveable", home)
+        self.assertIn("showSettings by rememberSaveable", home)
+        self.assertIn("selectedCategory by rememberSaveable", home)
+        self.assertIn("selectedMediaFilter by rememberSaveable", home)
+        self.assertIn("searchQuery by rememberSaveable", home)
+        self.assertIn("searchableWallpapers", home)
+        self.assertIn("SearchableWallpaper", home)
+
 
 if __name__ == "__main__":
     unittest.main()

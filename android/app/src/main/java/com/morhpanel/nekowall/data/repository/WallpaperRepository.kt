@@ -230,10 +230,11 @@ object WallpaperRepository {
                     URLEncoder.encode(segment, "UTF-8").replace("+", "%20")
                 }
                 val rawUrl = "$RAW_BASE_URL/$encodedPath"
+                val pathHash = java.security.MessageDigest.getInstance("SHA-256").digest(path.toByteArray()).joinToString("") { "%02x".format(it) }.take(8)
 
                 wallpapers.add(
                     WallpaperItem(
-                        id = "dls_$i",
+                        id = "dls_$pathHash",
                         title = title,
                         author = "morhpanel",
                         category = category,

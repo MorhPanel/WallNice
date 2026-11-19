@@ -10,15 +10,21 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 
 object DownloadHelper {
 
     fun getCachedFile(context: Context, fileUrl: String, extension: String): File? {
-        val fileName = "cached_wp_${fileUrl.hashCode()}.$extension"
+        val cleanExt = extension.removePrefix(".")
+        val fileName = "cached_wp_${fileUrl.hashCode()}.$cleanExt"
         val targetFile = File(context.cacheDir, fileName)
-        return if (targetFile.exists() && targetFile.length() > 0) targetFile else null
+        return if (targetFile.exists() && targetFile.isFile && targetFile.length() > 0L && !targetFile.name.endsWith(".tmp")) {
+            targetFile
+        } else {
+            null
+        }
     }
 
     fun isCached(context: Context, fileUrl: String, extension: String): Boolean {
@@ -26,14 +32,21 @@ object DownloadHelper {
     }
 
     suspend fun downloadToCache(context: Context, fileUrl: String, extension: String): File? = withContext(Dispatchers.IO) {
+        val cleanExt = extension.removePrefix(".")
+        val fileName = "cached_wp_${fileUrl.hashCode()}.$cleanExt"
+        val targetFile = File(context.cacheDir, fileName)
+
+        if (targetFile.exists() && targetFile.isFile && targetFile.length() > 0L && !targetFile.name.endsWith(".tmp")) {
+            return@withContext targetFile
+        }
+
+        val tmpFile = File(context.cacheDir, "$fileName.tmp")
+        if (tmpFile.exists()) {
+            tmpFile.delete()
+        }
+
+        var isRenamed = false
         try {
-            val fileName = "cached_wp_${fileUrl.hashCode()}.$extension"
-            val targetFile = File(context.cacheDir, fileName)
-
-            if (targetFile.exists() && targetFile.length() > 0) {
-                return@withContext targetFile
-            }
-
             val url = URL(fileUrl)
             val connection = url.openConnection() as HttpURLConnection
             connection.connectTimeout = 15000
@@ -41,18 +54,47 @@ object DownloadHelper {
             connection.connect()
 
             if (connection.responseCode != HttpURLConnection.HTTP_OK) {
+                if (tmpFile.exists()) {
+                    tmpFile.delete()
+                }
                 return@withContext null
             }
 
             connection.inputStream.use { input ->
-                FileOutputStream(targetFile).use { output ->
+                FileOutputStream(tmpFile).use { output ->
                     input.copyTo(output)
+                    output.flush()
                 }
             }
 
-            targetFile
+            if (tmpFile.exists() && tmpFile.isFile && tmpFile.length() > 0L) {
+                if (targetFile.exists()) {
+                    targetFile.delete()
+                }
+                if (tmpFile.renameTo(targetFile) && targetFile.exists() && targetFile.isFile && targetFile.length() > 0L) {
+                    isRenamed = true
+                    targetFile
+                } else {
+                    if (tmpFile.exists()) {
+                        tmpFile.delete()
+                    }
+                    null
+                }
+            } else {
+                if (tmpFile.exists()) {
+                    tmpFile.delete()
+                }
+                null
+            }
         } catch (e: Exception) {
+            if (tmpFile.exists()) {
+                tmpFile.delete()
+            }
             null
+        } finally {
+            if (!isRenamed && tmpFile.exists()) {
+                tmpFile.delete()
+            }
         }
     }
 
@@ -63,9 +105,19 @@ object DownloadHelper {
         isVideo: Boolean,
         onProgress: (Int) -> Unit = {}
     ): Boolean = withContext(Dispatchers.IO) {
+        var uri: Uri? = null
+        var isCompleted = false
         try {
-            val extension = if (isVideo) "mp4" else "jpg"
-            val mimeType = if (isVideo) "video/mp4" else "image/jpeg"
+            val defaultExtension = if (isVideo) "mp4" else "jpg"
+            val cachedFile = getCachedFile(context, fileUrl, defaultExtension)
+                ?: if (!isVideo) (getCachedFile(context, fileUrl, "png") ?: getCachedFile(context, fileUrl, "gif")) else null
+            val extension = cachedFile?.extension?.ifEmpty { defaultExtension } ?: defaultExtension
+            val mimeType = when (extension) {
+                "mp4" -> "video/mp4"
+                "gif" -> "image/gif"
+                "png" -> "image/png"
+                else -> if (isVideo) "video/mp4" else "image/jpeg"
+            }
             val safeTitle = "WallNice_${title.replace("[^a-zA-Z0-9]".toRegex(), "_")}_${System.currentTimeMillis()}"
 
             val contentValues = ContentValues().apply {
@@ -96,23 +148,38 @@ object DownloadHelper {
                 }
             }
 
-            val uri = context.contentResolver.insert(collection, contentValues) ?: return@withContext false
+            uri = context.contentResolver.insert(collection, contentValues) ?: return@withContext false
 
-            val url = URL(fileUrl)
-            val connection = url.openConnection() as HttpURLConnection
-            connection.connect()
+            val totalBytes: Long
+            val inputStream = if (cachedFile != null) {
+                totalBytes = cachedFile.length()
+                cachedFile.inputStream()
+            } else {
+                val url = URL(fileUrl)
+                val connection = url.openConnection() as HttpURLConnection
+                connection.connectTimeout = 15000
+                connection.readTimeout = 15000
+                connection.connect()
 
-            val totalBytes = connection.contentLength
-            var downloadedBytes = 0
+                if (connection.responseCode != HttpURLConnection.HTTP_OK) {
+                    throw IOException("HTTP ${connection.responseCode}")
+                }
+                totalBytes = connection.contentLength.toLong()
+                connection.inputStream
+            }
 
-            connection.inputStream.use { input ->
-                context.contentResolver.openOutputStream(uri)?.use { output ->
+            var downloadedBytes = 0L
+
+            inputStream.use { input ->
+                val outputStream = context.contentResolver.openOutputStream(uri)
+                    ?: throw IOException("Unable to open output stream")
+                outputStream.use { output ->
                     val buffer = ByteArray(8 * 1024)
                     var read: Int
                     while (input.read(buffer).also { read = it } != -1) {
                         output.write(buffer, 0, read)
                         downloadedBytes += read
-                        if (totalBytes > 0) {
+                        if (totalBytes > 0L) {
                             val progress = ((downloadedBytes * 100L) / totalBytes).toInt()
                             withContext(Dispatchers.Main) {
                                 onProgress(progress)
@@ -123,15 +190,33 @@ object DownloadHelper {
                 }
             }
 
+            if (downloadedBytes <= 0L) {
+                throw IOException("Empty download content")
+            }
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 contentValues.clear()
                 contentValues.put(MediaStore.MediaColumns.IS_PENDING, 0)
                 context.contentResolver.update(uri, contentValues, null, null)
             }
 
+            isCompleted = true
             true
         } catch (e: Exception) {
+            if (uri != null) {
+                try {
+                    context.contentResolver.delete(uri, null, null)
+                } catch (ignored: Exception) {
+                }
+            }
             false
+        } finally {
+            if (!isCompleted && uri != null) {
+                try {
+                    context.contentResolver.delete(uri, null, null)
+                } catch (ignored: Exception) {
+                }
+            }
         }
     }
 }

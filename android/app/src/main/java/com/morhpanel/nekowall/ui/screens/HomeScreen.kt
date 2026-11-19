@@ -55,6 +55,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -93,6 +95,18 @@ private enum class CatalogContentState {
     CONTENT
 }
 
+private val MediaFilterSaver: Saver<MediaFilter, String> = Saver(
+    save = { it.name },
+    restore = { name ->
+        MediaFilter.entries.firstOrNull { it.name == name } ?: MediaFilter.ALL
+    }
+)
+
+private data class SearchableWallpaper(
+    val item: WallpaperItem,
+    val decodedUrl: String
+)
+
 @Composable
 fun HomeScreen(
     onWallpaperSelected: (WallpaperItem) -> Unit,
@@ -101,10 +115,10 @@ fun HomeScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val favoriteIds by FavoritesManager.favoriteIds
-    var showSettings by remember { mutableStateOf(false) }
-    var selectedCategory by remember { mutableStateOf("All") }
-    var selectedMediaFilter by remember { mutableStateOf(MediaFilter.ALL) }
-    var searchQuery by remember { mutableStateOf("") }
+    var showSettings by rememberSaveable { mutableStateOf(false) }
+    var selectedCategory by rememberSaveable { mutableStateOf("All") }
+    var selectedMediaFilter by rememberSaveable(stateSaver = MediaFilterSaver) { mutableStateOf(MediaFilter.ALL) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
     var categories by remember { mutableStateOf(listOf("All")) }
     var wallpapers by remember { mutableStateOf<List<WallpaperItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -136,10 +150,22 @@ fun HomeScreen(
         loadData()
     }
 
-    val filteredList = remember(selectedCategory, selectedMediaFilter, searchQuery, wallpapers, favoriteIds) {
+    val searchableWallpapers = remember(wallpapers) {
+        wallpapers.map { item ->
+            SearchableWallpaper(
+                item = item,
+                decodedUrl = Uri.decode(item.url)
+            )
+        }
+    }
+
+    val filteredList = remember(selectedCategory, selectedMediaFilter, searchQuery, searchableWallpapers, favoriteIds) {
         val query = searchQuery.trim()
-        wallpapers.filter { item ->
-            val decodedUrl = Uri.decode(item.url)
+        searchableWallpapers.mapNotNull { entry ->
+            val item = entry.item
+            if (!selectedMediaFilter.matches(item)) return@mapNotNull null
+
+            val decodedUrl = entry.decodedUrl
             val categoryMatches = when (selectedCategory) {
                 "All" -> true
                 "Favorites" -> favoriteIds.contains(item.id)
@@ -152,12 +178,15 @@ fun HomeScreen(
                     decodedUrl.contains("/$selectedCategory/", ignoreCase = true) ||
                     decodedUrl.contains(selectedCategory, ignoreCase = true)
             }
+            if (!categoryMatches) return@mapNotNull null
+
             val searchMatches = query.isBlank() ||
                 item.title.contains(query, ignoreCase = true) ||
                 item.author.contains(query, ignoreCase = true) ||
                 item.category.contains(query, ignoreCase = true) ||
                 decodedUrl.contains(query, ignoreCase = true)
-            selectedMediaFilter.matches(item) && categoryMatches && searchMatches
+
+            if (searchMatches) item else null
         }
     }
 
