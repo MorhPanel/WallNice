@@ -49,19 +49,30 @@ for root, _, files in os.walk(DLS_DIR):
 
         is_amoled = False
         resolution = "1440x3200"
+        subcategory = ""
+
+        if len(parts) >= 4 and parts[1].lower() == "anime":
+            category = "Anime"
+            subcategory = parts[2]
+            categories.add("Anime")
+        elif len(parts) >= 3:
+            category = parts[1]
+            categories.add(category)
+        elif ext in valid_vid or folder == "video":
+            category = "Live Video"
+            categories.add(category)
+        elif ext in valid_gif or folder == "gif":
+            category = "GIF Loops"
+            categories.add(category)
+        else:
+            category = "All"
 
         if ext in valid_vid or folder == "video":
             media_type = "VIDEO"
-            category = "Live Video"
-            if len(parts) > 2:
-                category = parts[1]
-            categories.add(category)
+            resolution = "1080x1920"
         elif ext in valid_gif or folder == "gif":
             media_type = "GIF"
-            category = "GIF Loops"
-            if len(parts) > 2:
-                category = parts[1]
-            categories.add(category)
+            resolution = "1080x1920"
         elif ext in valid_img or folder == "img":
             media_type = "IMAGE"
             if Image:
@@ -76,17 +87,6 @@ for root, _, files in os.walk(DLS_DIR):
                                 is_amoled = True
                 except Exception:
                     pass
-
-            subcategory = ""
-            if len(parts) >= 4 and parts[1].lower() == "anime":
-                category = "Anime"
-                subcategory = parts[2]
-                categories.add("Anime")
-            elif len(parts) >= 3:
-                category = parts[1]
-                categories.add(category)
-            else:
-                category = "All"
         else:
             continue
 

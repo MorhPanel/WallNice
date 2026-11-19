@@ -217,6 +217,19 @@
       "resolution": "1440x3200",
       "isAmoled": false,
       "likesCount": 0
+    },
+    {
+      "id": "wp_0a0c1ae3",
+      "title": "Diavolo Boss",
+      "author": "morhpanel",
+      "category": "Anime",
+      "subcategory": "JoJo",
+      "mediaType": "VIDEO",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/video/Anime/JoJo/diavolo_boss.mp4",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/video/Anime/JoJo/diavolo_boss.mp4",
+      "resolution": "1080x1920",
+      "isAmoled": false,
+      "likesCount": 0
     }
   ]
 }
