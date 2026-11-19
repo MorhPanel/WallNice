@@ -31,7 +31,7 @@ A sleek, lightweight cross-platform experience for discovering, downloading, and
 
 The goal is a smooth, distraction-free experience with a remotely maintained catalog and zero battery drain.
 
-> **Project status:** Android is in active public Beta (v0.0.14-beta). Desktop clients for Windows and Linux are in development.
+> **Project status:** Android is in active public Beta (v0.0.23-beta). Desktop clients for Windows and Linux are planned on the [Engineering Roadmap](ROADMAP.md).
 
 <a id="platforms"></a>
 <a id="-platforms"></a>
@@ -41,9 +41,9 @@ The goal is a smooth, distraction-free experience with a remotely maintained cat
 
 | Platform | Directory | Runtime & Stack | Status |
 |:--:|---|---|---|
-| **Android** | `./android` | Jetpack Compose · AndroidX Media3 · `WallpaperService` | 🟢 Working Beta |
-| **Windows** | `./windows` | Win32 API · DirectX 11 · Desktop Window Manager (DWM) | 🔜 Coming Soon |
-| **Linux (Fedora / GNOME)** | `./linux` | Wayland · `swww` daemon · Portal API | 🔜 Coming Soon |
+| **Android** | `./android` | Jetpack Compose · AndroidX Media3 · `WallpaperService` | 🟢 Working Beta (v0.0.23-beta) |
+| **Windows** | Planned | Win32 API · DirectX 11 · Desktop Window Manager (DWM) | 🔜 Planned |
+| **Linux (Fedora / GNOME)** | Planned | Wayland · `swww` daemon · Portal API | 🔜 Planned |
 
 <a id="features"></a>
 <a id="-features"></a>
@@ -119,14 +119,13 @@ cd WallNice/android
 ```text
 WallNice/
 ├── android/                 # Android application (Kotlin, Compose, Media3)
-├── windows/                 # Windows client (Win32, DirectX 11, DWM overlay)
-├── linux/                   # Linux client (Wayland, swww daemon)
 ├── DLS/                     # Shared cross-platform media pool
 │   ├── img/                 # Static images sorted by category and series
 │   ├── video/               # Live video wallpapers (.mp4, .webm)
 │   └── gif/                 # Looping animations (.gif)
 ├── .github/                 # Workflows (Release CI, Catalog generation)
 ├── catalog.json             # Remote catalog manifest
+├── ROADMAP.md               # Architecture and roadmap backlog
 └── RULES.md                 # Contributor guidelines
 ```
 

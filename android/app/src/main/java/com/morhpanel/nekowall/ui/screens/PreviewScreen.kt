@@ -27,6 +27,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import com.morhpanel.nekowall.data.repository.FavoritesManager
@@ -36,8 +38,6 @@ import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.filled.VolumeOff
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -79,7 +79,6 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
@@ -123,7 +122,7 @@ enum class PreviewOverlayMode {
     HOME_SCREEN
 }
 
-@OptIn(UnstableApi::class, ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun PreviewScreen(
     wallpaper: WallpaperItem,
@@ -372,7 +371,6 @@ fun PreviewScreen(
     }
 }
 
-@OptIn(UnstableApi::class)
 @Composable
 private fun FullscreenMediaViewer(
     wallpaper: WallpaperItem,
@@ -415,7 +413,6 @@ private fun FullscreenMediaViewer(
     }
 }
 
-@OptIn(UnstableApi::class)
 @Composable
 private fun WallpaperMedia(
     wallpaper: WallpaperItem,
@@ -599,29 +596,6 @@ private fun PreviewTopBar(
 }
 
 @Composable
-private fun OverlayTab(
-    text: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .height(40.dp)
-            .clip(RoundedCornerShape(WallNiceRadii.pill))
-            .background(if (selected) NeonPink else Color.Transparent)
-            .clickable(onClick = onClick)
-            .padding(horizontal = WallNiceSpacing.sm),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelLarge,
-            color = if (selected) Color.White else TextSecondary
-        )
-    }
-}
-
-@Composable
 private fun PreviewBottomPanel(
     modifier: Modifier = Modifier,
     wallpaper: WallpaperItem,
@@ -684,7 +658,7 @@ private fun PreviewBottomPanel(
                         .border(1.dp, OutlineSubtle, CircleShape)
                 ) {
                     Icon(
-                        imageVector = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
+                        imageVector = if (isMuted) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
                         contentDescription = if (isMuted) "Enable sound" else "Mute sound",
                         tint = if (isMuted) TextSecondary else NeonCyan
                     )
