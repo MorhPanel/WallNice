@@ -13,10 +13,10 @@ CATALOG_PATH = "catalog.json"
 DLS_DIR = "DLS"
 
 existing_update = {
-    "versionCode": 15,
-    "versionName": "0.0.13.2-beta",
-    "changelog": "Fixes release download redirect validation for GitHub CDN assets.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.13.2-beta/app-release.apk"
+    "versionCode": 16,
+    "versionName": "0.0.14-beta",
+    "changelog": "Adds offline wallpaper cache, favorites, and new Gothic & Nikke collections.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.14-beta/app-release.apk"
 }
 
 if os.path.exists(CATALOG_PATH):
