@@ -1,5 +1,6 @@
 package com.morhpanel.nekowall.engine
 
+import android.app.WallpaperManager
 import android.content.Context
 import android.content.SharedPreferences
 import android.media.AudioAttributes as AndroidAudioAttributes
@@ -8,15 +9,21 @@ import android.media.AudioManager
 import android.media.AudioPlaybackConfiguration
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.service.wallpaper.WallpaperService
+import android.view.GestureDetector
+import android.view.MotionEvent
 import android.view.SurfaceHolder
+import android.view.ViewConfiguration
 import androidx.media3.common.AudioAttributes as Media3AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import kotlin.math.abs
 
 class VideoLiveWallpaperService : WallpaperService() {
 
@@ -33,6 +40,20 @@ class VideoLiveWallpaperService : WallpaperService() {
         private var audioManager: AudioManager? = null
         private var audioFocusRequest: AudioFocusRequest? = null
         private var hasAudioFocus = false
+        private var isManuallyPaused = false
+        private var lastTapTime: Long = 0
+        private var lastTapX: Int = 0
+        private var lastTapY: Int = 0
+        private var lastDoubleTapActionTime: Long = 0
+
+        private val gestureDetector by lazy {
+            GestureDetector(this@VideoLiveWallpaperService, object : GestureDetector.SimpleOnGestureListener() {
+                override fun onDoubleTap(e: MotionEvent): Boolean {
+                    handleDoubleTap()
+                    return true
+                }
+            })
+        }
 
         private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
             runOnMainThread {
@@ -65,6 +86,38 @@ class VideoLiveWallpaperService : WallpaperService() {
                 action()
             } else {
                 mainHandler.post(action)
+            }
+        }
+
+        private fun handleDoubleTap() {
+            if (!WallpaperHelper.isDoubleTapToPauseEnabled(this@VideoLiveWallpaperService)) {
+                return
+            }
+            val now = SystemClock.uptimeMillis()
+            if (now - lastDoubleTapActionTime < 500) {
+                return
+            }
+            lastDoubleTapActionTime = now
+            togglePlaybackPause()
+        }
+
+        private fun togglePlaybackPause() {
+            runOnMainThread {
+                val activePlayer = player ?: return@runOnMainThread
+                if (isManuallyPaused) {
+                    isManuallyPaused = false
+                    if (isVisible || isPreview) {
+                        activePlayer.playWhenReady = true
+                        activePlayer.play()
+                        updateVolumeState()
+                    }
+                } else {
+                    isManuallyPaused = true
+                    activePlayer.pause()
+                    activePlayer.playWhenReady = false
+                    abandonAudioFocus()
+                    activePlayer.volume = 0f
+                }
             }
         }
 
@@ -126,7 +179,7 @@ class VideoLiveWallpaperService : WallpaperService() {
             val am = audioManager
             val inCall = am != null && am.mode != AudioManager.MODE_NORMAL
             val isExternalPlaying = isExternalMusicPlaying()
-            val shouldSilence = isUserMuted || (!isVisible && !isPreview) || inCall || isExternalPlaying
+            val shouldSilence = isUserMuted || (!isVisible && !isPreview) || inCall || isExternalPlaying || isManuallyPaused
 
             if (shouldSilence) {
                 abandonAudioFocus()
@@ -141,6 +194,7 @@ class VideoLiveWallpaperService : WallpaperService() {
 
         override fun onCreate(holder: SurfaceHolder) {
             super.onCreate(holder)
+            setTouchEventsEnabled(true)
             surfaceHolder = holder
             audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager
             try {
@@ -182,10 +236,43 @@ class VideoLiveWallpaperService : WallpaperService() {
             surfaceHolder = null
         }
 
+        override fun onTouchEvent(event: MotionEvent) {
+            super.onTouchEvent(event)
+            if (WallpaperHelper.isDoubleTapToPauseEnabled(this@VideoLiveWallpaperService)) {
+                gestureDetector.onTouchEvent(event)
+            }
+        }
+
+        override fun onCommand(
+            action: String?,
+            x: Int,
+            y: Int,
+            z: Int,
+            extras: Bundle?,
+            resultRequested: Boolean
+        ): Bundle? {
+            if (action == WallpaperManager.COMMAND_TAP) {
+                val now = SystemClock.uptimeMillis()
+                val doubleTapTimeout = ViewConfiguration.getDoubleTapTimeout()
+                if (now - lastTapTime <= doubleTapTimeout &&
+                    abs(x - lastTapX) < 120 &&
+                    abs(y - lastTapY) < 120
+                ) {
+                    handleDoubleTap()
+                    lastTapTime = 0
+                } else {
+                    lastTapTime = now
+                    lastTapX = x
+                    lastTapY = y
+                }
+            }
+            return super.onCommand(action, x, y, z, extras, resultRequested)
+        }
+
         override fun onVisibilityChanged(visible: Boolean) {
             super.onVisibilityChanged(visible)
             runOnMainThread {
-                val shouldPlay = visible || isPreview
+                val shouldPlay = (visible || isPreview) && !isManuallyPaused
                 player?.playWhenReady = shouldPlay
                 if (shouldPlay) {
                     player?.play()
@@ -202,6 +289,18 @@ class VideoLiveWallpaperService : WallpaperService() {
                 WallpaperHelper.KEY_IS_MUTED -> {
                     runOnMainThread {
                         updateVolumeState()
+                    }
+                }
+                WallpaperHelper.KEY_DOUBLE_TAP_TO_PAUSE -> {
+                    runOnMainThread {
+                        if (!WallpaperHelper.isDoubleTapToPauseEnabled(this@VideoLiveWallpaperService) && isManuallyPaused) {
+                            isManuallyPaused = false
+                            if (isVisible || isPreview) {
+                                player?.playWhenReady = true
+                                player?.play()
+                                updateVolumeState()
+                            }
+                        }
                     }
                 }
                 WallpaperHelper.KEY_VIDEO_URI,
@@ -225,6 +324,7 @@ class VideoLiveWallpaperService : WallpaperService() {
 
                 try {
                     releasePlayer()
+                    isManuallyPaused = false
 
                     player = ExoPlayer.Builder(this@VideoLiveWallpaperService).build().apply {
                         setVideoSurfaceHolder(holder)

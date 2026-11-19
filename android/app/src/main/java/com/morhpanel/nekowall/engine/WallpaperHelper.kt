@@ -22,6 +22,7 @@ object WallpaperHelper {
     const val KEY_IS_MUTED = "is_video_muted"
     const val KEY_TARGET = "wallpaper_target"
     const val KEY_UPDATE_TIMESTAMP = "wallpaper_update_timestamp"
+    const val KEY_DOUBLE_TAP_TO_PAUSE = "double_tap_to_pause"
 
     fun saveLiveWallpaperConfig(
         context: Context,
@@ -69,6 +70,16 @@ object WallpaperHelper {
     fun isVideoMuted(context: Context): Boolean {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return prefs.getBoolean(KEY_IS_MUTED, false)
+    }
+
+    fun isDoubleTapToPauseEnabled(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getBoolean(KEY_DOUBLE_TAP_TO_PAUSE, false)
+    }
+
+    fun setDoubleTapToPauseEnabled(context: Context, enabled: Boolean) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putBoolean(KEY_DOUBLE_TAP_TO_PAUSE, enabled).apply()
     }
 
     fun getSavedTarget(context: Context): WallpaperTarget {

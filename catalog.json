@@ -1,9 +1,9 @@
 {
   "appUpdate": {
-    "versionCode": 31,
-    "versionName": "0.0.29-beta",
-    "changelog": "Fixed audio focus to prevent video wallpapers from pausing external music playback.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.29-beta/app-release.apk"
+    "versionCode": 32,
+    "versionName": "0.0.30-beta",
+    "changelog": "Added settings toggle for double-tap gesture to pause or resume video wallpaper playback on the home screen.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.30-beta/app-release.apk"
   },
   "categories": [
     "All",

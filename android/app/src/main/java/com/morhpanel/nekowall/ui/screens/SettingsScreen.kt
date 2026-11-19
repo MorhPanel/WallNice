@@ -24,23 +24,31 @@ import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.morhpanel.nekowall.BuildConfig
 import com.morhpanel.nekowall.data.models.WallpaperItem
+import com.morhpanel.nekowall.engine.WallpaperHelper
 import com.morhpanel.nekowall.ui.components.WallNiceIconButton
 import com.morhpanel.nekowall.ui.theme.AmoledBlack
 import com.morhpanel.nekowall.ui.theme.NeonCyan
@@ -64,6 +72,10 @@ fun SettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    var doubleTapToPause by remember {
+        mutableStateOf(WallpaperHelper.isDoubleTapToPauseEnabled(context))
+    }
     val scrollState = rememberScrollState()
     val categoryCounts = remember(wallpapers) {
         wallpapers.groupingBy { it.category.ifBlank { "All" } }
@@ -157,6 +169,26 @@ fun SettingsScreen(
                         if (index < categoryCounts.lastIndex) SettingsDivider()
                     }
                 }
+            }
+
+            Spacer(Modifier.height(WallNiceSpacing.xl))
+            SettingsSectionHeader(
+                icon = Icons.Default.TouchApp,
+                title = "Gestures",
+                tint = NeonPink,
+                detail = "Home screen wallpaper interaction"
+            )
+            Spacer(Modifier.height(WallNiceSpacing.xs))
+            SettingsCard {
+                SettingsSwitchRow(
+                    label = "Double tap to pause",
+                    detail = "Double-tap on the home screen to pause or resume video wallpaper",
+                    checked = doubleTapToPause,
+                    onCheckedChange = { enabled ->
+                        doubleTapToPause = enabled
+                        WallpaperHelper.setDoubleTapToPauseEnabled(context, enabled)
+                    }
+                )
             }
 
             Spacer(Modifier.height(WallNiceSpacing.xl))
@@ -376,4 +408,48 @@ private fun SettingsDivider() {
         modifier = Modifier.padding(horizontal = WallNiceSpacing.md),
         color = OutlineSubtle.copy(alpha = 0.7f)
     )
+}
+
+@Composable
+private fun SettingsSwitchRow(
+    label: String,
+    detail: String? = null,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = WallNiceSpacing.md, vertical = WallNiceSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.md),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextPrimary,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (detail != null) {
+                Spacer(Modifier.height(WallNiceSpacing.xxs))
+                Text(
+                    text = detail,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextMuted
+                )
+            }
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = AmoledBlack,
+                checkedTrackColor = NeonPink,
+                uncheckedThumbColor = TextMuted,
+                uncheckedTrackColor = SurfaceHigh,
+                uncheckedBorderColor = OutlineSubtle
+            )
+        )
+    }
 }
