@@ -16,6 +16,7 @@ android {
         versionName = "0.0.23-beta"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        resourceConfigurations += listOf("en")
         vectorDrawables {
             useSupportLibrary = true
         }
