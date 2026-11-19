@@ -1,5 +1,8 @@
 package com.morhpanel.nekowall.ui.components
 
+import android.net.Uri
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,9 +28,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -36,6 +44,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.C
+import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
 import coil.ImageLoader
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
@@ -51,6 +67,7 @@ import com.morhpanel.nekowall.ui.theme.OutlineSubtle
 import com.morhpanel.nekowall.ui.theme.SurfaceLow
 import com.morhpanel.nekowall.ui.theme.TextPrimary
 import com.morhpanel.nekowall.ui.theme.TextSecondary
+import com.morhpanel.nekowall.ui.theme.WallNiceMotion
 import com.morhpanel.nekowall.ui.theme.WallNiceRadii
 import com.morhpanel.nekowall.ui.theme.WallNiceSpacing
 
@@ -58,7 +75,8 @@ import com.morhpanel.nekowall.ui.theme.WallNiceSpacing
 fun WallpaperCard(
     wallpaper: WallpaperItem,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    autoPlay: Boolean = false
 ) {
     val shape = RoundedCornerShape(WallNiceRadii.large)
     val context = LocalContext.current
@@ -112,6 +130,13 @@ fun WallpaperCard(
             },
             success = { SubcomposeAsyncImageContent() }
         )
+
+        if (wallpaper.mediaType == MediaType.VIDEO && autoPlay) {
+            CardVideoPlayer(
+                videoUrl = wallpaper.url,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
 
         Box(
             modifier = Modifier
@@ -177,6 +202,62 @@ fun WallpaperCard(
             )
         }
     }
+}
+
+@Composable
+private fun CardVideoPlayer(
+    videoUrl: String,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    var isReady by remember { mutableStateOf(false) }
+
+    val exoPlayer = remember(videoUrl) {
+        ExoPlayer.Builder(context).build().apply {
+            setMediaItem(MediaItem.fromUri(Uri.parse(videoUrl)))
+            repeatMode = Player.REPEAT_MODE_ALL
+            volume = 0f
+            videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
+            prepare()
+            playWhenReady = true
+        }
+    }
+
+    DisposableEffect(exoPlayer) {
+        val listener = object : Player.Listener {
+            override fun onRenderedFirstFrame() {
+                isReady = true
+            }
+
+            override fun onPlayerError(error: PlaybackException) {
+                isReady = false
+            }
+        }
+        exoPlayer.addListener(listener)
+        onDispose {
+            exoPlayer.removeListener(listener)
+            exoPlayer.stop()
+            exoPlayer.release()
+        }
+    }
+
+    val alpha by animateFloatAsState(
+        targetValue = if (isReady) 1f else 0f,
+        animationSpec = tween(WallNiceMotion.fastDurationMillis),
+        label = "CardVideoAlpha"
+    )
+
+    AndroidView(
+        factory = { viewContext ->
+            PlayerView(viewContext).apply {
+                player = exoPlayer
+                useController = false
+                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+            }
+        },
+        update = { it.player = exoPlayer },
+        modifier = modifier.alpha(alpha)
+    )
 }
 
 @Composable

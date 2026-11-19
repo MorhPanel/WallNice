@@ -33,6 +33,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -61,6 +62,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -201,6 +203,12 @@ fun HomeScreen(
     var wallpapers by remember { mutableStateOf<List<WallpaperItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val gridState = rememberLazyGridState()
+    val visibleItemKeys by remember {
+        derivedStateOf {
+            gridState.layoutInfo.visibleItemsInfo.take(4).map { it.key }.toSet()
+        }
+    }
 
     fun loadData() {
         if (isLoading && wallpapers.isNotEmpty()) return
@@ -518,6 +526,7 @@ fun HomeScreen(
                         CatalogContentState.CONTENT -> {
                             LazyVerticalGrid(
                                 columns = GridCells.Fixed(2),
+                                state = gridState,
                                 modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(
                                     start = WallNiceSpacing.md,
@@ -529,8 +538,10 @@ fun HomeScreen(
                                 verticalArrangement = Arrangement.spacedBy(WallNiceSpacing.sm)
                             ) {
                                 items(filteredList, key = { it.id }) { item ->
+                                    val autoPlay = !showSettings && item.id in visibleItemKeys
                                     WallpaperCard(
                                         wallpaper = item,
+                                        autoPlay = autoPlay,
                                         onClick = { onWallpaperSelected(item) }
                                     )
                                 }

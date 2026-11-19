@@ -14,10 +14,10 @@ CATALOG_PATH = "catalog.json"
 DLS_DIR = "DLS"
 
 existing_update = {
-    "versionCode": 16,
-    "versionName": "0.0.14-beta",
-    "changelog": "Adds offline wallpaper cache, favorites, and new Gothic & Nikke collections.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.14-beta/app-release.apk"
+    "versionCode": 20,
+    "versionName": "0.0.18-beta",
+    "changelog": "Looping video previews on visible cards in feed and Diavolo Boss live wallpaper.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.18-beta/app-release.apk"
 }
 
 if os.path.exists(CATALOG_PATH):
