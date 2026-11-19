@@ -71,6 +71,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -83,6 +84,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlin.math.abs
 import com.morhpanel.nekowall.data.models.AppUpdateInfo
 import com.morhpanel.nekowall.data.models.MediaFilter
 import com.morhpanel.nekowall.data.models.MediaType
@@ -233,25 +237,33 @@ fun HomeScreen(
 
     val canPlayVideos = isActive && !showSettings && !isAnimeDropdownOpen && isAppForeground && windowInfo.isWindowFocused && !gridState.isScrollInProgress
 
-    val visibleItemKeys by remember {
-        derivedStateOf {
-            if (!canPlayVideos) {
-                emptySet()
-            } else {
-                val layoutInfo = gridState.layoutInfo
-                val visibleTop = layoutInfo.viewportStartOffset + layoutInfo.beforeContentPadding
-                val visibleEnd = layoutInfo.viewportEndOffset - layoutInfo.afterContentPadding
+    var visibleItemKeys by remember { mutableStateOf(emptySet<Any>()) }
 
-                layoutInfo.visibleItemsInfo
-                    .filter { item ->
-                        val itemTop = item.offset.y
-                        val itemBottom = item.offset.y + item.size.height
-                        itemTop >= visibleTop && itemBottom <= visibleEnd
-                    }
-                    .take(2)
-                    .map { it.key }
-                    .toSet()
+    LaunchedEffect(canPlayVideos, gridState) {
+        if (!canPlayVideos) {
+            visibleItemKeys = emptySet()
+            return@LaunchedEffect
+        }
+        snapshotFlow {
+            val layoutInfo = gridState.layoutInfo
+            val visibleTop = layoutInfo.viewportStartOffset + layoutInfo.beforeContentPadding
+            val visibleEnd = layoutInfo.viewportEndOffset - layoutInfo.afterContentPadding
+            val center = (visibleTop + visibleEnd) / 2
+
+            val fullyVisible = layoutInfo.visibleItemsInfo.filter { item ->
+                val itemTop = item.offset.y
+                val itemBottom = item.offset.y + item.size.height
+                itemTop >= visibleTop && itemBottom <= visibleEnd
             }
+
+            fullyVisible.sortedBy { item ->
+                val itemCenter = item.offset.y + (item.size.height / 2)
+                abs(itemCenter - center)
+            }.take(2).map { it.key }.toSet()
+        }
+        .collectLatest { keys ->
+            delay(200L)
+            visibleItemKeys = keys
         }
     }
 

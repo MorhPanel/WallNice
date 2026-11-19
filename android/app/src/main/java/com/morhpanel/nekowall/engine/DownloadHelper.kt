@@ -52,6 +52,26 @@ object DownloadHelper {
         return getCachedFile(context, fileUrl, extension) != null
     }
 
+    fun trimCacheIfNeeded(context: Context, maxSizeBytes: Long = 200L * 1024 * 1024) {
+        try {
+            val files = context.cacheDir.listFiles { file -> file.name.startsWith("cached_wp_") } ?: return
+            val totalSize = files.sumOf { it.length() }
+            if (totalSize > maxSizeBytes) {
+                val sorted = files.sortedBy { it.lastModified() }
+                var currentSize = totalSize
+                val targetSize = maxSizeBytes / 2
+                for (file in sorted) {
+                    if (currentSize <= targetSize) break
+                    val len = file.length()
+                    if (file.delete()) {
+                        currentSize -= len
+                    }
+                }
+            }
+        } catch (_: Exception) {
+        }
+    }
+
     suspend fun downloadToCache(context: Context, fileUrl: String, extension: String): File? = withContext(Dispatchers.IO) {
         if (!fileUrl.startsWith("https://", ignoreCase = true)) {
             return@withContext null
@@ -101,6 +121,7 @@ object DownloadHelper {
                 }
                 if (tmpFile.renameTo(targetFile) && targetFile.exists() && targetFile.isFile && targetFile.length() > 0L) {
                     isRenamed = true
+                    trimCacheIfNeeded(context)
                     targetFile
                 } else {
                     if (tmpFile.exists()) {
