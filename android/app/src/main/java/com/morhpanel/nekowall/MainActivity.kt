@@ -124,6 +124,7 @@ class MainActivity : ComponentActivity() {
                     ) { wallpaper ->
                         if (wallpaper == null) {
                             HomeScreen(
+                                isActive = (selectedWallpaper == null),
                                 onWallpaperSelected = { selectedWallpaper = it },
                                 onUpdateAvailable = { updateInfo ->
                                     if (updateInfo.versionCode > BuildConfig.VERSION_CODE &&

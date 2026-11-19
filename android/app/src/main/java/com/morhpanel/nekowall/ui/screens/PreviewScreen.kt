@@ -68,6 +68,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -160,7 +163,9 @@ fun PreviewScreen(
         }
     }
 
-    DisposableEffect(exoPlayer) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(exoPlayer, lifecycleOwner) {
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 videoPlaybackState = playbackState
@@ -170,8 +175,17 @@ fun PreviewScreen(
                 videoError = true
             }
         }
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> exoPlayer?.playWhenReady = true
+                Lifecycle.Event.ON_PAUSE, Lifecycle.Event.ON_STOP -> exoPlayer?.playWhenReady = false
+                else -> Unit
+            }
+        }
         exoPlayer?.addListener(listener)
+        lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
             exoPlayer?.removeListener(listener)
             exoPlayer?.release()
         }

@@ -45,6 +45,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
@@ -210,6 +213,7 @@ private fun CardVideoPlayer(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     var isReady by remember { mutableStateOf(false) }
 
     val exoPlayer = remember(videoUrl) {
@@ -223,7 +227,7 @@ private fun CardVideoPlayer(
         }
     }
 
-    DisposableEffect(exoPlayer) {
+    DisposableEffect(exoPlayer, lifecycleOwner) {
         val listener = object : Player.Listener {
             override fun onRenderedFirstFrame() {
                 isReady = true
@@ -233,8 +237,17 @@ private fun CardVideoPlayer(
                 isReady = false
             }
         }
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> exoPlayer.playWhenReady = true
+                Lifecycle.Event.ON_PAUSE, Lifecycle.Event.ON_STOP -> exoPlayer.playWhenReady = false
+                else -> Unit
+            }
+        }
         exoPlayer.addListener(listener)
+        lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
             exoPlayer.removeListener(listener)
             exoPlayer.stop()
             exoPlayer.release()

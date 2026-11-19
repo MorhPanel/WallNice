@@ -61,6 +61,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -75,9 +76,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.morhpanel.nekowall.data.models.AppUpdateInfo
 import com.morhpanel.nekowall.data.models.MediaFilter
 import com.morhpanel.nekowall.data.models.MediaType
@@ -187,11 +192,14 @@ private data class SearchableWallpaper(
 
 @Composable
 fun HomeScreen(
+    isActive: Boolean = true,
     onWallpaperSelected: (WallpaperItem) -> Unit,
     onUpdateAvailable: (AppUpdateInfo) -> Unit
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val windowInfo = LocalWindowInfo.current
     val favoriteIds by FavoritesManager.favoriteIds
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var selectedCategory by rememberSaveable { mutableStateOf("All") }
@@ -204,9 +212,46 @@ fun HomeScreen(
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val gridState = rememberLazyGridState()
+
+    var isAppForeground by remember {
+        mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> isAppForeground = true
+                Lifecycle.Event.ON_PAUSE, Lifecycle.Event.ON_STOP, Lifecycle.Event.ON_DESTROY -> isAppForeground = false
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    val canPlayVideos = isActive && !showSettings && !isAnimeDropdownOpen && isAppForeground && windowInfo.isWindowFocused && !gridState.isScrollInProgress
+
     val visibleItemKeys by remember {
         derivedStateOf {
-            gridState.layoutInfo.visibleItemsInfo.take(4).map { it.key }.toSet()
+            if (!canPlayVideos) {
+                emptySet()
+            } else {
+                val layoutInfo = gridState.layoutInfo
+                val visibleTop = layoutInfo.viewportStartOffset + layoutInfo.beforeContentPadding
+                val visibleEnd = layoutInfo.viewportEndOffset - layoutInfo.afterContentPadding
+
+                layoutInfo.visibleItemsInfo
+                    .filter { item ->
+                        val itemTop = item.offset.y
+                        val itemBottom = item.offset.y + item.size.height
+                        itemTop >= visibleTop && itemBottom <= visibleEnd
+                    }
+                    .take(4)
+                    .map { it.key }
+                    .toSet()
+            }
         }
     }
 
@@ -538,7 +583,7 @@ fun HomeScreen(
                                 verticalArrangement = Arrangement.spacedBy(WallNiceSpacing.sm)
                             ) {
                                 items(filteredList, key = { it.id }) { item ->
-                                    val autoPlay = !showSettings && item.id in visibleItemKeys
+                                    val autoPlay = item.id in visibleItemKeys
                                     WallpaperCard(
                                         wallpaper = item,
                                         autoPlay = autoPlay,
