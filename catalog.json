@@ -1,9 +1,9 @@
 {
   "appUpdate": {
-    "versionCode": 19,
-    "versionName": "0.0.17-beta",
-    "changelog": "Multi-selection support for anime collection subcategories.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.17-beta/app-release.apk"
+    "versionCode": 16,
+    "versionName": "0.0.14-beta",
+    "changelog": "Adds offline wallpaper cache, favorites, and new Gothic & Nikke collections.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.14-beta/app-release.apk"
   },
   "categories": [
     "All",
@@ -11,15 +11,15 @@
   ],
   "wallpapers": [
     {
-      "id": "wp_0a0c1ae3",
-      "title": "Diavolo Boss",
+      "id": "wp_c4f46daf",
+      "title": "Kanna Kamui",
       "author": "morhpanel",
       "category": "Anime",
-      "subcategory": "JoJo",
-      "mediaType": "VIDEO",
-      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/video/Anime/JoJo/diavolo_boss.mp4",
-      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/video/Anime/JoJo/diavolo_boss.mp4",
-      "resolution": "1080x1920",
+      "subcategory": "Miss Kobayashi's Dragon Maid",
+      "mediaType": "IMAGE",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Miss%20Kobayashi%27s%20Dragon%20Maid/kanna_kamui.jpg",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Miss%20Kobayashi%27s%20Dragon%20Maid/kanna_kamui.jpg",
+      "resolution": "1440x3200",
       "isAmoled": false,
       "likesCount": 0
     },
@@ -167,32 +167,6 @@
       "likesCount": 0
     },
     {
-      "id": "wp_3efc54d4",
-      "title": "D Killer Wife",
-      "author": "morhpanel",
-      "category": "Anime",
-      "subcategory": "Nikke",
-      "mediaType": "IMAGE",
-      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Nikke/d_killer_wife_e23c764c.jpg",
-      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Nikke/d_killer_wife_e23c764c.jpg",
-      "resolution": "1440x3200",
-      "isAmoled": false,
-      "likesCount": 0
-    },
-    {
-      "id": "wp_c4f46daf",
-      "title": "Kanna Kamui",
-      "author": "morhpanel",
-      "category": "Anime",
-      "subcategory": "Miss Kobayashi's Dragon Maid",
-      "mediaType": "IMAGE",
-      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Miss%20Kobayashi%27s%20Dragon%20Maid/kanna_kamui.jpg",
-      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Miss%20Kobayashi%27s%20Dragon%20Maid/kanna_kamui.jpg",
-      "resolution": "1440x3200",
-      "isAmoled": false,
-      "likesCount": 0
-    },
-    {
       "id": "wp_5945667e",
       "title": "Midnight Kitsune",
       "author": "morhpanel",
@@ -228,6 +202,32 @@
       "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Gothic/twin_queens_cd97ee5a.jpg",
       "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Gothic/twin_queens_cd97ee5a.jpg",
       "resolution": "1440x3200",
+      "isAmoled": false,
+      "likesCount": 0
+    },
+    {
+      "id": "wp_3efc54d4",
+      "title": "D Killer Wife",
+      "author": "morhpanel",
+      "category": "Anime",
+      "subcategory": "Nikke",
+      "mediaType": "IMAGE",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Nikke/d_killer_wife_e23c764c.jpg",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Nikke/d_killer_wife_e23c764c.jpg",
+      "resolution": "1440x3200",
+      "isAmoled": false,
+      "likesCount": 0
+    },
+    {
+      "id": "wp_0a0c1ae3",
+      "title": "Diavolo Boss",
+      "author": "morhpanel",
+      "category": "Anime",
+      "subcategory": "JoJo",
+      "mediaType": "VIDEO",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/video/Anime/JoJo/diavolo_boss.mp4",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/assets/thumbnails/diavolo_boss.jpg",
+      "resolution": "1080x1920",
       "isAmoled": false,
       "likesCount": 0
     }

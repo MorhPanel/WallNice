@@ -25,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,8 +36,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.ImageLoader
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
+import coil.decode.VideoFrameDecoder
 import coil.request.ImageRequest
 import com.morhpanel.nekowall.data.models.MediaType
 import com.morhpanel.nekowall.data.models.MediaTypeResolver
@@ -58,6 +61,14 @@ fun WallpaperCard(
     modifier: Modifier = Modifier
 ) {
     val shape = RoundedCornerShape(WallNiceRadii.large)
+    val context = LocalContext.current
+    val imageLoader = remember(context) {
+        ImageLoader.Builder(context)
+            .components {
+                add(VideoFrameDecoder.Factory())
+            }
+            .build()
+    }
 
     Box(
         modifier = modifier
@@ -69,10 +80,11 @@ fun WallpaperCard(
             .clickable(onClick = onClick)
     ) {
         SubcomposeAsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
+            model = ImageRequest.Builder(context)
                 .data(wallpaper.thumbnailUrl)
                 .crossfade(220)
                 .build(),
+            imageLoader = imageLoader,
             contentDescription = wallpaper.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),

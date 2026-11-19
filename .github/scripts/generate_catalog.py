@@ -97,6 +97,14 @@ for root, _, files in os.walk(DLS_DIR):
         encoded_path = "/".join(urllib.parse.quote(part) for part in full_path.split("/"))
         raw_url = f"{REPO_BASE}/{encoded_path}"
 
+        thumbnail_url = raw_url
+        if media_type == "VIDEO":
+            for thumb_ext in (".jpg", ".jpeg", ".png", ".webp"):
+                thumb_path = os.path.join("assets", "thumbnails", f"{base_name}{thumb_ext}")
+                if os.path.exists(thumb_path):
+                    thumbnail_url = f"{REPO_BASE}/assets/thumbnails/{base_name}{thumb_ext}"
+                    break
+
         wp_id = f"wp_{hashlib.sha256(rel_to_dls.encode('utf-8')).hexdigest()[:8]}"
 
         wallpapers.append({
@@ -107,7 +115,7 @@ for root, _, files in os.walk(DLS_DIR):
             "subcategory": subcategory,
             "mediaType": media_type,
             "url": raw_url,
-            "thumbnailUrl": raw_url,
+            "thumbnailUrl": thumbnail_url,
             "resolution": resolution,
             "isAmoled": is_amoled,
             "likesCount": 0
