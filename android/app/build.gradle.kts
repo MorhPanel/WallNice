@@ -12,8 +12,8 @@ android {
         applicationId = "com.morhpanel.nekowall"
         minSdk = 26
         targetSdk = 35
-        versionCode = 29
-        versionName = "0.0.27-beta"
+        versionCode = 30
+        versionName = "0.0.28-beta"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         resourceConfigurations += listOf("en")

@@ -1,9 +1,9 @@
 {
   "appUpdate": {
-    "versionCode": 29,
-    "versionName": "0.0.27-beta",
-    "changelog": "Restored full audio playback for video live wallpapers with native media focus and call muting.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.27-beta/app-release.apk"
+    "versionCode": 30,
+    "versionName": "0.0.28-beta",
+    "changelog": "Seamless instant in-app live wallpaper application and reliable sound playback.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.28-beta/app-release.apk"
   },
   "categories": [
     "All",

@@ -21,6 +21,7 @@ object WallpaperHelper {
     const val KEY_VIDEO_URI = "current_video_uri"
     const val KEY_IS_MUTED = "is_video_muted"
     const val KEY_TARGET = "wallpaper_target"
+    const val KEY_UPDATE_TIMESTAMP = "wallpaper_update_timestamp"
 
     fun saveLiveWallpaperConfig(
         context: Context,
@@ -33,7 +34,31 @@ object WallpaperHelper {
             .putString(KEY_VIDEO_URI, videoUri)
             .putBoolean(KEY_IS_MUTED, isMuted)
             .putString(KEY_TARGET, target.name)
+            .putLong(KEY_UPDATE_TIMESTAMP, System.currentTimeMillis())
             .apply()
+    }
+
+    fun isLiveWallpaperActive(context: Context): Boolean {
+        return try {
+            val info = WallpaperManager.getInstance(context).wallpaperInfo ?: return false
+            info.packageName == context.packageName
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    fun applyLiveWallpaper(
+        context: Context,
+        videoUri: String,
+        isMuted: Boolean = false,
+        target: WallpaperTarget = WallpaperTarget.BOTH
+    ): Boolean {
+        saveLiveWallpaperConfig(context, videoUri, isMuted, target)
+        if (isLiveWallpaperActive(context)) {
+            return true
+        }
+        openLiveWallpaperChooser(context, videoUri, isMuted, target)
+        return false
     }
 
     fun getSavedVideoUri(context: Context): String? {

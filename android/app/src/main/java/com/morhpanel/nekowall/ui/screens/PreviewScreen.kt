@@ -319,15 +319,23 @@ fun PreviewScreen(
                                         if (!liveDir.exists()) {
                                             liveDir.mkdirs()
                                         }
-                                        val permanentFile = File(liveDir, "active_live_wallpaper.mp4")
+                                        val permanentFile = File(liveDir, "live_wp_${System.currentTimeMillis()}.mp4")
                                         readyFile.copyTo(permanentFile, overwrite = true)
+                                        liveDir.listFiles()?.forEach { oldFile ->
+                                            if (oldFile.name != permanentFile.name) {
+                                                oldFile.delete()
+                                            }
+                                        }
                                         val videoUri = Uri.fromFile(permanentFile).toString()
                                         showScanline = true
-                                        WallpaperHelper.openLiveWallpaperChooser(
+                                        val appliedDirectly = WallpaperHelper.applyLiveWallpaper(
                                             context = context,
                                             videoUri = videoUri,
                                             isMuted = isMuted,
                                             target = target
+                                        )
+                                        snackbarHostState.showSnackbar(
+                                            if (appliedDirectly) "Wallpaper applied" else "Confirm engine in system dialog"
                                         )
                                     } catch (_: Exception) {
                                         snackbarHostState.showSnackbar("Unable to save live wallpaper.")

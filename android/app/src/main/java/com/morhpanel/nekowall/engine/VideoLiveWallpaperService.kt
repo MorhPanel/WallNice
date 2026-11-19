@@ -104,7 +104,8 @@ class VideoLiveWallpaperService : WallpaperService() {
                         updateVolumeState()
                     }
                 }
-                WallpaperHelper.KEY_VIDEO_URI -> {
+                WallpaperHelper.KEY_VIDEO_URI,
+                WallpaperHelper.KEY_UPDATE_TIMESTAMP -> {
                     initPlayer()
                 }
             }
