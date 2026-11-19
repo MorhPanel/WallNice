@@ -86,7 +86,7 @@ class VideoLiveWallpaperService : WallpaperService() {
         private fun requestAudioFocusIfNeeded() {
             val am = audioManager ?: return
             val isUserMuted = WallpaperHelper.isVideoMuted(this@VideoLiveWallpaperService)
-            if (isUserMuted || !isVisible || isOtherAudioActive()) {
+            if (isUserMuted || (!isVisible && !isPreview) || isOtherAudioActive()) {
                 abandonAudioFocus()
                 return
             }
@@ -118,7 +118,7 @@ class VideoLiveWallpaperService : WallpaperService() {
 
         private fun updateVolumeState() {
             val isUserMuted = WallpaperHelper.isVideoMuted(this@VideoLiveWallpaperService)
-            if (isUserMuted || !isVisible) {
+            if (isUserMuted || (!isVisible && !isPreview)) {
                 abandonAudioFocus()
                 player?.volume = 0f
                 return
@@ -183,13 +183,14 @@ class VideoLiveWallpaperService : WallpaperService() {
         override fun onVisibilityChanged(visible: Boolean) {
             super.onVisibilityChanged(visible)
             runOnMainThread {
-                if (visible) {
+                val shouldPlay = visible || isPreview
+                player?.playWhenReady = shouldPlay
+                if (shouldPlay) {
                     player?.play()
-                    updateVolumeState()
                 } else {
                     player?.pause()
-                    updateVolumeState()
                 }
+                updateVolumeState()
             }
         }
 
@@ -249,11 +250,12 @@ class VideoLiveWallpaperService : WallpaperService() {
                             }
                         })
                         prepare()
-
-                        if (isVisible) {
+                        val shouldPlay = isVisible || isPreview
+                        playWhenReady = shouldPlay
+                        if (shouldPlay) {
                             play()
-                            updateVolumeState()
                         }
+                        updateVolumeState()
                     }
                 } catch (e: Exception) {
                 }

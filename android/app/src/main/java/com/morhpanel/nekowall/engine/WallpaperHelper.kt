@@ -20,12 +20,19 @@ object WallpaperHelper {
     private const val PREFS_NAME = "nekowall_prefs"
     const val KEY_VIDEO_URI = "current_video_uri"
     const val KEY_IS_MUTED = "is_video_muted"
+    const val KEY_TARGET = "wallpaper_target"
 
-    fun saveLiveWallpaperConfig(context: Context, videoUri: String, isMuted: Boolean = false) {
+    fun saveLiveWallpaperConfig(
+        context: Context,
+        videoUri: String,
+        isMuted: Boolean = false,
+        target: WallpaperTarget = WallpaperTarget.BOTH
+    ) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit()
             .putString(KEY_VIDEO_URI, videoUri)
             .putBoolean(KEY_IS_MUTED, isMuted)
+            .putString(KEY_TARGET, target.name)
             .apply()
     }
 
@@ -39,8 +46,23 @@ object WallpaperHelper {
         return prefs.getBoolean(KEY_IS_MUTED, false)
     }
 
-    fun openLiveWallpaperChooser(context: Context, videoUri: String, isMuted: Boolean = false) {
-        saveLiveWallpaperConfig(context, videoUri, isMuted)
+    fun getSavedTarget(context: Context): WallpaperTarget {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val name = prefs.getString(KEY_TARGET, WallpaperTarget.BOTH.name)
+        return try {
+            WallpaperTarget.valueOf(name ?: WallpaperTarget.BOTH.name)
+        } catch (_: Exception) {
+            WallpaperTarget.BOTH
+        }
+    }
+
+    fun openLiveWallpaperChooser(
+        context: Context,
+        videoUri: String,
+        isMuted: Boolean = false,
+        target: WallpaperTarget = WallpaperTarget.BOTH
+    ) {
+        saveLiveWallpaperConfig(context, videoUri, isMuted, target)
 
         try {
             val intent = Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER).apply {
@@ -48,6 +70,20 @@ object WallpaperHelper {
                     WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,
                     ComponentName(context, VideoLiveWallpaperService::class.java)
                 )
+                when (target) {
+                    WallpaperTarget.HOME_SCREEN -> {
+                        putExtra("SET_LOCKSCREEN_WALLPAPER", false)
+                        putExtra("destination", 1)
+                    }
+                    WallpaperTarget.LOCK_SCREEN -> {
+                        putExtra("SET_LOCKSCREEN_WALLPAPER", true)
+                        putExtra("destination", 2)
+                    }
+                    WallpaperTarget.BOTH -> {
+                        putExtra("SET_LOCKSCREEN_WALLPAPER", true)
+                        putExtra("destination", 3)
+                    }
+                }
                 if (context !is android.app.Activity) {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }

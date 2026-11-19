@@ -279,40 +279,7 @@ fun PreviewScreen(
                 onOpenFullscreen = { showFullscreenPreview = true },
                 onApply = {
                     if (!isBusy) {
-                        if (wallpaper.mediaType == MediaType.VIDEO) {
-                            coroutineScope.launch {
-                                isApplying = true
-                                val readyFile = cachedFile ?: DownloadHelper.downloadToCache(
-                                    context = context,
-                                    fileUrl = wallpaper.url,
-                                    extension = "mp4"
-                                )
-                                isApplying = false
-                                if (readyFile != null) {
-                                    try {
-                                        val liveDir = File(context.filesDir, "live_wallpaper")
-                                        if (!liveDir.exists()) {
-                                            liveDir.mkdirs()
-                                        }
-                                        val permanentFile = File(liveDir, "active_live_wallpaper.mp4")
-                                        readyFile.copyTo(permanentFile, overwrite = true)
-                                        val videoUri = Uri.fromFile(permanentFile).toString()
-                                        showScanline = true
-                                        WallpaperHelper.openLiveWallpaperChooser(
-                                            context = context,
-                                            videoUri = videoUri,
-                                            isMuted = isMuted
-                                        )
-                                    } catch (_: Exception) {
-                                        snackbarHostState.showSnackbar("Unable to save live wallpaper.")
-                                    }
-                                } else {
-                                    snackbarHostState.showSnackbar("Unable to download live wallpaper.")
-                                }
-                            }
-                        } else {
-                            showApplyDialog = true
-                        }
+                        showApplyDialog = true
                     }
                 }
             )
@@ -337,20 +304,54 @@ fun PreviewScreen(
                     },
                     onTargetSelected = { target ->
                         showApplyDialog = false
-                        coroutineScope.launch {
-                            isApplying = true
-                            val success = loadAndApplyWallpaper(
-                                context = context,
-                                url = wallpaper.url,
-                                target = target
-                            )
-                            isApplying = false
-                            if (success) {
-                                showScanline = true
+                        if (wallpaper.mediaType == MediaType.VIDEO) {
+                            coroutineScope.launch {
+                                isApplying = true
+                                val readyFile = cachedFile ?: DownloadHelper.downloadToCache(
+                                    context = context,
+                                    fileUrl = wallpaper.url,
+                                    extension = "mp4"
+                                )
+                                isApplying = false
+                                if (readyFile != null) {
+                                    try {
+                                        val liveDir = File(context.filesDir, "live_wallpaper")
+                                        if (!liveDir.exists()) {
+                                            liveDir.mkdirs()
+                                        }
+                                        val permanentFile = File(liveDir, "active_live_wallpaper.mp4")
+                                        readyFile.copyTo(permanentFile, overwrite = true)
+                                        val videoUri = Uri.fromFile(permanentFile).toString()
+                                        showScanline = true
+                                        WallpaperHelper.openLiveWallpaperChooser(
+                                            context = context,
+                                            videoUri = videoUri,
+                                            isMuted = isMuted,
+                                            target = target
+                                        )
+                                    } catch (_: Exception) {
+                                        snackbarHostState.showSnackbar("Unable to save live wallpaper.")
+                                    }
+                                } else {
+                                    snackbarHostState.showSnackbar("Unable to download live wallpaper.")
+                                }
                             }
-                            snackbarHostState.showSnackbar(
-                                if (success) "Wallpaper applied" else "Couldn’t apply wallpaper"
-                            )
+                        } else {
+                            coroutineScope.launch {
+                                isApplying = true
+                                val success = loadAndApplyWallpaper(
+                                    context = context,
+                                    url = wallpaper.url,
+                                    target = target
+                                )
+                                isApplying = false
+                                if (success) {
+                                    showScanline = true
+                                }
+                                snackbarHostState.showSnackbar(
+                                    if (success) "Wallpaper applied" else "Couldn’t apply wallpaper"
+                                )
+                            }
                         }
                     }
                 )
