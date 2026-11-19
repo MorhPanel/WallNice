@@ -37,6 +37,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
@@ -111,12 +112,38 @@ private enum class CatalogContentState {
     CONTENT
 }
 
-private val MediaFilterSaver: Saver<MediaFilter, String> = Saver(
-    save = { it.name },
-    restore = { name ->
-        MediaFilter.entries.firstOrNull { it.name == name } ?: MediaFilter.ALL
+private val MediaFilterSetSaver: Saver<Set<MediaFilter>, List<String>> = Saver(
+    save = { set -> set.map { it.name } },
+    restore = { list ->
+        list.mapNotNull { name ->
+            MediaFilter.entries.firstOrNull { it.name == name }
+        }.toSet().ifEmpty { setOf(MediaFilter.ALL) }
     }
 )
+
+private fun toggleMediaFilter(current: Set<MediaFilter>, filter: MediaFilter): Set<MediaFilter> {
+    val specificFilters = setOf(MediaFilter.PHOTOS, MediaFilter.VIDEOS, MediaFilter.GIFS)
+    if (filter == MediaFilter.ALL) {
+        return setOf(MediaFilter.ALL)
+    }
+
+    val activeSpecific = if (MediaFilter.ALL in current) {
+        emptySet()
+    } else {
+        current.filter { it != MediaFilter.ALL }.toSet()
+    }
+
+    val nextSpecific = if (filter in activeSpecific) {
+        activeSpecific - filter
+    } else {
+        activeSpecific + filter
+    }
+
+    return when {
+        nextSpecific.isEmpty() || nextSpecific == specificFilters -> setOf(MediaFilter.ALL)
+        else -> nextSpecific
+    }
+}
 
 private data class SearchableWallpaper(
     val item: WallpaperItem,
@@ -135,7 +162,7 @@ fun HomeScreen(
     var selectedCategory by rememberSaveable { mutableStateOf("All") }
     var selectedAnimeSubcategory by rememberSaveable { mutableStateOf("All Anime") }
     var isAnimeDropdownOpen by rememberSaveable { mutableStateOf(false) }
-    var selectedMediaFilter by rememberSaveable(stateSaver = MediaFilterSaver) { mutableStateOf(MediaFilter.ALL) }
+    var selectedMediaFilter by rememberSaveable(stateSaver = MediaFilterSetSaver) { mutableStateOf(setOf(MediaFilter.ALL)) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var categories by remember { mutableStateOf(listOf("All")) }
     var wallpapers by remember { mutableStateOf<List<WallpaperItem>>(emptyList()) }
@@ -308,7 +335,9 @@ fun HomeScreen(
                     },
                     onCloseAnimeDropdown = { isAnimeDropdownOpen = false },
                     selectedMediaFilter = selectedMediaFilter,
-                    onMediaFilterSelected = { selectedMediaFilter = it },
+                    onMediaFilterSelected = { filter ->
+                        selectedMediaFilter = toggleMediaFilter(selectedMediaFilter, filter)
+                    },
                     onRefresh = { loadData() },
                     onOpenSettings = { showSettings = true }
                 )
@@ -441,7 +470,7 @@ fun HomeScreen(
                                             searchQuery = ""
                                             selectedCategory = "All"
                                             selectedAnimeSubcategory = "All Anime"
-                                            selectedMediaFilter = MediaFilter.ALL
+                                            selectedMediaFilter = setOf(MediaFilter.ALL)
                                         }
                                     )
                                 }
@@ -489,7 +518,7 @@ private fun CatalogHeader(
     animeSubcategoryCounts: Map<String, Int>,
     onAnimeSubcategorySelected: (String) -> Unit,
     onCloseAnimeDropdown: () -> Unit,
-    selectedMediaFilter: MediaFilter,
+    selectedMediaFilter: Set<MediaFilter>,
     onMediaFilterSelected: (MediaFilter) -> Unit,
     onRefresh: () -> Unit,
     onOpenSettings: () -> Unit
@@ -668,10 +697,26 @@ private fun CatalogHeader(
                 horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.xs)
             ) {
                 items(MediaFilter.entries, key = { it.name }) { filter ->
+                    val isSelected = if (filter == MediaFilter.ALL) {
+                        MediaFilter.ALL in selectedMediaFilter
+                    } else {
+                        filter in selectedMediaFilter
+                    }
+
                     CategoryPill(
                         text = filter.label,
-                        selected = selectedMediaFilter == filter,
-                        onClick = { onMediaFilterSelected(filter) }
+                        selected = isSelected,
+                        onClick = { onMediaFilterSelected(filter) },
+                        trailingIcon = if (isSelected) {
+                            {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        } else null
                     )
                 }
             }

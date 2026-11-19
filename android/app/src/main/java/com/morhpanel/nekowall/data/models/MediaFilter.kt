@@ -13,3 +13,8 @@ enum class MediaFilter(
 fun MediaFilter.matches(item: WallpaperItem): Boolean {
     return mediaType == null || item.mediaType == mediaType
 }
+
+fun Set<MediaFilter>.matches(item: WallpaperItem): Boolean {
+    if (MediaFilter.ALL in this || isEmpty()) return true
+    return any { it.matches(item) }
+}
