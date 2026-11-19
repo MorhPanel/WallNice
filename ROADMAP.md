@@ -16,7 +16,7 @@ This document provides a comprehensive roadmap, system architecture summary, and
 
 ---
 
-## 2. Current Implementation State (v0.0.23-beta)
+## 2. Current Implementation State (v0.0.24-beta)
 
 ### Core Capabilities
 | Subsystem | Implementation Details |

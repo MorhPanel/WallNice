@@ -14,10 +14,10 @@ CATALOG_PATH = "catalog.json"
 DLS_DIR = "DLS"
 
 existing_update = {
-    "versionCode": 25,
-    "versionName": "0.0.23-beta",
-    "changelog": "Implement premium GPU-accelerated motion system with shared element transitions and micro-interactions.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.23-beta/app-release.apk"
+    "versionCode": 26,
+    "versionName": "0.0.24-beta",
+    "changelog": "Smart audio ducking and focus management, isolated offline favorites persistence, and performance polish.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.24-beta/app-release.apk"
 }
 
 if os.path.exists(CATALOG_PATH):
