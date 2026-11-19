@@ -15,10 +15,10 @@ CATALOG_PATH = "catalog.json"
 DLS_DIR = "DLS"
 
 existing_update = {
-    "versionCode": 26,
-    "versionName": "0.0.24-beta",
+    "versionCode": 32,
+    "versionName": "0.0.30-beta",
     "changelog": "Smart audio ducking and focus management, isolated offline favorites persistence, and performance polish.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.24-beta/app-release.apk"
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.30-beta/app-release.apk"
 }
 
 if os.path.exists(CATALOG_PATH):

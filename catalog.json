@@ -1,13 +1,14 @@
 {
   "appUpdate": {
-    "versionCode": 26,
-    "versionName": "0.0.24-beta",
+    "versionCode": 32,
+    "versionName": "0.0.30-beta",
     "changelog": "Smart audio ducking and focus management, isolated offline favorites persistence, and performance polish.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.24-beta/app-release.apk"
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.30-beta/app-release.apk"
   },
   "categories": [
     "All",
-    "Anime"
+    "Anime",
+    "Gym"
   ],
   "wallpapers": [
     {
@@ -58,6 +59,19 @@
       "mediaType": "IMAGE",
       "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Miss%20Kobayashi%27s%20Dragon%20Maid/kanna_kamui.jpg",
       "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Miss%20Kobayashi%27s%20Dragon%20Maid/kanna_kamui.jpg",
+      "resolution": "1440x3200",
+      "isAmoled": false,
+      "likesCount": 0
+    },
+    {
+      "id": "wp_3efc54d4",
+      "title": "D Killer Wife",
+      "author": "morhpanel",
+      "category": "Anime",
+      "subcategory": "Nikke",
+      "mediaType": "IMAGE",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Nikke/d_killer_wife_e23c764c.jpg",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Nikke/d_killer_wife_e23c764c.jpg",
       "resolution": "1440x3200",
       "isAmoled": false,
       "likesCount": 0
@@ -206,42 +220,16 @@
       "likesCount": 0
     },
     {
-      "id": "wp_3efc54d4",
-      "title": "D Killer Wife",
+      "id": "wp_3808f972",
+      "title": "Archangel",
       "author": "morhpanel",
-      "category": "Anime",
-      "subcategory": "Nikke",
+      "category": "Gym",
+      "subcategory": "",
       "mediaType": "IMAGE",
-      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Nikke/d_killer_wife_e23c764c.jpg",
-      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Nikke/d_killer_wife_e23c764c.jpg",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Gym/archangel_a129fbde.jpg",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Gym/archangel_a129fbde.jpg",
       "resolution": "1440x3200",
-      "isAmoled": false,
-      "likesCount": 0
-    },
-    {
-      "id": "wp_c436ea84",
-      "title": "Nino Nakano",
-      "author": "morhpanel",
-      "category": "Anime",
-      "subcategory": "Quintuplets",
-      "mediaType": "VIDEO",
-      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/video/Anime/Quintuplets/nino_nakano.mp4",
-      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/assets/thumbnails/nino_nakano.jpg",
-      "resolution": "2160x3840",
-      "isAmoled": false,
-      "likesCount": 0
-    },
-    {
-      "id": "wp_ad94e7b5",
-      "title": "Nino Nakano Blurred 9X16",
-      "author": "morhpanel",
-      "category": "Anime",
-      "subcategory": "Quintuplets",
-      "mediaType": "VIDEO",
-      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/video/Anime/Quintuplets/nino_nakano_blurred_9x16.mp4",
-      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/video/Anime/Quintuplets/nino_nakano_blurred_9x16.mp4",
-      "resolution": "2160x3840",
-      "isAmoled": false,
+      "isAmoled": true,
       "likesCount": 0
     },
     {
@@ -266,7 +254,7 @@
       "mediaType": "VIDEO",
       "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/video/Anime/JoJo/diavolo_boss_blurred_9x16.mp4",
       "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/video/Anime/JoJo/diavolo_boss_blurred_9x16.mp4",
-      "resolution": "2160x3840",
+      "resolution": "1080x1920",
       "isAmoled": false,
       "likesCount": 0
     },
@@ -292,7 +280,7 @@
       "mediaType": "VIDEO",
       "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/video/Anime/JoJo/joseph_joestar_blurred_9x16.mp4",
       "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/video/Anime/JoJo/joseph_joestar_blurred_9x16.mp4",
-      "resolution": "2160x3840",
+      "resolution": "1080x1920",
       "isAmoled": false,
       "likesCount": 0
     },
@@ -318,7 +306,33 @@
       "mediaType": "VIDEO",
       "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/video/Anime/JoJo/kakyoin_noriaki_blurred_9x16.mp4",
       "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/video/Anime/JoJo/kakyoin_noriaki_blurred_9x16.mp4",
+      "resolution": "1080x1920",
+      "isAmoled": false,
+      "likesCount": 0
+    },
+    {
+      "id": "wp_c436ea84",
+      "title": "Nino Nakano",
+      "author": "morhpanel",
+      "category": "Anime",
+      "subcategory": "Quintuplets",
+      "mediaType": "VIDEO",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/video/Anime/Quintuplets/nino_nakano.mp4",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/assets/thumbnails/nino_nakano.jpg",
       "resolution": "2160x3840",
+      "isAmoled": false,
+      "likesCount": 0
+    },
+    {
+      "id": "wp_ad94e7b5",
+      "title": "Nino Nakano Blurred 9X16",
+      "author": "morhpanel",
+      "category": "Anime",
+      "subcategory": "Quintuplets",
+      "mediaType": "VIDEO",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/video/Anime/Quintuplets/nino_nakano_blurred_9x16.mp4",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/video/Anime/Quintuplets/nino_nakano_blurred_9x16.mp4",
+      "resolution": "1080x1920",
       "isAmoled": false,
       "likesCount": 0
     }
