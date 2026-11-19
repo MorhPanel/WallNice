@@ -70,37 +70,41 @@ object WallpaperRepository {
         if (root.has("wallpapers")) {
             val itemsArray = root.getJSONArray("wallpapers")
             for (i in 0 until itemsArray.length()) {
-                val item = itemsArray.getJSONObject(i)
-                val url = item.getString("url")
-                val type = MediaTypeResolver.fromCatalog(
-                    value = item.optString("mediaType", ""),
-                    url = url
-                )
-
-                val rawSubcategory = item.optString("subcategory", "")
-                val resolvedSubcategory = if (rawSubcategory.isNotBlank()) {
-                    rawSubcategory
-                } else if (url.contains("/Anime/", ignoreCase = true)) {
-                    Uri.decode(url).substringAfter("/Anime/", "").substringBefore("/")
-                } else {
-                    ""
-                }
-
-                wallpapersList.add(
-                    WallpaperItem(
-                        id = item.optString("id", "wp_$i"),
-                        title = item.optString("title", "Untitled"),
-                        author = item.optString("author", "morhpanel"),
-                        category = item.optString("category", "All"),
-                        subcategory = resolvedSubcategory,
-                        mediaType = type,
-                        url = url,
-                        thumbnailUrl = item.optString("thumbnailUrl", url),
-                        resolution = item.optString("resolution", "Original"),
-                        isAmoled = item.optBoolean("isAmoled", false),
-                        likesCount = item.optInt("likesCount", 0)
+                try {
+                    val item = itemsArray.optJSONObject(i) ?: continue
+                    val url = item.optString("url", "")
+                    if (!url.startsWith("https://", ignoreCase = true)) continue
+                    val type = MediaTypeResolver.fromCatalog(
+                        value = item.optString("mediaType", ""),
+                        url = url
                     )
-                )
+
+                    val rawSubcategory = item.optString("subcategory", "")
+                    val resolvedSubcategory = if (rawSubcategory.isNotBlank()) {
+                        rawSubcategory
+                    } else if (url.contains("/Anime/", ignoreCase = true)) {
+                        Uri.decode(url).substringAfter("/Anime/", "").substringBefore("/")
+                    } else {
+                        ""
+                    }
+
+                    wallpapersList.add(
+                        WallpaperItem(
+                            id = item.optString("id", "wp_$i"),
+                            title = item.optString("title", "Untitled"),
+                            author = item.optString("author", "morhpanel"),
+                            category = item.optString("category", "All"),
+                            subcategory = resolvedSubcategory,
+                            mediaType = type,
+                            url = url,
+                            thumbnailUrl = item.optString("thumbnailUrl", url),
+                            resolution = item.optString("resolution", "Original"),
+                            isAmoled = item.optBoolean("isAmoled", false),
+                            likesCount = item.optInt("likesCount", 0)
+                        )
+                    )
+                } catch (_: Exception) {
+                }
             }
         }
 
@@ -125,8 +129,9 @@ object WallpaperRepository {
                 catalogConn.setRequestProperty("Pragma", "no-cache")
                 if (catalogConn.responseCode == HttpURLConnection.HTTP_OK) {
                     val rawJson = catalogConn.inputStream.bufferedReader().use { it.readText() }
+                    val parsed = parseCatalogJson(rawJson)
                     context?.let { saveCatalogCache(it, rawJson) }
-                    return@withContext Result.success(parseCatalogJson(rawJson))
+                    return@withContext Result.success(parsed)
                 } else {
                     lastFailure = Exception("Catalog HTTP: ${catalogConn.responseCode}")
                 }

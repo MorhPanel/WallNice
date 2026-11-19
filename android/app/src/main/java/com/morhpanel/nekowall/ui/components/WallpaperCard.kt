@@ -73,6 +73,7 @@ import com.morhpanel.nekowall.ui.theme.TextSecondary
 import com.morhpanel.nekowall.ui.theme.WallNiceMotion
 import com.morhpanel.nekowall.ui.theme.WallNiceRadii
 import com.morhpanel.nekowall.ui.theme.WallNiceSpacing
+import com.morhpanel.nekowall.util.WallNiceImageLoader
 
 @Composable
 fun WallpaperCard(
@@ -83,13 +84,7 @@ fun WallpaperCard(
 ) {
     val shape = RoundedCornerShape(WallNiceRadii.large)
     val context = LocalContext.current
-    val imageLoader = remember(context) {
-        ImageLoader.Builder(context)
-            .components {
-                add(VideoFrameDecoder.Factory())
-            }
-            .build()
-    }
+    val imageLoader = remember(context) { WallNiceImageLoader.get(context) }
 
     Box(
         modifier = modifier
@@ -221,6 +216,9 @@ private fun CardVideoPlayer(
             setMediaItem(MediaItem.fromUri(Uri.parse(videoUrl)))
             repeatMode = Player.REPEAT_MODE_ALL
             volume = 0f
+            trackSelectionParameters = trackSelectionParameters.buildUpon()
+                .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true)
+                .build()
             videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
             prepare()
             playWhenReady = true
@@ -269,6 +267,7 @@ private fun CardVideoPlayer(
             }
         },
         update = { it.player = exoPlayer },
+        onRelease = { it.player = null },
         modifier = modifier.alpha(alpha)
     )
 }

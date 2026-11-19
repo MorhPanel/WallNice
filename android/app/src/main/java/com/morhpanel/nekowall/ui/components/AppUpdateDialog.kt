@@ -114,7 +114,7 @@ fun AppUpdateDialog(
         }
     }
 
-    DisposableEffect(lifecycleOwner, state) {
+    DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 val currentState = state

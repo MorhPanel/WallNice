@@ -66,7 +66,10 @@ class VideoLiveWallpaperService : WallpaperService() {
 
         override fun onSurfaceDestroyed(holder: SurfaceHolder) {
             super.onSurfaceDestroyed(holder)
-            releasePlayer()
+            runOnMainThread {
+                player?.clearVideoSurfaceHolder(holder)
+                releasePlayer()
+            }
             surfaceHolder = null
         }
 
@@ -99,7 +102,10 @@ class VideoLiveWallpaperService : WallpaperService() {
                 val holder = surfaceHolder ?: return@runOnMainThread
                 val videoUriString = WallpaperHelper.getSavedVideoUri(this@VideoLiveWallpaperService)
 
-                if (videoUriString.isNullOrEmpty()) {
+                if (videoUriString.isNullOrEmpty() ||
+                    videoUriString.startsWith("http://", ignoreCase = true) ||
+                    videoUriString.startsWith("https://", ignoreCase = true)
+                ) {
                     return@runOnMainThread
                 }
 
@@ -113,9 +119,19 @@ class VideoLiveWallpaperService : WallpaperService() {
 
                         val isMuted = WallpaperHelper.isVideoMuted(this@VideoLiveWallpaperService)
                         volume = if (isMuted) 0f else 1f
+                        if (isMuted) {
+                            trackSelectionParameters = trackSelectionParameters.buildUpon()
+                                .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true)
+                                .build()
+                        }
 
                         val uri = Uri.parse(videoUriString)
                         setMediaItem(MediaItem.fromUri(uri))
+                        addListener(object : Player.Listener {
+                            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                                stop()
+                            }
+                        })
                         prepare()
 
                         if (isVisible) {
@@ -140,8 +156,14 @@ class VideoLiveWallpaperService : WallpaperService() {
 
         override fun onDestroy() {
             prefs.unregisterOnSharedPreferenceChangeListener(this)
-            releasePlayer()
             mainHandler.removeCallbacksAndMessages(null)
+            player?.apply {
+                stop()
+                clearVideoSurfaceHolder(surfaceHolder)
+                release()
+            }
+            player = null
+            surfaceHolder = null
             super.onDestroy()
         }
     }

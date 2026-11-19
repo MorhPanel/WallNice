@@ -14,10 +14,10 @@ CATALOG_PATH = "catalog.json"
 DLS_DIR = "DLS"
 
 existing_update = {
-    "versionCode": 22,
-    "versionName": "0.0.20-beta",
-    "changelog": "Pause feed video preview on partial visibility, scrolling, backgrounding, and navigation.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.20-beta/app-release.apk"
+    "versionCode": 23,
+    "versionName": "0.0.21-beta",
+    "changelog": "Comprehensive security hardening, performance optimization, and storage resilience.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.21-beta/app-release.apk"
 }
 
 if os.path.exists(CATALOG_PATH):

@@ -71,6 +71,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -98,6 +100,7 @@ import com.morhpanel.nekowall.ui.theme.OutlineSubtle
 import com.morhpanel.nekowall.ui.theme.SurfaceHigh
 import com.morhpanel.nekowall.ui.theme.SurfaceLow
 import com.morhpanel.nekowall.ui.theme.SurfaceMid
+import com.morhpanel.nekowall.util.WallNiceImageLoader
 import com.morhpanel.nekowall.ui.theme.TextPrimary
 import com.morhpanel.nekowall.ui.theme.TextSecondary
 import com.morhpanel.nekowall.ui.theme.WallNiceRadii
@@ -152,6 +155,11 @@ fun PreviewScreen(
         if (wallpaper.mediaType == MediaType.VIDEO) {
             ExoPlayer.Builder(context).build().apply {
                 val mediaUri = cachedFile?.let { Uri.fromFile(it) } ?: Uri.parse(wallpaper.url)
+                val audioAttributes = AudioAttributes.Builder()
+                    .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                    .setUsage(C.USAGE_MEDIA)
+                    .build()
+                setAudioAttributes(audioAttributes, true)
                 setMediaItem(MediaItem.fromUri(mediaUri))
                 repeatMode = Player.REPEAT_MODE_ALL
                 volume = 0f
@@ -250,13 +258,26 @@ fun PreviewScreen(
                                     extension = "mp4"
                                 )
                                 isApplying = false
-                                val videoUri = readyFile?.let { Uri.fromFile(it).toString() }
-                                    ?: wallpaper.url
-                                WallpaperHelper.openLiveWallpaperChooser(
-                                    context = context,
-                                    videoUri = videoUri,
-                                    isMuted = isMuted
-                                )
+                                if (readyFile != null) {
+                                    try {
+                                        val liveDir = File(context.filesDir, "live_wallpaper")
+                                        if (!liveDir.exists()) {
+                                            liveDir.mkdirs()
+                                        }
+                                        val permanentFile = File(liveDir, "active_live_wallpaper.mp4")
+                                        readyFile.copyTo(permanentFile, overwrite = true)
+                                        val videoUri = Uri.fromFile(permanentFile).toString()
+                                        WallpaperHelper.openLiveWallpaperChooser(
+                                            context = context,
+                                            videoUri = videoUri,
+                                            isMuted = isMuted
+                                        )
+                                    } catch (_: Exception) {
+                                        snackbarHostState.showSnackbar("Unable to save live wallpaper.")
+                                    }
+                                } else {
+                                    snackbarHostState.showSnackbar("Unable to download live wallpaper.")
+                                }
                             }
                         } else {
                             showApplyDialog = true
@@ -385,6 +406,7 @@ private fun WallpaperMedia(
                     }
                 },
                 update = { it.player = exoPlayer },
+                onRelease = { it.player = null },
                 modifier = Modifier.fillMaxSize()
             )
             when {
@@ -394,17 +416,7 @@ private fun WallpaperMedia(
         }
 
         MediaType.GIF -> {
-            val imageLoader = remember {
-                ImageLoader.Builder(context)
-                    .components {
-                        if (android.os.Build.VERSION.SDK_INT >= 28) {
-                            add(ImageDecoderDecoder.Factory())
-                        } else {
-                            add(GifDecoder.Factory())
-                        }
-                    }
-                    .build()
-            }
+            val imageLoader = remember { WallNiceImageLoader.get(context) }
             WallpaperImage(
                 wallpaper = wallpaper,
                 imageLoader = imageLoader,
@@ -864,7 +876,7 @@ private suspend fun loadAndApplyWallpaper(
     return try {
         val extension = if (url.endsWith(".gif", ignoreCase = true)) "gif" else "jpg"
         val cached = DownloadHelper.getCachedFile(context, url, extension)
-        val loader = ImageLoader(context)
+        val loader = WallNiceImageLoader.get(context)
         val request = ImageRequest.Builder(context)
             .data(cached ?: url)
             .allowHardware(false)

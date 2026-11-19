@@ -248,7 +248,7 @@ fun HomeScreen(
                         val itemBottom = item.offset.y + item.size.height
                         itemTop >= visibleTop && itemBottom <= visibleEnd
                     }
-                    .take(4)
+                    .take(2)
                     .map { it.key }
                     .toSet()
             }

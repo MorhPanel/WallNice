@@ -2,18 +2,22 @@ package com.morhpanel.nekowall.engine
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.core.content.FileProvider
+import androidx.core.content.pm.PackageInfoCompat
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
+import kotlin.coroutines.coroutineContext
 
 sealed class UpdateInstallState {
     object Idle : UpdateInstallState()
@@ -77,7 +81,16 @@ object AppUpdateManager {
             if (!updatesDir.exists()) {
                 updatesDir.mkdirs()
             }
+            updatesDir.listFiles()?.forEach { file ->
+                if (file.name.endsWith(".apk") || file.name.endsWith(".tmp")) {
+                    file.delete()
+                }
+            }
             val destinationFile = File(updatesDir, "wallnice_v${versionCode}.apk")
+            val tempFile = File(updatesDir, "wallnice_v${versionCode}.apk.tmp")
+            if (tempFile.exists()) {
+                tempFile.delete()
+            }
             if (destinationFile.exists()) {
                 destinationFile.delete()
             }
@@ -125,34 +138,49 @@ object AppUpdateManager {
             val finalConn = connection ?: return@withContext Result.failure(Exception("Connection failed"))
             val totalBytes = finalConn.contentLengthLong
 
-            finalConn.inputStream.use { input ->
-                FileOutputStream(destinationFile).use { output ->
-                    val buffer = ByteArray(8192)
-                    var bytesRead: Int
-                    var totalDownloaded = 0L
+            try {
+                finalConn.inputStream.use { input ->
+                    FileOutputStream(tempFile).use { output ->
+                        val buffer = ByteArray(8192)
+                        var bytesRead: Int
+                        var totalDownloaded = 0L
 
-                    while (input.read(buffer).also { bytesRead = it } != -1) {
-                        output.write(buffer, 0, bytesRead)
-                        totalDownloaded += bytesRead
-                        val percent = if (totalBytes > 0) {
-                            ((totalDownloaded * 100) / totalBytes).toInt().coerceIn(0, 100)
-                        } else {
-                            0
+                        while (input.read(buffer).also { bytesRead = it } != -1) {
+                            coroutineContext.ensureActive()
+                            output.write(buffer, 0, bytesRead)
+                            totalDownloaded += bytesRead
+                            val percent = if (totalBytes > 0) {
+                                ((totalDownloaded * 100) / totalBytes).toInt().coerceIn(0, 100)
+                            } else {
+                                0
+                            }
+                            onProgress(percent, totalDownloaded, totalBytes)
                         }
-                        onProgress(percent, totalDownloaded, totalBytes)
                     }
                 }
+            } finally {
+                finalConn.disconnect()
             }
-            finalConn.disconnect()
 
-            if (destinationFile.exists() && destinationFile.length() > 0) {
-                if (hasMatchingPackageSignature(context, destinationFile)) {
-                    Result.success(destinationFile)
+            if (totalBytes > 0 && tempFile.length() != totalBytes) {
+                tempFile.delete()
+                return@withContext Result.failure(Exception("Incomplete APK download"))
+            }
+
+            if (tempFile.exists() && tempFile.length() > 0) {
+                if (hasMatchingPackageSignature(context, tempFile)) {
+                    if (tempFile.renameTo(destinationFile)) {
+                        Result.success(destinationFile)
+                    } else {
+                        tempFile.delete()
+                        Result.failure(Exception("Failed to finalize update file"))
+                    }
                 } else {
-                    destinationFile.delete()
+                    tempFile.delete()
                     Result.failure(Exception("The downloaded APK is not a trusted WallNice update"))
                 }
             } else {
+                tempFile.delete()
                 Result.failure(Exception("Downloaded file is empty"))
             }
         } catch (e: Exception) {
@@ -170,11 +198,21 @@ object AppUpdateManager {
 
     fun openInstallPermissionSettings(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
-                data = Uri.parse("package:${context.packageName}")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            try {
+                val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+            } catch (_: Exception) {
+                try {
+                    val fallback = Intent(Settings.ACTION_SECURITY_SETTINGS).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(fallback)
+                } catch (_: Exception) {
+                }
             }
-            context.startActivity(intent)
         }
     }
 
@@ -189,6 +227,16 @@ object AppUpdateManager {
                 setDataAndType(apkUri, "application/vnd.android.package-archive")
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val resolveInfos = context.packageManager.queryIntentActivities(
+                intent,
+                PackageManager.MATCH_DEFAULT_ONLY
+            )
+            val systemInstaller = resolveInfos.firstOrNull { info ->
+                (info.activityInfo.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+            }
+            if (systemInstaller != null) {
+                intent.setPackage(systemInstaller.activityInfo.packageName)
             }
             context.startActivity(intent)
             Result.success(Unit)
@@ -217,7 +265,7 @@ object AppUpdateManager {
 
     private fun isTrustedDownloadUrl(value: String, isRedirect: Boolean): Boolean {
         val uri = Uri.parse(value)
-        if (uri.scheme != "https") {
+        if (uri.scheme != "https" || uri.port != -1 || uri.userInfo != null) {
             return false
         }
         val host = uri.host?.lowercase() ?: return false
@@ -227,7 +275,7 @@ object AppUpdateManager {
                 path.startsWith("$RELEASES_PATH/download/", ignoreCase = true) ||
                     path.startsWith("$RELEASES_PATH/latest", ignoreCase = true)
             } else {
-                host in trustedRedirectHosts || host.endsWith(".githubusercontent.com")
+                host in trustedRedirectHosts
             }
         } else {
             val path = uri.path ?: return false
@@ -259,6 +307,12 @@ object AppUpdateManager {
             return false
         }
 
+        val currentVersion = PackageInfoCompat.getLongVersionCode(installedInfo)
+        val archiveVersion = PackageInfoCompat.getLongVersionCode(archiveInfo)
+        if (archiveVersion <= currentVersion) {
+            return false
+        }
+
         val installedSignatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             val signingInfo = installedInfo.signingInfo ?: return false
             if (signingInfo.hasMultipleSigners()) {
@@ -281,7 +335,8 @@ object AppUpdateManager {
         }
 
         val installedDigests = installedSignatures.map(::certificateDigest).toSet()
-        return archiveSignatures.any { certificateDigest(it) in installedDigests }
+        val archiveDigests = archiveSignatures.map(::certificateDigest).toSet()
+        return archiveDigests.isNotEmpty() && (archiveDigests == installedDigests || archiveDigests.all { it in installedDigests })
     }
 
     private fun certificateDigest(signature: android.content.pm.Signature): String {
