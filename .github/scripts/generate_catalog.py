@@ -99,7 +99,7 @@ for root, _, files in os.walk(DLS_DIR):
             continue
 
         base_name = os.path.splitext(file)[0]
-        clean_name = re.sub(r'_[a-f0-9]{8}$', '', base_name, flags=re.IGNORECASE)
+        clean_name = re.sub(r'_[a-f0-9]{8,16}$', '', base_name, flags=re.IGNORECASE)
         title = clean_name.replace("_", " ").replace("-", " ").title()
         
         encoded_path = "/".join(urllib.parse.quote(part) for part in full_path.split("/"))

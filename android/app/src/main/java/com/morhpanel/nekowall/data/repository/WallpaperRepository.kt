@@ -236,11 +236,7 @@ object WallpaperRepository {
                     categories.add(category)
                 }
 
-                val title = fileName.substringBeforeLast(".")
-                    .replace("_", " ")
-                    .replace("-", " ")
-                    .split(" ")
-                    .joinToString(" ") { word -> word.replaceFirstChar { it.uppercase() } }
+                val title = cleanTitle(fileName)
 
                 val encodedPath = path.split("/").joinToString("/") { segment ->
                     URLEncoder.encode(segment, "UTF-8").replace("+", "%20")
@@ -275,5 +271,15 @@ object WallpaperRepository {
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    private fun cleanTitle(fileName: String): String {
+        return fileName.substringBeforeLast(".")
+            .replace(Regex("_[a-fA-F0-9]{8,16}$"), "")
+            .replace("_", " ")
+            .replace("-", " ")
+            .split(Regex("\\s+"))
+            .filter(String::isNotBlank)
+            .joinToString(" ") { word -> word.replaceFirstChar { it.uppercase() } }
     }
 }

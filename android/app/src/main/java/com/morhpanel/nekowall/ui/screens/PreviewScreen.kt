@@ -62,6 +62,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -439,25 +440,33 @@ private fun WallpaperMedia(
 
     when (wallpaper.mediaType) {
         MediaType.VIDEO -> {
-            AndroidView(
-                factory = { viewContext ->
-                    PlayerView(viewContext).apply {
-                        player = exoPlayer
-                        useController = false
-                        resizeMode = if (fitContent) {
-                            AspectRatioFrameLayout.RESIZE_MODE_FIT
-                        } else {
-                            AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+            Box(modifier = Modifier.fillMaxSize()) {
+                WallpaperPoster(
+                    wallpaper = wallpaper,
+                    fitContent = fitContent
+                )
+                AndroidView(
+                    factory = { viewContext ->
+                        PlayerView(viewContext).apply {
+                            player = exoPlayer
+                            useController = false
+                            resizeMode = if (fitContent) {
+                                AspectRatioFrameLayout.RESIZE_MODE_FIT
+                            } else {
+                                AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                            }
                         }
-                    }
-                },
-                update = { it.player = exoPlayer },
-                onRelease = { it.player = null },
-                modifier = Modifier.fillMaxSize()
-            )
-            when {
-                videoError -> MediaErrorState()
-                videoPlaybackState != Player.STATE_READY -> MediaLoadingState()
+                    },
+                    update = { it.player = exoPlayer },
+                    onRelease = { it.player = null },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .alpha(if (!videoError && videoPlaybackState == Player.STATE_READY) 1f else 0f)
+                )
+                when {
+                    videoError -> MediaErrorState()
+                    videoPlaybackState != Player.STATE_READY -> MediaLoadingState()
+                }
             }
         }
 
@@ -479,6 +488,30 @@ private fun WallpaperMedia(
             )
         }
     }
+}
+
+@Composable
+private fun WallpaperPoster(
+    wallpaper: WallpaperItem,
+    fitContent: Boolean
+) {
+    val context = LocalContext.current
+    SubcomposeAsyncImage(
+        model = ImageRequest.Builder(context)
+            .data(wallpaper.thumbnailUrl.ifBlank { wallpaper.url })
+            .crossfade(180)
+            .build(),
+        contentDescription = wallpaper.title,
+        contentScale = if (fitContent) ContentScale.Fit else ContentScale.Crop,
+        modifier = Modifier.fillMaxSize(),
+        loading = {
+            Box(modifier = Modifier.fillMaxSize().background(AmoledBlack))
+        },
+        error = {
+            Box(modifier = Modifier.fillMaxSize().background(AmoledBlack))
+        },
+        success = { SubcomposeAsyncImageContent() }
+    )
 }
 
 @Composable
