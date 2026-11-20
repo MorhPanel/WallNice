@@ -267,7 +267,7 @@ fun HomeScreen(
             fullyVisible.sortedBy { item ->
                 val itemCenter = item.offset.y + (item.size.height / 2)
                 abs(itemCenter - center)
-            }.take(2).map { it.key }.toSet()
+            }.take(4).map { it.key }.toSet()
         }
         .collectLatest { keys ->
             delay(200L)

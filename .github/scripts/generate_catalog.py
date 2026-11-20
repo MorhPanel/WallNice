@@ -33,6 +33,11 @@ if os.path.exists(CATALOG_PATH):
 categories = set(["All"])
 wallpapers = []
 
+title_overrides = {
+    "yotsuba_nakano": "Yotsuba Nakano Monochrome",
+    "yotsuba_nakano_5c7a2e8d": "Yotsuba Nakano Spring",
+}
+
 valid_img = {".jpg", ".jpeg", ".png", ".webp", ".avif"}
 valid_vid = {".mp4", ".webm", ".mkv", ".m4v", ".mov"}
 valid_gif = {".gif"}
@@ -101,6 +106,7 @@ for root, _, files in os.walk(DLS_DIR):
         base_name = os.path.splitext(file)[0]
         clean_name = re.sub(r'_[a-f0-9]{8,16}$', '', base_name, flags=re.IGNORECASE)
         title = clean_name.replace("_", " ").replace("-", " ").title()
+        title = title_overrides.get(base_name, title)
         
         encoded_path = "/".join(urllib.parse.quote(part) for part in full_path.split("/"))
         raw_url = f"{REPO_BASE}/{encoded_path}"

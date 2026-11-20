@@ -274,7 +274,13 @@ object WallpaperRepository {
     }
 
     private fun cleanTitle(fileName: String): String {
-        return fileName.substringBeforeLast(".")
+        val stem = fileName.substringBeforeLast(".")
+        val override = when (stem) {
+            "yotsuba_nakano" -> "Yotsuba Nakano Monochrome"
+            "yotsuba_nakano_5c7a2e8d" -> "Yotsuba Nakano Spring"
+            else -> null
+        }
+        return override ?: stem
             .replace(Regex("_[a-fA-F0-9]{8,16}$"), "")
             .replace("_", " ")
             .replace("-", " ")
