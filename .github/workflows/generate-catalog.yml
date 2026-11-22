@@ -28,6 +28,9 @@ jobs:
         run: |
           python3 .github/scripts/generate_catalog.py
 
+      - name: Validate media catalog
+        run: python3 .github/scripts/validate_catalog.py
+
       - name: Commit and push updated catalog
         run: |
           git config user.name "github-actions[bot]"

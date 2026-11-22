@@ -47,7 +47,9 @@ private val WallpaperItemSaver: Saver<WallpaperItem?, Any> = Saver(
                 item.resolution,
                 item.isAmoled.toString(),
                 item.likesCount.toString(),
-                item.subcategory
+                item.subcategory,
+                item.collection,
+                item.addedAtEpochSeconds.toString()
             )
         }
     },
@@ -67,7 +69,9 @@ private val WallpaperItemSaver: Saver<WallpaperItem?, Any> = Saver(
                     thumbnailUrl = list[6] as? String ?: "",
                     resolution = list[7] as? String ?: "1080x2400",
                     isAmoled = (list[8] as? String)?.toBooleanStrictOrNull() ?: false,
-                    likesCount = (list[9] as? String)?.toIntOrNull() ?: 0
+                    likesCount = (list[9] as? String)?.toIntOrNull() ?: 0,
+                    collection = if (list.size >= 12) list[11] as? String ?: "" else "",
+                    addedAtEpochSeconds = if (list.size >= 13) (list[12] as? String)?.toLongOrNull() ?: 0L else 0L
                 )
             } else {
                 null

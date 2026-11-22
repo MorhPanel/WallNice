@@ -6,10 +6,18 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def read_text(relative_path):
+    return (ROOT / relative_path).read_text(encoding="utf-8")
+
+
+def read_json(relative_path):
+    return json.loads(read_text(relative_path))
+
+
 class SecurityControlTests(unittest.TestCase):
     def test_manifest_declares_package_install_and_file_provider(self):
-        manifest = (ROOT / "android/app/src/main/AndroidManifest.xml").read_text()
-        paths = (ROOT / "android/app/src/main/res/xml/provider_paths.xml").read_text()
+        manifest = read_text("android/app/src/main/AndroidManifest.xml")
+        paths = read_text("android/app/src/main/res/xml/provider_paths.xml")
 
         self.assertIn("REQUEST_INSTALL_PACKAGES", manifest)
         self.assertIn("androidx.core.content.FileProvider", manifest)
@@ -18,10 +26,10 @@ class SecurityControlTests(unittest.TestCase):
         self.assertIn("external_cached_updates", paths)
 
     def test_update_flow_uses_in_app_download_with_progress_and_signature_verification(self):
-        updater = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/engine/AppUpdateManager.kt").read_text()
-        dialog = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/components/AppUpdateDialog.kt").read_text()
-        catalog = json.loads((ROOT / "catalog.json").read_text())
-        expected_url = "https://github.com/MorhPanel/WallNice/releases/download/v0.0.30-beta/app-release.apk"
+        updater = read_text("android/app/src/main/java/com/morhpanel/nekowall/engine/AppUpdateManager.kt")
+        dialog = read_text("android/app/src/main/java/com/morhpanel/nekowall/ui/components/AppUpdateDialog.kt")
+        catalog = read_json("catalog.json")
+        expected_url = "https://github.com/MorhPanel/WallNice/releases/download/v0.0.31-beta/app-release.apk"
 
         self.assertIn("https://github.com/MorhPanel/WallNice/releases/latest/download/app-release.apk", updater)
         self.assertEqual(catalog["appUpdate"]["downloadUrl"], expected_url)
@@ -37,8 +45,8 @@ class SecurityControlTests(unittest.TestCase):
         self.assertIn("resolveApkUrl", updater)
 
     def test_release_signing_stays_fail_closed(self):
-        gradle = (ROOT / "android/app/build.gradle.kts").read_text()
-        workflow = (ROOT / ".github/workflows/build-release.yml").read_text()
+        gradle = read_text("android/app/build.gradle.kts")
+        workflow = read_text(".github/workflows/build-release.yml")
 
         self.assertNotIn("wallnice123", gradle)
         self.assertNotIn("wallnice123", workflow)
@@ -55,17 +63,17 @@ class SecurityControlTests(unittest.TestCase):
         self.assertIn("gradle.taskGraph.whenReady", gradle)
 
     def test_release_metadata_is_synchronized(self):
-        gradle = (ROOT / "android/app/build.gradle.kts").read_text()
-        catalog = json.loads((ROOT / "catalog.json").read_text())
-        self.assertIn("versionCode = 32", gradle)
-        self.assertIn('versionName = "0.0.30-beta"', gradle)
-        self.assertEqual(catalog["appUpdate"]["versionCode"], 32)
-        self.assertEqual(catalog["appUpdate"]["versionName"], "0.0.30-beta")
+        gradle = read_text("android/app/build.gradle.kts")
+        catalog = read_json("catalog.json")
+        self.assertIn("versionCode = 33", gradle)
+        self.assertIn('versionName = "0.0.31-beta"', gradle)
+        self.assertEqual(catalog["appUpdate"]["versionCode"], 33)
+        self.assertEqual(catalog["appUpdate"]["versionName"], "0.0.31-beta")
 
     def test_settings_is_header_action_with_back_navigation_and_shared_motion(self):
-        home = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/screens/HomeScreen.kt").read_text()
-        settings = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/screens/SettingsScreen.kt").read_text()
-        motion = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/theme/Motion.kt").read_text()
+        home = read_text("android/app/src/main/java/com/morhpanel/nekowall/ui/screens/HomeScreen.kt")
+        settings = read_text("android/app/src/main/java/com/morhpanel/nekowall/ui/screens/SettingsScreen.kt")
+        motion = read_text("android/app/src/main/java/com/morhpanel/nekowall/ui/theme/Motion.kt")
 
         self.assertNotIn("NavigationBar", home)
         self.assertNotIn("NavigationBarItem", home)
@@ -86,12 +94,12 @@ class SecurityControlTests(unittest.TestCase):
         self.assertIn("standardDurationMillis = 240", motion)
 
     def test_media_types_filters_badges_and_fullscreen_preview_are_present(self):
-        resolver = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/data/models/MediaTypeResolver.kt").read_text()
-        filters = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/data/models/MediaFilter.kt").read_text()
-        repository = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/data/repository/WallpaperRepository.kt").read_text()
-        home = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/screens/HomeScreen.kt").read_text()
-        card = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/components/WallpaperCard.kt").read_text()
-        preview = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/screens/PreviewScreen.kt").read_text()
+        resolver = read_text("android/app/src/main/java/com/morhpanel/nekowall/data/models/MediaTypeResolver.kt")
+        filters = read_text("android/app/src/main/java/com/morhpanel/nekowall/data/models/MediaFilter.kt")
+        repository = read_text("android/app/src/main/java/com/morhpanel/nekowall/data/repository/WallpaperRepository.kt")
+        home = read_text("android/app/src/main/java/com/morhpanel/nekowall/ui/screens/HomeScreen.kt")
+        card = read_text("android/app/src/main/java/com/morhpanel/nekowall/ui/components/WallpaperCard.kt")
+        preview = read_text("android/app/src/main/java/com/morhpanel/nekowall/ui/screens/PreviewScreen.kt")
 
         for extension in ("jpg", "jpeg", "png", "webp", "avif"):
             self.assertIn(extension, resolver)
@@ -120,13 +128,13 @@ class SecurityControlTests(unittest.TestCase):
         self.assertIn("ContentScale.Fit", preview)
 
     def test_offline_cache_and_favorites_are_present(self):
-        fav_mgr = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/data/repository/FavoritesManager.kt").read_text()
-        repo = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/data/repository/WallpaperRepository.kt").read_text()
-        helper = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/engine/DownloadHelper.kt").read_text()
-        home = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/screens/HomeScreen.kt").read_text()
-        preview = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/screens/PreviewScreen.kt").read_text()
-        card = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/components/WallpaperCard.kt").read_text()
-        readme = (ROOT / "README.md").read_text()
+        fav_mgr = read_text("android/app/src/main/java/com/morhpanel/nekowall/data/repository/FavoritesManager.kt")
+        repo = read_text("android/app/src/main/java/com/morhpanel/nekowall/data/repository/WallpaperRepository.kt")
+        helper = read_text("android/app/src/main/java/com/morhpanel/nekowall/engine/DownloadHelper.kt")
+        home = read_text("android/app/src/main/java/com/morhpanel/nekowall/ui/screens/HomeScreen.kt")
+        preview = read_text("android/app/src/main/java/com/morhpanel/nekowall/ui/screens/PreviewScreen.kt")
+        card = read_text("android/app/src/main/java/com/morhpanel/nekowall/ui/components/WallpaperCard.kt")
+        readme = read_text("README.md")
 
         self.assertIn("object FavoritesManager", fav_mgr)
         self.assertIn("toggleFavorite", fav_mgr)
@@ -146,8 +154,8 @@ class SecurityControlTests(unittest.TestCase):
         self.assertIn("| 7 | Offline wallpaper cache and favorites | Android | 🟡 Medium | 🟢 Completed |", readme)
 
     def test_ui_state_preservation_and_search_optimization_are_present(self):
-        main = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/MainActivity.kt").read_text()
-        home = (ROOT / "android/app/src/main/java/com/morhpanel/nekowall/ui/screens/HomeScreen.kt").read_text()
+        main = read_text("android/app/src/main/java/com/morhpanel/nekowall/MainActivity.kt")
+        home = read_text("android/app/src/main/java/com/morhpanel/nekowall/ui/screens/HomeScreen.kt")
 
         self.assertIn("rememberSaveable", main)
         self.assertIn("WallpaperItemSaver", main)
@@ -160,6 +168,27 @@ class SecurityControlTests(unittest.TestCase):
         self.assertIn("searchQuery by rememberSaveable", home)
         self.assertIn("searchableWallpapers", home)
         self.assertIn("SearchableWallpaper", home)
+
+    def test_smart_fit_rotation_and_catalog_validation_are_release_gates(self):
+        preview = read_text("android/app/src/main/java/com/morhpanel/nekowall/ui/screens/PreviewScreen.kt")
+        settings = read_text("android/app/src/main/java/com/morhpanel/nekowall/ui/screens/SettingsScreen.kt")
+        manifest = read_text("android/app/src/main/AndroidManifest.xml")
+        workflow = read_text(".github/workflows/build-release.yml")
+        catalog = read_json("catalog.json")
+
+        self.assertIn("WallpaperFitMode", preview)
+        self.assertIn("WallpaperBitmapProcessor", preview)
+        self.assertIn("PlaylistManager", preview)
+        self.assertIn("ReportHelper", preview)
+        self.assertIn("PlaybackQuality.entries", settings)
+        self.assertIn("Automatic rotation", settings)
+        self.assertIn("WallpaperRotationReceiver", manifest)
+        self.assertIn("RotationBootReceiver", manifest)
+        self.assertIn("validate_catalog.py", workflow)
+        self.assertIn("testDebugUnitTest lintDebug", workflow)
+        self.assertTrue(catalog["wallpapers"])
+        self.assertTrue(all(item.get("collection") for item in catalog["wallpapers"]))
+        self.assertTrue(all(item.get("addedAt", 0) > 0 for item in catalog["wallpapers"]))
 
 
 if __name__ == "__main__":

@@ -1,3 +1,5 @@
+@file:androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+
 package com.morhpanel.nekowall.ui.screens
 
 import android.graphics.drawable.BitmapDrawable
@@ -27,6 +29,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Favorite
@@ -35,8 +38,11 @@ import com.morhpanel.nekowall.data.repository.FavoritesManager
 import java.io.File
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.CropFree
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.PlaylistRemove
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material3.Button
@@ -63,6 +69,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -91,8 +99,13 @@ import coil.decode.ImageDecoderDecoder
 import coil.request.ImageRequest
 import coil.request.SuccessResult
 import com.morhpanel.nekowall.data.models.MediaType
+import com.morhpanel.nekowall.data.models.WallpaperFitMode
 import com.morhpanel.nekowall.data.models.WallpaperItem
+import com.morhpanel.nekowall.data.repository.PlaylistManager
+import com.morhpanel.nekowall.data.repository.WallNicePreferences
 import com.morhpanel.nekowall.engine.DownloadHelper
+import com.morhpanel.nekowall.engine.ReportHelper
+import com.morhpanel.nekowall.engine.WallpaperBitmapProcessor
 import com.morhpanel.nekowall.engine.WallpaperHelper
 import com.morhpanel.nekowall.engine.WallpaperTarget
 import com.morhpanel.nekowall.ui.components.HeartBurstButton
@@ -143,6 +156,18 @@ fun PreviewScreen(
     var showScanline by remember { mutableStateOf(false) }
     var videoPlaybackState by remember { mutableIntStateOf(Player.STATE_IDLE) }
     var videoError by remember { mutableStateOf(false) }
+    var fitMode by remember(wallpaper.id) {
+        val savedMode = WallNicePreferences.getFitMode(context)
+        mutableStateOf(
+            if (wallpaper.mediaType == MediaType.VIDEO && savedMode == WallpaperFitMode.BLUR) {
+                WallpaperFitMode.FIT
+            } else {
+                savedMode
+            }
+        )
+    }
+    var isInPlaylist by remember { mutableStateOf(PlaylistManager.contains(context, wallpaper.id)) }
+    var isPlaylistBusy by remember { mutableStateOf(false) }
 
     val favoriteIds by FavoritesManager.favoriteIds
     val isFavorite = favoriteIds.contains(wallpaper.id)
@@ -172,6 +197,12 @@ fun PreviewScreen(
                 setMediaItem(MediaItem.fromUri(mediaUri))
                 repeatMode = Player.REPEAT_MODE_ALL
                 volume = if (isMuted) 0f else 1f
+                val quality = WallNicePreferences.getPlaybackQuality(context)
+                if (quality.maxWidth != Int.MAX_VALUE) {
+                    trackSelectionParameters = trackSelectionParameters.buildUpon()
+                        .setMaxVideoSize(quality.maxWidth, quality.maxHeight)
+                        .build()
+                }
                 prepare()
                 playWhenReady = true
             }
@@ -242,7 +273,8 @@ fun PreviewScreen(
                     exoPlayer = exoPlayer,
                     videoPlaybackState = videoPlaybackState,
                     videoError = videoError,
-                    cachedFile = cachedFile
+                    cachedFile = cachedFile,
+                    fitMode = fitMode
                 )
             }
 
@@ -268,6 +300,11 @@ fun PreviewScreen(
                         }
                     }
                 },
+                onReport = {
+                    if (!ReportHelper.openWallpaperReport(context, wallpaper)) {
+                        coroutineScope.launch { snackbarHostState.showSnackbar("Unable to open report form") }
+                    }
+                },
                 onBack = onBack
             )
 
@@ -276,7 +313,46 @@ fun PreviewScreen(
                 wallpaper = wallpaper,
                 isMuted = isMuted,
                 isApplying = isApplying,
+                fitMode = fitMode,
+                isInPlaylist = isInPlaylist,
+                isPlaylistBusy = isPlaylistBusy,
                 onMuteToggle = { isMuted = !isMuted },
+                onFitModeChange = {
+                    val supportedModes = if (wallpaper.mediaType == MediaType.VIDEO) {
+                        listOf(WallpaperFitMode.CROP, WallpaperFitMode.FIT)
+                    } else {
+                        WallpaperFitMode.entries
+                    }
+                    val nextIndex = (supportedModes.indexOf(fitMode).coerceAtLeast(0) + 1) % supportedModes.size
+                    fitMode = supportedModes[nextIndex]
+                    WallNicePreferences.setFitMode(context, fitMode)
+                },
+                onTogglePlaylist = {
+                    if (!isPlaylistBusy) {
+                        coroutineScope.launch {
+                            isPlaylistBusy = true
+                            val success = try {
+                                runCatching {
+                                    if (isInPlaylist) {
+                                        PlaylistManager.remove(context, wallpaper.id)
+                                    } else {
+                                        PlaylistManager.add(context, wallpaper, fitMode)
+                                    }
+                                }.getOrDefault(false)
+                            } finally {
+                                isPlaylistBusy = false
+                            }
+                            if (success) isInPlaylist = !isInPlaylist
+                            snackbarHostState.showSnackbar(
+                                when {
+                                    !success -> "Unable to update playlist"
+                                    isInPlaylist -> "Added to rotation playlist"
+                                    else -> "Removed from rotation playlist"
+                                }
+                            )
+                        }
+                    }
+                },
                 onOpenFullscreen = { showFullscreenPreview = true },
                 onApply = {
                     if (!isBusy) {
@@ -333,7 +409,8 @@ fun PreviewScreen(
                                             context = context,
                                             videoUri = videoUri,
                                             isMuted = isMuted,
-                                            target = target
+                                            target = target,
+                                            fitMode = fitMode
                                         )
                                         snackbarHostState.showSnackbar(
                                             if (appliedDirectly) "Wallpaper applied" else "Confirm engine in system dialog"
@@ -351,7 +428,8 @@ fun PreviewScreen(
                                 val success = loadAndApplyWallpaper(
                                     context = context,
                                     url = wallpaper.url,
-                                    target = target
+                                    target = target,
+                                    fitMode = fitMode
                                 )
                                 isApplying = false
                                 if (success) {
@@ -374,6 +452,7 @@ fun PreviewScreen(
                 videoPlaybackState = videoPlaybackState,
                 videoError = videoError,
                 cachedFile = cachedFile,
+                fitMode = fitMode,
                 onBack = { showFullscreenPreview = false }
             )
         }
@@ -392,6 +471,7 @@ private fun FullscreenMediaViewer(
     videoPlaybackState: Int,
     videoError: Boolean,
     cachedFile: File?,
+    fitMode: WallpaperFitMode,
     onBack: () -> Unit
 ) {
     Box(
@@ -405,6 +485,7 @@ private fun FullscreenMediaViewer(
             videoPlaybackState = videoPlaybackState,
             videoError = videoError,
             cachedFile = cachedFile,
+            fitMode = fitMode,
             fitContent = true
         )
         IconButton(
@@ -434,30 +515,53 @@ private fun WallpaperMedia(
     videoPlaybackState: Int,
     videoError: Boolean,
     cachedFile: File? = null,
+    fitMode: WallpaperFitMode = WallpaperFitMode.CROP,
     fitContent: Boolean = false
 ) {
     val context = LocalContext.current
+    val effectiveMode = if (fitContent && fitMode == WallpaperFitMode.CROP) WallpaperFitMode.FIT else fitMode
 
     when (wallpaper.mediaType) {
         MediaType.VIDEO -> {
             Box(modifier = Modifier.fillMaxSize()) {
-                WallpaperPoster(
-                    wallpaper = wallpaper,
-                    fitContent = fitContent
-                )
+                if (effectiveMode == WallpaperFitMode.BLUR) {
+                    WallpaperPoster(
+                        wallpaper = wallpaper,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = 1.12f
+                                scaleY = 1.12f
+                            }
+                            .blur(30.dp)
+                    )
+                } else {
+                    WallpaperPoster(
+                        wallpaper = wallpaper,
+                        contentScale = if (effectiveMode == WallpaperFitMode.FIT) ContentScale.Fit else ContentScale.Crop
+                    )
+                }
                 AndroidView(
                     factory = { viewContext ->
                         PlayerView(viewContext).apply {
                             player = exoPlayer
                             useController = false
-                            resizeMode = if (fitContent) {
-                                AspectRatioFrameLayout.RESIZE_MODE_FIT
-                            } else {
+                            resizeMode = if (effectiveMode == WallpaperFitMode.CROP) {
                                 AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                            } else {
+                                AspectRatioFrameLayout.RESIZE_MODE_FIT
                             }
                         }
                     },
-                    update = { it.player = exoPlayer },
+                    update = { view ->
+                        view.player = exoPlayer
+                        view.resizeMode = if (effectiveMode == WallpaperFitMode.CROP) {
+                            AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                        } else {
+                            AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        }
+                    },
                     onRelease = { it.player = null },
                     modifier = Modifier
                         .fillMaxSize()
@@ -476,7 +580,7 @@ private fun WallpaperMedia(
                 wallpaper = wallpaper,
                 imageLoader = imageLoader,
                 cachedFile = cachedFile,
-                fitContent = fitContent
+                fitMode = effectiveMode
             )
         }
 
@@ -484,7 +588,7 @@ private fun WallpaperMedia(
             WallpaperImage(
                 wallpaper = wallpaper,
                 cachedFile = cachedFile,
-                fitContent = fitContent
+                fitMode = effectiveMode
             )
         }
     }
@@ -493,7 +597,8 @@ private fun WallpaperMedia(
 @Composable
 private fun WallpaperPoster(
     wallpaper: WallpaperItem,
-    fitContent: Boolean
+    contentScale: ContentScale,
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     SubcomposeAsyncImage(
@@ -502,8 +607,8 @@ private fun WallpaperPoster(
             .crossfade(180)
             .build(),
         contentDescription = wallpaper.title,
-        contentScale = if (fitContent) ContentScale.Fit else ContentScale.Crop,
-        modifier = Modifier.fillMaxSize(),
+        contentScale = contentScale,
+        modifier = modifier.fillMaxSize(),
         loading = {
             Box(modifier = Modifier.fillMaxSize().background(AmoledBlack))
         },
@@ -519,7 +624,7 @@ private fun WallpaperImage(
     wallpaper: WallpaperItem,
     imageLoader: ImageLoader? = null,
     cachedFile: File? = null,
-    fitContent: Boolean = false
+    fitMode: WallpaperFitMode = WallpaperFitMode.CROP
 ) {
     val context = LocalContext.current
     val model = ImageRequest.Builder(context)
@@ -527,27 +632,36 @@ private fun WallpaperImage(
         .crossfade(220)
         .build()
 
-    if (imageLoader == null) {
+    val contentScale = if (fitMode == WallpaperFitMode.CROP) ContentScale.Crop else ContentScale.Fit
+    val content: @Composable (Modifier, ContentScale) -> Unit = { modifier, scale ->
         SubcomposeAsyncImage(
             model = model,
+            imageLoader = imageLoader ?: WallNiceImageLoader.get(context),
             contentDescription = wallpaper.title,
-            contentScale = if (fitContent) ContentScale.Fit else ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
+            contentScale = scale,
+            modifier = modifier,
             loading = { MediaLoadingState() },
             error = { MediaErrorState() },
             success = { SubcomposeAsyncImageContent() }
         )
+    }
+
+    if (fitMode == WallpaperFitMode.BLUR) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            content(
+                Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = 1.12f
+                        scaleY = 1.12f
+                    }
+                    .blur(30.dp),
+                ContentScale.Crop
+            )
+            content(Modifier.fillMaxSize(), ContentScale.Fit)
+        }
     } else {
-        SubcomposeAsyncImage(
-            model = model,
-            imageLoader = imageLoader,
-            contentDescription = wallpaper.title,
-            contentScale = if (fitContent) ContentScale.Fit else ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
-            loading = { MediaLoadingState() },
-            error = { MediaErrorState() },
-            success = { SubcomposeAsyncImageContent() }
-        )
+        content(Modifier.fillMaxSize(), contentScale)
     }
 }
 
@@ -597,6 +711,7 @@ private fun PreviewTopBar(
     isFavorite: Boolean,
     onModeSelected: (PreviewOverlayMode) -> Unit,
     onToggleFavorite: () -> Unit,
+    onReport: () -> Unit,
     onBack: () -> Unit
 ) {
     Row(
@@ -631,13 +746,30 @@ private fun PreviewTopBar(
             onItemSelected = { index ->
                 onModeSelected(PreviewOverlayMode.entries[index])
             },
-            modifier = Modifier.width(220.dp)
+            modifier = Modifier.width(160.dp)
         )
 
-        HeartBurstButton(
-            isFavorite = isFavorite,
-            onClick = onToggleFavorite
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(
+                onClick = onReport,
+                modifier = Modifier
+                    .size(WallNiceSizes.minimumTouchTarget)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.72f))
+                    .border(1.dp, OutlineSubtle, CircleShape)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Flag,
+                    contentDescription = "Report wallpaper",
+                    tint = NeonCyan
+                )
+            }
+            Spacer(Modifier.width(WallNiceSpacing.xs))
+            HeartBurstButton(
+                isFavorite = isFavorite,
+                onClick = onToggleFavorite
+            )
+        }
     }
 }
 
@@ -647,7 +779,12 @@ private fun PreviewBottomPanel(
     wallpaper: WallpaperItem,
     isMuted: Boolean,
     isApplying: Boolean,
+    fitMode: WallpaperFitMode,
+    isInPlaylist: Boolean,
+    isPlaylistBusy: Boolean,
     onMuteToggle: () -> Unit,
+    onFitModeChange: () -> Unit,
+    onTogglePlaylist: () -> Unit,
     onOpenFullscreen: () -> Unit,
     onApply: () -> Unit
 ) {
@@ -732,6 +869,57 @@ private fun PreviewBottomPanel(
                     contentDescription = "Open fullscreen preview",
                     tint = NeonCyan
                 )
+            }
+
+            IconButton(
+                onClick = onFitModeChange,
+                modifier = Modifier
+                    .size(WallNiceSizes.primaryActionHeight)
+                    .clip(RoundedCornerShape(WallNiceRadii.medium))
+                    .background(SurfaceHigh)
+                    .border(1.dp, OutlineSubtle, RoundedCornerShape(WallNiceRadii.medium))
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.CropFree,
+                        contentDescription = "Change wallpaper fit mode",
+                        tint = NeonCyan,
+                        modifier = Modifier.size(19.dp)
+                    )
+                    Text(
+                        text = fitMode.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSecondary
+                    )
+                }
+            }
+
+            IconButton(
+                onClick = onTogglePlaylist,
+                enabled = !isPlaylistBusy,
+                modifier = Modifier
+                    .size(WallNiceSizes.primaryActionHeight)
+                    .clip(RoundedCornerShape(WallNiceRadii.medium))
+                    .background(SurfaceHigh)
+                    .border(
+                        1.dp,
+                        if (isInPlaylist) NeonPink else OutlineSubtle,
+                        RoundedCornerShape(WallNiceRadii.medium)
+                    )
+            ) {
+                if (isPlaylistBusy) {
+                    CircularProgressIndicator(
+                        color = NeonCyan,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(18.dp)
+                    )
+                } else {
+                    Icon(
+                        imageVector = if (isInPlaylist) Icons.Default.PlaylistRemove else Icons.AutoMirrored.Filled.PlaylistAdd,
+                        contentDescription = if (isInPlaylist) "Remove from rotation playlist" else "Add to rotation playlist",
+                        tint = if (isInPlaylist) NeonPink else NeonCyan
+                    )
+                }
             }
 
             Button(
@@ -893,7 +1081,8 @@ private fun ApplyTargetOption(
 private suspend fun loadAndApplyWallpaper(
     context: android.content.Context,
     url: String,
-    target: WallpaperTarget
+    target: WallpaperTarget,
+    fitMode: WallpaperFitMode
 ): Boolean {
     return try {
         val extension = if (url.endsWith(".gif", ignoreCase = true)) "gif" else "jpg"
@@ -909,7 +1098,10 @@ private suspend fun loadAndApplyWallpaper(
             ?.let { it as? BitmapDrawable }
             ?.bitmap
             ?: return false
-        WallpaperHelper.applyStaticWallpaper(context, bitmap, target)
+        val processed = WallpaperBitmapProcessor.processForDevice(context, bitmap, fitMode)
+        val success = WallpaperHelper.applyStaticWallpaper(context, processed, target)
+        if (processed !== bitmap) processed.recycle()
+        success
     } catch (_: Exception) {
         false
     }

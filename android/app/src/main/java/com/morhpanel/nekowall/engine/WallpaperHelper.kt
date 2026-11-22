@@ -5,7 +5,8 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import android.os.Build
+import com.morhpanel.nekowall.data.models.WallpaperFitMode
+import com.morhpanel.nekowall.data.repository.WallNicePreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -17,7 +18,7 @@ enum class WallpaperTarget {
 
 object WallpaperHelper {
 
-    private const val PREFS_NAME = "nekowall_prefs"
+    private const val PREFS_NAME = WallNicePreferences.PREFS_NAME
     const val KEY_VIDEO_URI = "current_video_uri"
     const val KEY_IS_MUTED = "is_video_muted"
     const val KEY_TARGET = "wallpaper_target"
@@ -28,13 +29,15 @@ object WallpaperHelper {
         context: Context,
         videoUri: String,
         isMuted: Boolean = false,
-        target: WallpaperTarget = WallpaperTarget.BOTH
+        target: WallpaperTarget = WallpaperTarget.BOTH,
+        fitMode: WallpaperFitMode = WallNicePreferences.getFitMode(context)
     ) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit()
             .putString(KEY_VIDEO_URI, videoUri)
             .putBoolean(KEY_IS_MUTED, isMuted)
             .putString(KEY_TARGET, target.name)
+            .putString(WallNicePreferences.KEY_FIT_MODE, fitMode.name)
             .putLong(KEY_UPDATE_TIMESTAMP, System.currentTimeMillis())
             .apply()
     }
@@ -52,13 +55,14 @@ object WallpaperHelper {
         context: Context,
         videoUri: String,
         isMuted: Boolean = false,
-        target: WallpaperTarget = WallpaperTarget.BOTH
+        target: WallpaperTarget = WallpaperTarget.BOTH,
+        fitMode: WallpaperFitMode = WallNicePreferences.getFitMode(context)
     ): Boolean {
-        saveLiveWallpaperConfig(context, videoUri, isMuted, target)
+        saveLiveWallpaperConfig(context, videoUri, isMuted, target, fitMode)
         if (isLiveWallpaperActive(context)) {
             return true
         }
-        openLiveWallpaperChooser(context, videoUri, isMuted, target)
+        openLiveWallpaperChooser(context, videoUri, isMuted, target, fitMode)
         return false
     }
 
@@ -96,9 +100,10 @@ object WallpaperHelper {
         context: Context,
         videoUri: String,
         isMuted: Boolean = false,
-        target: WallpaperTarget = WallpaperTarget.BOTH
+        target: WallpaperTarget = WallpaperTarget.BOTH,
+        fitMode: WallpaperFitMode = WallNicePreferences.getFitMode(context)
     ) {
-        saveLiveWallpaperConfig(context, videoUri, isMuted, target)
+        saveLiveWallpaperConfig(context, videoUri, isMuted, target, fitMode)
 
         try {
             val intent = Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER).apply {
@@ -145,16 +150,12 @@ object WallpaperHelper {
     ): Boolean = withContext(Dispatchers.IO) {
         try {
             val manager = WallpaperManager.getInstance(context)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                val flags = when (target) {
-                    WallpaperTarget.HOME_SCREEN -> WallpaperManager.FLAG_SYSTEM
-                    WallpaperTarget.LOCK_SCREEN -> WallpaperManager.FLAG_LOCK
-                    WallpaperTarget.BOTH -> WallpaperManager.FLAG_SYSTEM or WallpaperManager.FLAG_LOCK
-                }
-                manager.setBitmap(bitmap, null, true, flags)
-            } else {
-                manager.setBitmap(bitmap)
+            val flags = when (target) {
+                WallpaperTarget.HOME_SCREEN -> WallpaperManager.FLAG_SYSTEM
+                WallpaperTarget.LOCK_SCREEN -> WallpaperManager.FLAG_LOCK
+                WallpaperTarget.BOTH -> WallpaperManager.FLAG_SYSTEM or WallpaperManager.FLAG_LOCK
             }
+            manager.setBitmap(bitmap, null, true, flags)
             true
         } catch (e: Exception) {
             false

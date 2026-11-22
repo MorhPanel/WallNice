@@ -17,7 +17,9 @@ data class WallpaperItem(
     val thumbnailUrl: String,
     val resolution: String = "1080x2400",
     val isAmoled: Boolean = false,
-    val likesCount: Int = 0
+    val likesCount: Int = 0,
+    val collection: String = "",
+    val addedAtEpochSeconds: Long = 0L
 )
 
 data class AppUpdateInfo(

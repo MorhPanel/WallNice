@@ -98,6 +98,7 @@ import com.morhpanel.nekowall.data.models.WallpaperItem
 import com.morhpanel.nekowall.data.models.matches
 import com.morhpanel.nekowall.data.repository.FavoritesManager
 import com.morhpanel.nekowall.data.repository.WallpaperRepository
+import com.morhpanel.nekowall.data.repository.WallNicePreferences
 import com.morhpanel.nekowall.ui.components.BrandMark
 import com.morhpanel.nekowall.ui.components.CategoryPill
 import com.morhpanel.nekowall.ui.components.EmptyStatePanel
@@ -218,6 +219,7 @@ fun HomeScreen(
     var selectedAnimeSubcategories by rememberSaveable(stateSaver = AnimeSubcategorySetSaver) { mutableStateOf(setOf("All Anime")) }
     var isAnimeDropdownOpen by rememberSaveable { mutableStateOf(false) }
     var selectedMediaFilter by rememberSaveable(stateSaver = MediaFilterSetSaver) { mutableStateOf(setOf(MediaFilter.ALL)) }
+    var selectedCollection by rememberSaveable { mutableStateOf("All Collections") }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var categories by remember { mutableStateOf(listOf("All")) }
     var wallpapers by remember { mutableStateOf<List<WallpaperItem>>(emptyList()) }
@@ -243,11 +245,12 @@ fun HomeScreen(
         }
     }
 
-    val canPlayVideos = isActive && !showSettings && !isAnimeDropdownOpen && isAppForeground && windowInfo.isWindowFocused && !gridState.isScrollInProgress
+    val playbackQuality = WallNicePreferences.getPlaybackQuality(context)
+    val canPlayVideos = isActive && !showSettings && !isAnimeDropdownOpen && isAppForeground && windowInfo.isWindowFocused && !gridState.isScrollInProgress && WallNicePreferences.shouldAutoPlayPreviews(context)
 
     var visibleItemKeys by remember { mutableStateOf(emptySet<Any>()) }
 
-    LaunchedEffect(canPlayVideos, gridState) {
+    LaunchedEffect(canPlayVideos, gridState, playbackQuality) {
         if (!canPlayVideos) {
             visibleItemKeys = emptySet()
             return@LaunchedEffect
@@ -267,7 +270,7 @@ fun HomeScreen(
             fullyVisible.sortedBy { item ->
                 val itemCenter = item.offset.y + (item.size.height / 2)
                 abs(itemCenter - center)
-            }.take(4).map { it.key }.toSet()
+            }.take(playbackQuality.maxAutoPlayCards).map { it.key }.toSet()
         }
         .collectLatest { keys ->
             delay(200L)
@@ -282,8 +285,9 @@ fun HomeScreen(
             errorMessage = null
             WallpaperRepository.fetchCatalog(context)
                 .onSuccess { response ->
-                    val baseCategories = response.categories.filter { !it.equals("All", ignoreCase = true) && !it.equals("Favorites", ignoreCase = true) }
-                    val nextCategories = listOf("All", "Favorites") + baseCategories
+                    val reserved = setOf("All", "New", "Favorites", "Collections")
+                    val baseCategories = response.categories.filter { category -> reserved.none { it.equals(category, ignoreCase = true) } }
+                    val nextCategories = listOf("All", "New", "Favorites", "Collections") + baseCategories
                     categories = nextCategories
                     wallpapers = response.wallpapers
                     if (selectedCategory !in nextCategories && selectedCategory != "Anime") {
@@ -345,6 +349,14 @@ fun HomeScreen(
         }
     }
 
+    val collections = remember(wallpapers) {
+        listOf("All Collections") + wallpapers
+            .map { item -> item.collection.ifBlank { item.subcategory } }
+            .filter(String::isNotBlank)
+            .distinct()
+            .sorted()
+    }
+
     val displayCategories = remember(categories, animeSubcategories) {
         val subSet = animeSubcategories.filter { it != "All Anime" }.toSet()
         val cleaned = categories.filter { it !in subSet }
@@ -355,8 +367,9 @@ fun HomeScreen(
         }
     }
 
-    val filteredList = remember(selectedCategory, selectedAnimeSubcategories, selectedMediaFilter, searchQuery, searchableWallpapers, favoriteIds) {
+    val filteredList = remember(selectedCategory, selectedAnimeSubcategories, selectedMediaFilter, selectedCollection, searchQuery, searchableWallpapers, favoriteIds) {
         val query = searchQuery.trim()
+        val newThreshold = System.currentTimeMillis() / 1000L - 30L * 24L * 60L * 60L
         searchableWallpapers.mapNotNull { entry ->
             val item = entry.item
             if (!selectedMediaFilter.matches(item)) return@mapNotNull null
@@ -364,7 +377,12 @@ fun HomeScreen(
             val decodedUrl = entry.decodedUrl
             val categoryMatches = when (selectedCategory) {
                 "All" -> true
+                "New" -> item.addedAtEpochSeconds >= newThreshold
                 "Favorites" -> favoriteIds.contains(item.id)
+                "Collections" -> {
+                    val collection = item.collection.ifBlank { item.subcategory }
+                    collection.isNotBlank() && (selectedCollection == "All Collections" || collection.equals(selectedCollection, ignoreCase = true))
+                }
                 "Live Video" -> item.mediaType == MediaType.VIDEO
                 "GIF Loops" -> item.mediaType == MediaType.GIF
                 "AMOLED 4K" -> item.isAmoled
@@ -393,6 +411,7 @@ fun HomeScreen(
                 item.author.contains(query, ignoreCase = true) ||
                 item.category.contains(query, ignoreCase = true) ||
                 item.subcategory.contains(query, ignoreCase = true) ||
+                item.collection.contains(query, ignoreCase = true) ||
                 decodedUrl.contains(query, ignoreCase = true)
 
             if (searchMatches) item else null
@@ -445,6 +464,9 @@ fun HomeScreen(
                         )
                     },
                     onCloseAnimeDropdown = { isAnimeDropdownOpen = false },
+                    collections = collections,
+                    selectedCollection = selectedCollection,
+                    onCollectionSelected = { selectedCollection = it },
                     selectedMediaFilter = selectedMediaFilter,
                     onMediaFilterSelected = { filter ->
                         selectedMediaFilter = toggleMediaFilter(selectedMediaFilter, filter)
@@ -638,6 +660,9 @@ private fun CatalogHeader(
     animeSubcategoryCounts: Map<String, Int>,
     onAnimeSubcategorySelected: (String) -> Unit,
     onCloseAnimeDropdown: () -> Unit,
+    collections: List<String>,
+    selectedCollection: String,
+    onCollectionSelected: (String) -> Unit,
     selectedMediaFilter: Set<MediaFilter>,
     onMediaFilterSelected: (MediaFilter) -> Unit,
     onRefresh: () -> Unit,
@@ -803,6 +828,29 @@ private fun CatalogHeader(
                 onSubcategorySelected = onAnimeSubcategorySelected,
                 onClose = onCloseAnimeDropdown
             )
+        }
+
+        AnimatedVisibility(
+            visible = selectedCategory == "Collections",
+            enter = expandVertically(animationSpec = tween(WallNiceMotion.standardDurationMillis)) + fadeIn(),
+            exit = shrinkVertically(animationSpec = tween(WallNiceMotion.fastDurationMillis)) + fadeOut()
+        ) {
+            LazyRow(
+                contentPadding = PaddingValues(
+                    start = WallNiceSpacing.md,
+                    end = WallNiceSpacing.md,
+                    bottom = WallNiceSpacing.xs
+                ),
+                horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.xs)
+            ) {
+                items(collections, key = { it }) { collection ->
+                    CategoryPill(
+                        text = collection,
+                        selected = selectedCollection == collection,
+                        onClick = { onCollectionSelected(collection) }
+                    )
+                }
+            }
         }
 
         Row(

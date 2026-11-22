@@ -15,6 +15,7 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
+import java.util.Locale
 import kotlin.coroutines.coroutineContext
 
 object DownloadHelper {
@@ -136,6 +137,53 @@ object DownloadHelper {
             }
         } catch (_: Exception) {
         }
+    }
+
+    fun temporaryCacheSize(context: Context): Long {
+        return runCatching {
+            context.cacheDir.listFiles { file ->
+                file.name.startsWith("cached_wp_") && file.isFile
+            }?.sumOf { it.length() } ?: 0L
+        }.getOrDefault(0L)
+    }
+
+    fun favoritesSize(context: Context): Long {
+        return runCatching {
+            File(context.filesDir, "favorites").listFiles { file -> file.isFile }
+                ?.sumOf { it.length() } ?: 0L
+        }.getOrDefault(0L)
+    }
+
+    fun playlistSize(context: Context): Long {
+        return runCatching {
+            File(context.filesDir, "playlist").listFiles { file -> file.isFile }
+                ?.sumOf { it.length() } ?: 0L
+        }.getOrDefault(0L)
+    }
+
+    fun clearTemporaryCache(context: Context): Long {
+        var removedBytes = 0L
+        runCatching {
+            context.cacheDir.listFiles { file ->
+                file.name.startsWith("cached_wp_")
+            }?.forEach { file ->
+                val length = file.length()
+                if (file.delete()) removedBytes += length
+            }
+        }
+        return removedBytes
+    }
+
+    fun formatBytes(bytes: Long): String {
+        if (bytes < 1024L) return "$bytes B"
+        val units = arrayOf("KB", "MB", "GB")
+        var value = bytes.toDouble() / 1024.0
+        var unitIndex = 0
+        while (value >= 1024.0 && unitIndex < units.lastIndex) {
+            value /= 1024.0
+            unitIndex++
+        }
+        return String.format(Locale.ENGLISH, "%.1f %s", value, units[unitIndex])
     }
 
     suspend fun downloadToCache(context: Context, fileUrl: String, extension: String): File? = withContext(Dispatchers.IO) {

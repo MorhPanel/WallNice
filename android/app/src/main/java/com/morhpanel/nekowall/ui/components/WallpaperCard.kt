@@ -1,3 +1,5 @@
+@file:androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+
 package com.morhpanel.nekowall.ui.components
 
 import android.net.Uri
@@ -72,6 +74,7 @@ import com.morhpanel.nekowall.data.models.MediaType
 import com.morhpanel.nekowall.data.models.MediaTypeResolver
 import com.morhpanel.nekowall.data.models.WallpaperItem
 import com.morhpanel.nekowall.data.repository.FavoritesManager
+import com.morhpanel.nekowall.data.repository.WallNicePreferences
 import com.morhpanel.nekowall.ui.theme.NeonCyan
 import com.morhpanel.nekowall.ui.theme.NeonPink
 import com.morhpanel.nekowall.ui.theme.OutlineSubtle
@@ -267,6 +270,12 @@ private fun CardVideoPlayer(
             trackSelectionParameters = trackSelectionParameters.buildUpon()
                 .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true)
                 .build()
+            val quality = WallNicePreferences.getPlaybackQuality(context)
+            if (quality.maxWidth != Int.MAX_VALUE) {
+                trackSelectionParameters = trackSelectionParameters.buildUpon()
+                    .setMaxVideoSize(quality.maxWidth, quality.maxHeight)
+                    .build()
+            }
             videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
             prepare()
             playWhenReady = true

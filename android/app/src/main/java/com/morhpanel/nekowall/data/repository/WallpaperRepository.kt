@@ -100,7 +100,9 @@ object WallpaperRepository {
                             thumbnailUrl = item.optString("thumbnailUrl", url),
                             resolution = item.optString("resolution", "Original"),
                             isAmoled = item.optBoolean("isAmoled", false),
-                            likesCount = item.optInt("likesCount", 0)
+                            likesCount = item.optInt("likesCount", 0),
+                            collection = item.optString("collection", resolvedSubcategory),
+                            addedAtEpochSeconds = item.optLong("addedAt", 0L)
                         )
                     )
                 } catch (_: Exception) {
@@ -262,7 +264,9 @@ object WallpaperRepository {
                         thumbnailUrl = rawUrl,
                         resolution = "Original",
                         isAmoled = false,
-                        likesCount = 0
+                        likesCount = 0,
+                        collection = subcategory,
+                        addedAtEpochSeconds = 0L
                     )
                 )
             }

@@ -177,9 +177,9 @@ fun EmptyStatePanel(
     icon: ImageVector,
     title: String,
     message: String,
+    modifier: Modifier = Modifier,
     actionLabel: String? = null,
-    onAction: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    onAction: (() -> Unit)? = null
 ) {
     Column(
         modifier = modifier

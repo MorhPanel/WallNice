@@ -1,14 +1,19 @@
+@file:androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+
 package com.morhpanel.nekowall.engine
 
 import android.app.WallpaperManager
 import android.content.Context
+import android.content.BroadcastReceiver
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.media.AudioAttributes as AndroidAudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.AudioPlaybackConfiguration
 import android.net.Uri
-import android.os.Build
+import android.os.BatteryManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -23,6 +28,8 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import com.morhpanel.nekowall.data.models.WallpaperFitMode
+import com.morhpanel.nekowall.data.repository.WallNicePreferences
 import kotlin.math.abs
 
 class VideoLiveWallpaperService : WallpaperService() {
@@ -45,6 +52,11 @@ class VideoLiveWallpaperService : WallpaperService() {
         private var lastTapX: Int = 0
         private var lastTapY: Int = 0
         private var lastDoubleTapActionTime: Long = 0
+        private val batteryReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                runOnMainThread { updatePlaybackState() }
+            }
+        }
 
         private val gestureDetector by lazy {
             GestureDetector(this@VideoLiveWallpaperService, object : GestureDetector.SimpleOnGestureListener() {
@@ -129,19 +141,17 @@ class VideoLiveWallpaperService : WallpaperService() {
             if (!am.isMusicActive) {
                 return false
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                try {
-                    val configs = am.activePlaybackConfigurations
-                    val isOurPlayerAudible = (player?.volume ?: 0f) > 0f
-                    if (!isOurPlayerAudible) {
-                        return configs.any { config ->
-                            val usage = config.audioAttributes.usage
-                            usage == android.media.AudioAttributes.USAGE_MEDIA ||
+            try {
+                val configs = am.activePlaybackConfigurations
+                val isOurPlayerAudible = (player?.volume ?: 0f) > 0f
+                if (!isOurPlayerAudible) {
+                    return configs.any { config ->
+                        val usage = config.audioAttributes.usage
+                        usage == android.media.AudioAttributes.USAGE_MEDIA ||
                             usage == android.media.AudioAttributes.USAGE_GAME
-                        }
                     }
-                } catch (_: Exception) {
                 }
+            } catch (_: Exception) {
             }
             return false
         }
@@ -192,6 +202,28 @@ class VideoLiveWallpaperService : WallpaperService() {
             }
         }
 
+        private fun isBatteryRestricted(): Boolean {
+            if (!WallNicePreferences.shouldPauseOnLowBattery(this@VideoLiveWallpaperService)) return false
+            val status = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED)) ?: return false
+            val level = status.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+            val scale = status.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+            val plugged = status.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
+            if (level < 0 || scale <= 0 || plugged) return false
+            return level * 100 / scale <= 15
+        }
+
+        private fun updatePlaybackState() {
+            val shouldPlay = (isVisible || isPreview) && !isManuallyPaused && !isBatteryRestricted()
+            player?.playWhenReady = shouldPlay
+            if (shouldPlay) {
+                player?.play()
+            } else {
+                player?.pause()
+                abandonAudioFocus()
+            }
+            updateVolumeState()
+        }
+
         override fun onCreate(holder: SurfaceHolder) {
             super.onCreate(holder)
             setTouchEventsEnabled(true)
@@ -201,6 +233,7 @@ class VideoLiveWallpaperService : WallpaperService() {
                 audioManager?.registerAudioPlaybackCallback(playbackCallback, mainHandler)
             } catch (_: Exception) {
             }
+            registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
             prefs.registerOnSharedPreferenceChangeListener(this)
         }
 
@@ -222,7 +255,7 @@ class VideoLiveWallpaperService : WallpaperService() {
                     initPlayer()
                 } else {
                     activePlayer.setVideoSurfaceHolder(holder)
-                    activePlayer.videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
+                    activePlayer.videoScalingMode = videoScalingMode()
                 }
             }
         }
@@ -272,15 +305,7 @@ class VideoLiveWallpaperService : WallpaperService() {
         override fun onVisibilityChanged(visible: Boolean) {
             super.onVisibilityChanged(visible)
             runOnMainThread {
-                val shouldPlay = (visible || isPreview) && !isManuallyPaused
-                player?.playWhenReady = shouldPlay
-                if (shouldPlay) {
-                    player?.play()
-                } else {
-                    player?.pause()
-                    abandonAudioFocus()
-                }
-                updateVolumeState()
+                updatePlaybackState()
             }
         }
 
@@ -304,9 +329,12 @@ class VideoLiveWallpaperService : WallpaperService() {
                     }
                 }
                 WallpaperHelper.KEY_VIDEO_URI,
-                WallpaperHelper.KEY_UPDATE_TIMESTAMP -> {
+                WallpaperHelper.KEY_UPDATE_TIMESTAMP,
+                WallNicePreferences.KEY_FIT_MODE,
+                WallNicePreferences.KEY_PLAYBACK_QUALITY -> {
                     initPlayer()
                 }
+                WallNicePreferences.KEY_PAUSE_ON_LOW_BATTERY -> updatePlaybackState()
             }
         }
 
@@ -329,7 +357,14 @@ class VideoLiveWallpaperService : WallpaperService() {
                     player = ExoPlayer.Builder(this@VideoLiveWallpaperService).build().apply {
                         setVideoSurfaceHolder(holder)
                         repeatMode = Player.REPEAT_MODE_ALL
-                        videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
+                        videoScalingMode = videoScalingMode()
+
+                        val quality = WallNicePreferences.getPlaybackQuality(this@VideoLiveWallpaperService)
+                        if (quality.maxWidth != Int.MAX_VALUE) {
+                            trackSelectionParameters = trackSelectionParameters.buildUpon()
+                                .setMaxVideoSize(quality.maxWidth, quality.maxHeight)
+                                .build()
+                        }
 
                         val media3Attrs = Media3AudioAttributes.Builder()
                             .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
@@ -345,7 +380,7 @@ class VideoLiveWallpaperService : WallpaperService() {
                             }
                         })
                         prepare()
-                        val shouldPlay = isVisible || isPreview
+                        val shouldPlay = (isVisible || isPreview) && !isBatteryRestricted()
                         playWhenReady = shouldPlay
                         if (shouldPlay) {
                             play()
@@ -369,12 +404,20 @@ class VideoLiveWallpaperService : WallpaperService() {
             }
         }
 
+        private fun videoScalingMode(): Int {
+            return when (WallNicePreferences.getFitMode(this@VideoLiveWallpaperService)) {
+                WallpaperFitMode.CROP -> C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
+                WallpaperFitMode.FIT, WallpaperFitMode.BLUR -> C.VIDEO_SCALING_MODE_SCALE_TO_FIT
+            }
+        }
+
         override fun onDestroy() {
             prefs.unregisterOnSharedPreferenceChangeListener(this)
             try {
                 audioManager?.unregisterAudioPlaybackCallback(playbackCallback)
             } catch (_: Exception) {
             }
+            runCatching { unregisterReceiver(batteryReceiver) }
             abandonAudioFocus()
             mainHandler.removeCallbacksAndMessages(null)
             player?.apply {

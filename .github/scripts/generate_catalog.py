@@ -15,20 +15,34 @@ CATALOG_PATH = "catalog.json"
 DLS_DIR = "DLS"
 
 existing_update = {
-    "versionCode": 32,
-    "versionName": "0.0.30-beta",
-    "changelog": "Smart audio ducking and focus management, isolated offline favorites persistence, and performance polish.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.30-beta/app-release.apk"
+    "versionCode": 33,
+    "versionName": "0.0.31-beta",
+    "changelog": "Smart Fit, wallpaper rotation playlists, collections, new releases, cache controls, battery modes, and wallpaper reports.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.31-beta/app-release.apk"
 }
+
+existing_added_at = {}
 
 if os.path.exists(CATALOG_PATH):
     try:
         with open(CATALOG_PATH, "r", encoding="utf-8") as f:
             data = json.load(f)
             if "appUpdate" in data:
-                existing_update = data["appUpdate"]
+                existing_update.update(data["appUpdate"])
+            for item in data.get("wallpapers", []):
+                url = item.get("url", "")
+                added_at = item.get("addedAt", 0)
+                if url and added_at:
+                    existing_added_at[url] = added_at
     except Exception:
         pass
+
+existing_update.update({
+    "versionCode": 33,
+    "versionName": "0.0.31-beta",
+    "changelog": "Smart Fit, wallpaper rotation playlists, collections, new releases, cache controls, battery modes, and wallpaper reports.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.31-beta/app-release.apk"
+})
 
 categories = set(["All"])
 wallpapers = []
@@ -111,6 +125,18 @@ for root, _, files in os.walk(DLS_DIR):
         encoded_path = "/".join(urllib.parse.quote(part) for part in full_path.split("/"))
         raw_url = f"{REPO_BASE}/{encoded_path}"
 
+        added_at = existing_added_at.get(raw_url, 0)
+        if not added_at:
+            try:
+                added_at = int(subprocess.check_output(
+                    ["git", "log", "-1", "--format=%ct", "--", full_path],
+                    text=True
+                ).strip() or "0")
+            except Exception:
+                added_at = 0
+        if not added_at:
+            added_at = int(os.path.getmtime(full_path))
+
         thumbnail_url = raw_url
         if media_type == "VIDEO":
             for thumb_ext in (".jpg", ".jpeg", ".png", ".webp"):
@@ -132,7 +158,9 @@ for root, _, files in os.walk(DLS_DIR):
             "thumbnailUrl": thumbnail_url,
             "resolution": resolution,
             "isAmoled": is_amoled,
-            "likesCount": 0
+            "likesCount": 0,
+            "collection": subcategory or category,
+            "addedAt": added_at
         })
 
 output_data = {

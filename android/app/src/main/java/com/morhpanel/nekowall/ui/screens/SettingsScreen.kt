@@ -2,6 +2,7 @@ package com.morhpanel.nekowall.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,10 +18,15 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.Collections
+import androidx.compose.material.icons.filled.BatterySaver
+import androidx.compose.material.icons.filled.Cached
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
@@ -36,6 +42,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,6 +55,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.morhpanel.nekowall.BuildConfig
 import com.morhpanel.nekowall.data.models.WallpaperItem
+import com.morhpanel.nekowall.data.models.PlaybackQuality
+import com.morhpanel.nekowall.data.repository.PlaylistManager
+import com.morhpanel.nekowall.data.repository.WallNicePreferences
+import com.morhpanel.nekowall.engine.DownloadHelper
 import com.morhpanel.nekowall.engine.WallpaperHelper
 import com.morhpanel.nekowall.ui.components.WallNiceIconButton
 import com.morhpanel.nekowall.ui.theme.AmoledBlack
@@ -65,6 +76,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
@@ -73,9 +85,20 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     var doubleTapToPause by remember {
         mutableStateOf(WallpaperHelper.isDoubleTapToPauseEnabled(context))
     }
+    var playbackQuality by remember { mutableStateOf(WallNicePreferences.getPlaybackQuality(context)) }
+    var pauseOnLowBattery by remember { mutableStateOf(WallNicePreferences.shouldPauseOnLowBattery(context)) }
+    var autoPlayPreviews by remember { mutableStateOf(WallNicePreferences.shouldAutoPlayPreviews(context)) }
+    var rotationEnabled by remember { mutableStateOf(WallNicePreferences.isRotationEnabled(context)) }
+    var rotationInterval by remember { mutableStateOf(WallNicePreferences.getRotationIntervalHours(context)) }
+    var cacheSize by remember { mutableStateOf(DownloadHelper.temporaryCacheSize(context)) }
+    var rotationStatus by remember { mutableStateOf<String?>(null) }
+    val favoriteSize = DownloadHelper.favoritesSize(context)
+    val playlistSize = DownloadHelper.playlistSize(context)
+    val playlistCount = PlaylistManager.getEntries(context).size
     val scrollState = rememberScrollState()
     val categoryCounts = remember(wallpapers) {
         wallpapers.groupingBy { it.category.ifBlank { "All" } }
@@ -169,6 +192,128 @@ fun SettingsScreen(
                         if (index < categoryCounts.lastIndex) SettingsDivider()
                     }
                 }
+            }
+
+            Spacer(Modifier.height(WallNiceSpacing.xl))
+            SettingsSectionHeader(
+                icon = Icons.Default.BatterySaver,
+                title = "Playback",
+                tint = NeonCyan,
+                detail = "Preview quality and battery behavior"
+            )
+            Spacer(Modifier.height(WallNiceSpacing.xs))
+            SettingsCard {
+                PlaybackQuality.entries.forEachIndexed { index, quality ->
+                    SettingsChoiceRow(
+                        label = quality.label,
+                        detail = when (quality) {
+                            PlaybackQuality.ECO -> "720p preview · one animated card"
+                            PlaybackQuality.BALANCED -> "1080p preview · two animated cards"
+                            PlaybackQuality.MAXIMUM -> "Source quality · four animated cards"
+                        },
+                        selected = playbackQuality == quality,
+                        onClick = {
+                            playbackQuality = quality
+                            WallNicePreferences.setPlaybackQuality(context, quality)
+                        }
+                    )
+                    if (index < PlaybackQuality.entries.lastIndex) SettingsDivider()
+                }
+                SettingsDivider()
+                SettingsSwitchRow(
+                    label = "Animated catalog previews",
+                    detail = "Play visible video cards while browsing",
+                    checked = autoPlayPreviews,
+                    onCheckedChange = { enabled ->
+                        autoPlayPreviews = enabled
+                        WallNicePreferences.setAutoPlayPreviews(context, enabled)
+                    }
+                )
+                SettingsDivider()
+                SettingsSwitchRow(
+                    label = "Pause below 15%",
+                    detail = "Stops live wallpaper when battery is low and unplugged",
+                    checked = pauseOnLowBattery,
+                    onCheckedChange = { enabled ->
+                        pauseOnLowBattery = enabled
+                        WallNicePreferences.setPauseOnLowBattery(context, enabled)
+                    }
+                )
+            }
+
+            Spacer(Modifier.height(WallNiceSpacing.xl))
+            SettingsSectionHeader(
+                icon = Icons.AutoMirrored.Filled.PlaylistPlay,
+                title = "Rotation playlist",
+                tint = NeonPink,
+                detail = "Automatically cycle saved wallpapers"
+            )
+            Spacer(Modifier.height(WallNiceSpacing.xs))
+            SettingsCard {
+                SettingsValueRow("Saved wallpapers", playlistCount.toString(), valueTint = NeonCyan)
+                SettingsDivider()
+                SettingsSwitchRow(
+                    label = "Automatic rotation",
+                    detail = "Rotates videos with the live engine, or static wallpapers when it is inactive",
+                    checked = rotationEnabled,
+                    onCheckedChange = { enabled ->
+                        rotationEnabled = enabled
+                        WallNicePreferences.setRotationEnabled(context, enabled)
+                        if (enabled) PlaylistManager.schedule(context) else PlaylistManager.cancelSchedule(context)
+                    }
+                )
+                SettingsDivider()
+                listOf(1, 6, 12, 24).forEachIndexed { index, hours ->
+                    SettingsChoiceRow(
+                        label = if (hours == 1) "Every hour" else "Every $hours hours",
+                        detail = "Rotation interval",
+                        selected = rotationInterval == hours,
+                        onClick = {
+                            rotationInterval = hours
+                            WallNicePreferences.setRotationIntervalHours(context, hours)
+                            if (rotationEnabled) PlaylistManager.schedule(context)
+                        }
+                    )
+                    if (index < 3) SettingsDivider()
+                }
+                SettingsDivider()
+                SettingsActionRow(
+                    icon = Icons.AutoMirrored.Filled.PlaylistPlay,
+                    label = "Rotate now",
+                    detail = rotationStatus ?: "Apply the next available wallpaper",
+                    onClick = {
+                        coroutineScope.launch {
+                            rotationStatus = "Applying…"
+                            rotationStatus = if (PlaylistManager.rotateNow(context)) "Wallpaper changed" else "Add wallpapers or activate the live engine"
+                        }
+                    }
+                )
+            }
+
+            Spacer(Modifier.height(WallNiceSpacing.xl))
+            SettingsSectionHeader(
+                icon = Icons.Default.Cached,
+                title = "Storage",
+                tint = NeonCyan,
+                detail = "Offline media and temporary files"
+            )
+            Spacer(Modifier.height(WallNiceSpacing.xs))
+            SettingsCard {
+                SettingsValueRow("Temporary cache", DownloadHelper.formatBytes(cacheSize))
+                SettingsDivider()
+                SettingsValueRow("Offline favorites", DownloadHelper.formatBytes(favoriteSize))
+                SettingsDivider()
+                SettingsValueRow("Rotation playlist", DownloadHelper.formatBytes(playlistSize))
+                SettingsDivider()
+                SettingsActionRow(
+                    icon = Icons.Default.DeleteSweep,
+                    label = "Clear temporary cache",
+                    detail = "Favorites and playlist files stay offline",
+                    onClick = {
+                        DownloadHelper.clearTemporaryCache(context)
+                        cacheSize = DownloadHelper.temporaryCacheSize(context)
+                    }
+                )
             }
 
             Spacer(Modifier.height(WallNiceSpacing.xl))
@@ -451,5 +596,90 @@ private fun SettingsSwitchRow(
                 uncheckedBorderColor = OutlineSubtle
             )
         )
+    }
+}
+
+@Composable
+private fun SettingsChoiceRow(
+    label: String,
+    detail: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = WallNiceSpacing.md, vertical = WallNiceSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.md)
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (selected) TextPrimary else TextSecondary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = detail,
+                style = MaterialTheme.typography.labelSmall,
+                color = TextMuted
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(20.dp)
+                .clip(CircleShape)
+                .background(if (selected) NeonPink else SurfaceHigh)
+                .border(1.dp, if (selected) NeonPink else OutlineSubtle, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            if (selected) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(AmoledBlack)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsActionRow(
+    icon: ImageVector,
+    label: String,
+    detail: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = WallNiceSpacing.md, vertical = WallNiceSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.sm)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = NeonCyan,
+            modifier = Modifier.size(22.dp)
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextPrimary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = detail,
+                style = MaterialTheme.typography.labelSmall,
+                color = TextMuted
+            )
+        }
     }
 }
