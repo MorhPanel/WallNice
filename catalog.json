@@ -1,9 +1,9 @@
 {
   "appUpdate": {
-    "versionCode": 33,
-    "versionName": "0.0.31-beta",
-    "changelog": "Smart Fit, wallpaper rotation playlists, collections, new releases, cache controls, battery modes, and wallpaper reports.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.31-beta/app-release.apk"
+    "versionCode": 34,
+    "versionName": "0.0.32-beta",
+    "changelog": "Redesigned GUI with 4-tab bottom navigation, category cards, me screen, and refined preview.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.32-beta/app-release.apk"
   },
   "categories": [
     "All",
