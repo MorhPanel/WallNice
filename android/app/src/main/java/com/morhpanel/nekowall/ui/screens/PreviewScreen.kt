@@ -6,9 +6,14 @@ import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import kotlin.OptIn
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,6 +42,8 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import com.morhpanel.nekowall.data.repository.FavoritesManager
 import java.io.File
 import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.CropFree
 import androidx.compose.material.icons.filled.Flag
@@ -76,8 +83,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.Lifecycle
@@ -109,8 +118,10 @@ import com.morhpanel.nekowall.engine.WallpaperBitmapProcessor
 import com.morhpanel.nekowall.engine.WallpaperHelper
 import com.morhpanel.nekowall.engine.WallpaperTarget
 import com.morhpanel.nekowall.ui.components.HeartBurstButton
+import com.morhpanel.nekowall.ui.components.NavigationTab
 import com.morhpanel.nekowall.ui.components.ScanlineSuccessOverlay
 import com.morhpanel.nekowall.ui.components.SlidingSegmentedPill
+import com.morhpanel.nekowall.ui.components.WallNiceBottomNavigation
 import com.morhpanel.nekowall.ui.theme.AmoledBlack
 import com.morhpanel.nekowall.ui.theme.NeonCyan
 import com.morhpanel.nekowall.ui.theme.NeonPink
@@ -141,6 +152,7 @@ enum class PreviewOverlayMode {
 fun PreviewScreen(
     wallpaper: WallpaperItem,
     onBack: () -> Unit,
+    onNavigateTab: (NavigationTab) -> Unit = {},
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
@@ -148,9 +160,12 @@ fun PreviewScreen(
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    var overlayMode by remember { mutableStateOf(PreviewOverlayMode.CLEAN) }
+    var isUiHidden by remember { mutableStateOf(false) }
+    var downloadToastMessage by remember { mutableStateOf<String?>(null) }
+    var isDownloading by remember { mutableStateOf(false) }
+    var showInfoDialog by remember { mutableStateOf(false) }
+
     var isMuted by remember { mutableStateOf(false) }
-    var showApplyDialog by remember { mutableStateOf(false) }
     var isApplying by remember { mutableStateOf(false) }
     var showFullscreenPreview by remember { mutableStateOf(false) }
     var showScanline by remember { mutableStateOf(false) }
@@ -243,7 +258,68 @@ fun PreviewScreen(
         exoPlayer?.volume = if (isMuted) 0f else 1f
     }
 
-    val isBusy = isApplying
+    fun applyWallpaperDirect(target: WallpaperTarget) {
+        if (isApplying) return
+        if (wallpaper.mediaType == MediaType.VIDEO) {
+            coroutineScope.launch {
+                isApplying = true
+                val readyFile = cachedFile ?: DownloadHelper.downloadToCache(
+                    context = context,
+                    fileUrl = wallpaper.url,
+                    extension = "mp4"
+                )
+                isApplying = false
+                if (readyFile != null) {
+                    try {
+                        val liveDir = File(context.filesDir, "live_wallpaper")
+                        if (!liveDir.exists()) {
+                            liveDir.mkdirs()
+                        }
+                        val permanentFile = File(liveDir, "live_wp_${System.currentTimeMillis()}.mp4")
+                        readyFile.copyTo(permanentFile, overwrite = true)
+                        liveDir.listFiles()?.forEach { oldFile ->
+                            if (oldFile.name != permanentFile.name) {
+                                oldFile.delete()
+                            }
+                        }
+                        val videoUri = Uri.fromFile(permanentFile).toString()
+                        showScanline = true
+                        val appliedDirectly = WallpaperHelper.applyLiveWallpaper(
+                            context = context,
+                            videoUri = videoUri,
+                            isMuted = isMuted,
+                            target = target,
+                            fitMode = fitMode
+                        )
+                        snackbarHostState.showSnackbar(
+                            if (appliedDirectly) "Wallpaper applied" else "Confirm engine in system dialog"
+                        )
+                    } catch (_: Exception) {
+                        snackbarHostState.showSnackbar("Unable to save live wallpaper.")
+                    }
+                } else {
+                    snackbarHostState.showSnackbar("Unable to download live wallpaper.")
+                }
+            }
+        } else {
+            coroutineScope.launch {
+                isApplying = true
+                val success = loadAndApplyWallpaper(
+                    context = context,
+                    url = wallpaper.url,
+                    target = target,
+                    fitMode = fitMode
+                )
+                isApplying = false
+                if (success) {
+                    showScanline = true
+                }
+                snackbarHostState.showSnackbar(
+                    if (success) "Wallpaper applied" else "Couldn’t apply wallpaper"
+                )
+            }
+        }
+    }
 
     val sharedMediaModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
         with(sharedTransitionScope) {
@@ -267,6 +343,7 @@ fun PreviewScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .then(sharedMediaModifier)
+                    .clickable { isUiHidden = !isUiHidden }
             ) {
                 WallpaperMedia(
                     wallpaper = wallpaper,
@@ -278,88 +355,116 @@ fun PreviewScreen(
                 )
             }
 
-            when (overlayMode) {
-                PreviewOverlayMode.CLEAN -> Unit
-                PreviewOverlayMode.LOCK_SCREEN -> LockScreenSimulation()
-                PreviewOverlayMode.HOME_SCREEN -> HomeScreenSimulation()
+            AnimatedVisibility(
+                visible = !isUiHidden,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+                modifier = Modifier.align(Alignment.TopCenter)
+            ) {
+                PreviewTopBar(
+                    isFavorite = isFavorite,
+                    isDownloading = isDownloading,
+                    onToggleFavorite = {
+                        val nowFav = FavoritesManager.toggleFavorite(context, wallpaper.id)
+                        if (nowFav) {
+                            coroutineScope.launch {
+                                DownloadHelper.downloadFavorite(context, wallpaper.url, extension)
+                            }
+                        } else {
+                            coroutineScope.launch {
+                                DownloadHelper.removeFavoriteFile(context, wallpaper.url, extension)
+                            }
+                        }
+                    },
+                    onDownload = {
+                        if (!isDownloading) {
+                            coroutineScope.launch {
+                                isDownloading = true
+                                val success = DownloadHelper.saveToGallery(
+                                    context = context,
+                                    fileUrl = wallpaper.url,
+                                    title = wallpaper.title,
+                                    isVideo = wallpaper.mediaType == MediaType.VIDEO
+                                )
+                                isDownloading = false
+                                if (success) {
+                                    val targetPath = if (wallpaper.mediaType == MediaType.VIDEO) {
+                                        "/storage/emulated/0/Movies/WallNice"
+                                    } else {
+                                        "/storage/emulated/0/Pictures/WallNice"
+                                    }
+                                    downloadToastMessage = "Wallpaper downloaded successfully to $targetPath"
+                                    kotlinx.coroutines.delay(3500)
+                                    downloadToastMessage = null
+                                } else {
+                                    snackbarHostState.showSnackbar("Unable to save to gallery.")
+                                }
+                            }
+                        }
+                    },
+                    onOpenInfo = { showInfoDialog = true },
+                    onBack = onBack
+                )
             }
 
-            PreviewTopBar(
-                selectedMode = overlayMode,
-                isFavorite = isFavorite,
-                onModeSelected = { overlayMode = it },
-                onToggleFavorite = {
-                    val nowFav = FavoritesManager.toggleFavorite(context, wallpaper.id)
-                    if (nowFav) {
-                        coroutineScope.launch {
-                            DownloadHelper.downloadFavorite(context, wallpaper.url, extension)
-                        }
-                    } else {
-                        coroutineScope.launch {
-                            DownloadHelper.removeFavoriteFile(context, wallpaper.url, extension)
-                        }
-                    }
-                },
-                onReport = {
-                    if (!ReportHelper.openWallpaperReport(context, wallpaper)) {
-                        coroutineScope.launch { snackbarHostState.showSnackbar("Unable to open report form") }
-                    }
-                },
-                onBack = onBack
-            )
-
-            PreviewBottomPanel(
-                modifier = Modifier.align(Alignment.BottomCenter),
-                wallpaper = wallpaper,
-                isMuted = isMuted,
-                isApplying = isApplying,
-                fitMode = fitMode,
-                isInPlaylist = isInPlaylist,
-                isPlaylistBusy = isPlaylistBusy,
-                onMuteToggle = { isMuted = !isMuted },
-                onFitModeChange = {
-                    val supportedModes = if (wallpaper.mediaType == MediaType.VIDEO) {
-                        listOf(WallpaperFitMode.CROP, WallpaperFitMode.FIT)
-                    } else {
-                        WallpaperFitMode.entries
-                    }
-                    val nextIndex = (supportedModes.indexOf(fitMode).coerceAtLeast(0) + 1) % supportedModes.size
-                    fitMode = supportedModes[nextIndex]
-                    WallNicePreferences.setFitMode(context, fitMode)
-                },
-                onTogglePlaylist = {
-                    if (!isPlaylistBusy) {
-                        coroutineScope.launch {
-                            isPlaylistBusy = true
-                            val success = try {
-                                runCatching {
-                                    if (isInPlaylist) {
-                                        PlaylistManager.remove(context, wallpaper.id)
-                                    } else {
-                                        PlaylistManager.add(context, wallpaper, fitMode)
-                                    }
-                                }.getOrDefault(false)
-                            } finally {
-                                isPlaylistBusy = false
-                            }
-                            if (success) isInPlaylist = !isInPlaylist
-                            snackbarHostState.showSnackbar(
-                                when {
-                                    !success -> "Unable to update playlist"
-                                    isInPlaylist -> "Added to rotation playlist"
-                                    else -> "Removed from rotation playlist"
-                                }
-                            )
-                        }
-                    }
-                },
-                onOpenFullscreen = { showFullscreenPreview = true },
-                onApply = {
-                    if (!isBusy) {
-                        showApplyDialog = true
-                    }
+            AnimatedVisibility(
+                visible = downloadToastMessage != null,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(top = 56.dp, start = 20.dp, end = 20.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(Color.Black.copy(alpha = 0.88f))
+                        .border(1.dp, OutlineStrong, RoundedCornerShape(22.dp))
+                        .padding(horizontal = 18.dp, vertical = 12.dp)
+                ) {
+                    Text(
+                        text = downloadToastMessage ?: "",
+                        color = TextPrimary,
+                        fontSize = 13.sp,
+                        textAlign = TextAlign.Center
+                    )
                 }
-            )
+            }
+
+            AnimatedVisibility(
+                visible = !isUiHidden,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+                modifier = Modifier.align(Alignment.BottomCenter)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Brush.verticalGradient(
+                                colorStops = arrayOf(
+                                    0f to Color.Transparent,
+                                    0.32f to Color.Black.copy(alpha = 0.72f),
+                                    1f to Color.Black
+                                )
+                            )
+                        )
+                ) {
+                    PreviewDualActionButtons(
+                        isApplying = isApplying,
+                        onSetAsWallpaper = { applyWallpaperDirect(WallpaperTarget.HOME_SCREEN) },
+                        onSetAsLockScreen = { applyWallpaperDirect(WallpaperTarget.LOCK_SCREEN) }
+                    )
+                    WallNiceBottomNavigation(
+                        currentTab = NavigationTab.HOME,
+                        onTabSelected = { tab ->
+                            onNavigateTab(tab)
+                            onBack()
+                        }
+                    )
+                }
+            }
 
             SnackbarHost(
                 hostState = snackbarHostState,
@@ -373,74 +478,48 @@ fun PreviewScreen(
                     )
             )
 
-            if (showApplyDialog) {
-                ApplyTargetDialog(
-                    isApplying = isApplying,
-                    onDismiss = {
-                        if (!isApplying) showApplyDialog = false
-                    },
-                    onTargetSelected = { target ->
-                        showApplyDialog = false
-                        if (wallpaper.mediaType == MediaType.VIDEO) {
-                            coroutineScope.launch {
-                                isApplying = true
-                                val readyFile = cachedFile ?: DownloadHelper.downloadToCache(
-                                    context = context,
-                                    fileUrl = wallpaper.url,
-                                    extension = "mp4"
-                                )
-                                isApplying = false
-                                if (readyFile != null) {
-                                    try {
-                                        val liveDir = File(context.filesDir, "live_wallpaper")
-                                        if (!liveDir.exists()) {
-                                            liveDir.mkdirs()
-                                        }
-                                        val permanentFile = File(liveDir, "live_wp_${System.currentTimeMillis()}.mp4")
-                                        readyFile.copyTo(permanentFile, overwrite = true)
-                                        liveDir.listFiles()?.forEach { oldFile ->
-                                            if (oldFile.name != permanentFile.name) {
-                                                oldFile.delete()
-                                            }
-                                        }
-                                        val videoUri = Uri.fromFile(permanentFile).toString()
-                                        showScanline = true
-                                        val appliedDirectly = WallpaperHelper.applyLiveWallpaper(
-                                            context = context,
-                                            videoUri = videoUri,
-                                            isMuted = isMuted,
-                                            target = target,
-                                            fitMode = fitMode
-                                        )
-                                        snackbarHostState.showSnackbar(
-                                            if (appliedDirectly) "Wallpaper applied" else "Confirm engine in system dialog"
-                                        )
-                                    } catch (_: Exception) {
-                                        snackbarHostState.showSnackbar("Unable to save live wallpaper.")
-                                    }
-                                } else {
-                                    snackbarHostState.showSnackbar("Unable to download live wallpaper.")
-                                }
-                            }
+            if (showInfoDialog) {
+                WallpaperInfoDialog(
+                    wallpaper = wallpaper,
+                    fitMode = fitMode,
+                    isInPlaylist = isInPlaylist,
+                    isPlaylistBusy = isPlaylistBusy,
+                    isMuted = isMuted,
+                    onMuteToggle = { isMuted = !isMuted },
+                    onFitModeToggle = {
+                        val supportedModes = if (wallpaper.mediaType == MediaType.VIDEO) {
+                            listOf(WallpaperFitMode.CROP, WallpaperFitMode.FIT)
                         } else {
+                            WallpaperFitMode.entries
+                        }
+                        val nextIndex = (supportedModes.indexOf(fitMode).coerceAtLeast(0) + 1) % supportedModes.size
+                        fitMode = supportedModes[nextIndex]
+                        WallNicePreferences.setFitMode(context, fitMode)
+                    },
+                    onPlaylistToggle = {
+                        if (!isPlaylistBusy) {
                             coroutineScope.launch {
-                                isApplying = true
-                                val success = loadAndApplyWallpaper(
-                                    context = context,
-                                    url = wallpaper.url,
-                                    target = target,
-                                    fitMode = fitMode
-                                )
-                                isApplying = false
-                                if (success) {
-                                    showScanline = true
+                                isPlaylistBusy = true
+                                val success = try {
+                                    runCatching {
+                                        if (isInPlaylist) {
+                                            PlaylistManager.remove(context, wallpaper.id)
+                                        } else {
+                                            PlaylistManager.add(context, wallpaper, fitMode)
+                                        }
+                                    }.getOrDefault(false)
+                                } finally {
+                                    isPlaylistBusy = false
                                 }
-                                snackbarHostState.showSnackbar(
-                                    if (success) "Wallpaper applied" else "Couldn’t apply wallpaper"
-                                )
+                                if (success) isInPlaylist = !isInPlaylist
                             }
                         }
-                    }
+                    },
+                    onOpenFullscreen = {
+                        showInfoDialog = false
+                        showFullscreenPreview = true
+                    },
+                    onDismiss = { showInfoDialog = false }
                 )
             }
         }
@@ -707,11 +786,11 @@ private fun MediaErrorState() {
 
 @Composable
 private fun PreviewTopBar(
-    selectedMode: PreviewOverlayMode,
     isFavorite: Boolean,
-    onModeSelected: (PreviewOverlayMode) -> Unit,
+    isDownloading: Boolean,
     onToggleFavorite: () -> Unit,
-    onReport: () -> Unit,
+    onDownload: () -> Unit,
+    onOpenInfo: () -> Unit,
     onBack: () -> Unit
 ) {
     Row(
@@ -740,18 +819,42 @@ private fun PreviewTopBar(
             )
         }
 
-        SlidingSegmentedPill(
-            items = listOf("Clean", "Lock", "Home"),
-            selectedIndex = selectedMode.ordinal,
-            onItemSelected = { index ->
-                onModeSelected(PreviewOverlayMode.entries[index])
-            },
-            modifier = Modifier.width(160.dp)
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            HeartBurstButton(
+                isFavorite = isFavorite,
+                onClick = onToggleFavorite
+            )
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(
-                onClick = onReport,
+                onClick = onDownload,
+                enabled = !isDownloading,
+                modifier = Modifier
+                    .size(WallNiceSizes.minimumTouchTarget)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.72f))
+                    .border(1.dp, OutlineSubtle, CircleShape)
+            ) {
+                if (isDownloading) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(18.dp)
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.FileDownload,
+                        contentDescription = "Download wallpaper",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            IconButton(
+                onClick = onOpenInfo,
                 modifier = Modifier
                     .size(WallNiceSizes.minimumTouchTarget)
                     .clip(CircleShape)
@@ -759,200 +862,194 @@ private fun PreviewTopBar(
                     .border(1.dp, OutlineSubtle, CircleShape)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Flag,
-                    contentDescription = "Report wallpaper",
-                    tint = NeonCyan
+                    imageVector = Icons.Default.Folder,
+                    contentDescription = "Wallpaper details",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
                 )
             }
-            Spacer(Modifier.width(WallNiceSpacing.xs))
-            HeartBurstButton(
-                isFavorite = isFavorite,
-                onClick = onToggleFavorite
-            )
         }
     }
 }
 
 @Composable
-private fun PreviewBottomPanel(
-    modifier: Modifier = Modifier,
-    wallpaper: WallpaperItem,
-    isMuted: Boolean,
+private fun PreviewDualActionButtons(
     isApplying: Boolean,
+    onSetAsWallpaper: () -> Unit,
+    onSetAsLockScreen: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Button(
+            onClick = onSetAsWallpaper,
+            enabled = !isApplying,
+            modifier = Modifier
+                .weight(1f)
+                .height(52.dp),
+            shape = RoundedCornerShape(26.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF38363F),
+                contentColor = Color.White
+            )
+        ) {
+            Text(
+                text = "Set as Wallpaper",
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp
+            )
+        }
+
+        Button(
+            onClick = onSetAsLockScreen,
+            enabled = !isApplying,
+            modifier = Modifier
+                .weight(1f)
+                .height(52.dp),
+            shape = RoundedCornerShape(26.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFE2DFE6),
+                contentColor = Color(0xFF1E1A22)
+            )
+        ) {
+            Text(
+                text = "Set as Lock Screen",
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp
+            )
+        }
+    }
+}
+@Composable
+private fun WallpaperInfoDialog(
+    wallpaper: WallpaperItem,
     fitMode: WallpaperFitMode,
     isInPlaylist: Boolean,
     isPlaylistBusy: Boolean,
+    isMuted: Boolean,
     onMuteToggle: () -> Unit,
-    onFitModeChange: () -> Unit,
-    onTogglePlaylist: () -> Unit,
+    onFitModeToggle: () -> Unit,
+    onPlaylistToggle: () -> Unit,
     onOpenFullscreen: () -> Unit,
-    onApply: () -> Unit
+    onDismiss: () -> Unit
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(
-                Brush.verticalGradient(
-                    colorStops = arrayOf(
-                        0f to Color.Transparent,
-                        0.28f to Color.Black.copy(alpha = 0.68f),
-                        1f to Color.Black
-                    )
-                )
-            )
-            .navigationBarsPadding()
-            .padding(
-                start = WallNiceSpacing.md,
-                end = WallNiceSpacing.md,
-                top = 64.dp,
-                bottom = WallNiceSpacing.md
-            )
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Bottom
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, OutlineStrong, RoundedCornerShape(WallNiceRadii.large)),
+            shape = RoundedCornerShape(WallNiceRadii.large),
+            color = SurfaceMid
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = wallpaper.title,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(Modifier.height(3.dp))
-                Text(
-                    text = "@" + wallpaper.author + "  •  " + wallpaper.category,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            if (wallpaper.mediaType == MediaType.VIDEO) {
-                Spacer(Modifier.width(WallNiceSpacing.sm))
-                IconButton(
-                    onClick = onMuteToggle,
-                    modifier = Modifier
-                        .size(WallNiceSizes.minimumTouchTarget)
-                        .clip(CircleShape)
-                        .background(SurfaceHigh)
-                        .border(1.dp, OutlineSubtle, CircleShape)
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = if (isMuted) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
-                        contentDescription = if (isMuted) "Enable sound" else "Mute sound",
-                        tint = if (isMuted) TextSecondary else NeonCyan
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = wallpaper.title,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = TextPrimary
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = "@" + wallpaper.author + "  •  " + wallpaper.category,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextSecondary
+                        )
+                    }
+                    IconButton(
+                        onClick = onOpenFullscreen,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Fullscreen,
+                            contentDescription = "Open fullscreen preview",
+                            tint = NeonCyan
+                        )
+                    }
                 }
-            }
-        }
-
-        Spacer(Modifier.height(WallNiceSpacing.md))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(
-                onClick = onOpenFullscreen,
-                modifier = Modifier
-                    .size(WallNiceSizes.primaryActionHeight)
-                    .clip(RoundedCornerShape(WallNiceRadii.medium))
-                    .background(SurfaceHigh)
-                    .border(1.dp, OutlineSubtle, RoundedCornerShape(WallNiceRadii.medium))
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Fullscreen,
-                    contentDescription = "Open fullscreen preview",
-                    tint = NeonCyan
-                )
-            }
-
-            IconButton(
-                onClick = onFitModeChange,
-                modifier = Modifier
-                    .size(WallNiceSizes.primaryActionHeight)
-                    .clip(RoundedCornerShape(WallNiceRadii.medium))
-                    .background(SurfaceHigh)
-                    .border(1.dp, OutlineSubtle, RoundedCornerShape(WallNiceRadii.medium))
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.CropFree,
-                        contentDescription = "Change wallpaper fit mode",
-                        tint = NeonCyan,
-                        modifier = Modifier.size(19.dp)
-                    )
+                Spacer(Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Resolution", color = TextSecondary)
+                    Text(wallpaper.resolution, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                }
+                Spacer(Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Format", color = TextSecondary)
+                    Text(wallpaper.mediaType.name, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                }
+                Spacer(Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(SurfaceLow)
+                        .clickable(onClick = onFitModeToggle)
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Display Fit Mode", color = TextPrimary)
+                    Text(fitMode.label, color = NeonCyan, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(SurfaceLow)
+                        .clickable(enabled = !isPlaylistBusy, onClick = onPlaylistToggle)
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Rotation Playlist", color = TextPrimary)
                     Text(
-                        text = fitMode.label,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextSecondary
-                    )
-                }
-            }
-
-            IconButton(
-                onClick = onTogglePlaylist,
-                enabled = !isPlaylistBusy,
-                modifier = Modifier
-                    .size(WallNiceSizes.primaryActionHeight)
-                    .clip(RoundedCornerShape(WallNiceRadii.medium))
-                    .background(SurfaceHigh)
-                    .border(
-                        1.dp,
-                        if (isInPlaylist) NeonPink else OutlineSubtle,
-                        RoundedCornerShape(WallNiceRadii.medium)
-                    )
-            ) {
-                if (isPlaylistBusy) {
-                    CircularProgressIndicator(
-                        color = NeonCyan,
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(18.dp)
-                    )
-                } else {
-                    Icon(
-                        imageVector = if (isInPlaylist) Icons.Default.PlaylistRemove else Icons.AutoMirrored.Filled.PlaylistAdd,
-                        contentDescription = if (isInPlaylist) "Remove from rotation playlist" else "Add to rotation playlist",
-                        tint = if (isInPlaylist) NeonPink else NeonCyan
-                    )
-                }
-            }
-
-            Button(
-                onClick = onApply,
-                enabled = !isApplying,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(WallNiceSizes.primaryActionHeight),
-                shape = RoundedCornerShape(WallNiceRadii.medium),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = NeonPink,
-                    disabledContainerColor = NeonPink.copy(alpha = 0.5f)
-                )
-            ) {
-                if (isApplying) {
-                    CircularProgressIndicator(
-                        color = Color.White,
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(19.dp)
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Wallpaper,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(Modifier.width(WallNiceSpacing.xs))
-                    Text(
-                        text = "Set Wallpaper",
-                        color = Color.White,
+                        if (isInPlaylist) "In Playlist" else "Add to Playlist",
+                        color = if (isInPlaylist) NeonPink else TextSecondary,
                         fontWeight = FontWeight.Bold
                     )
+                }
+                if (wallpaper.mediaType == MediaType.VIDEO) {
+                    Spacer(Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(SurfaceLow)
+                            .clickable(onClick = onMuteToggle)
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Audio Sound", color = TextPrimary)
+                        Text(
+                            if (isMuted) "Muted" else "Enabled",
+                            color = if (isMuted) TextSecondary else NeonCyan,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Text("Close", color = NeonPink)
                 }
             }
         }

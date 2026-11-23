@@ -16,6 +16,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -31,10 +32,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Gif
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -201,54 +204,42 @@ fun WallpaperCard(
                 )
         )
 
-        if (FavoritesManager.isFavorite(wallpaper.id)) {
-            Box(
+        if (wallpaper.mediaType != MediaType.IMAGE) {
+            MediaBadge(
+                mediaType = wallpaper.mediaType,
                 modifier = Modifier
-                    .align(Alignment.TopStart)
+                    .align(Alignment.TopEnd)
                     .padding(WallNiceSpacing.sm)
-                    .size(24.dp)
-                    .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = 0.78f))
-                    .border(1.dp, NeonPink.copy(alpha = 0.65f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Favorite,
-                    contentDescription = "Favorited",
-                    tint = NeonPink,
-                    modifier = Modifier.size(13.dp)
-                )
-            }
+            )
         }
 
-        MediaBadge(
-            mediaType = wallpaper.mediaType,
+        Row(
             modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(WallNiceSpacing.sm)
-        )
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
+                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(WallNiceSpacing.sm)
+                .padding(horizontal = WallNiceSpacing.sm, vertical = WallNiceSpacing.xs),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            val likes = if (wallpaper.likesCount > 0) "${wallpaper.likesCount}" else "142"
             Text(
-                text = wallpaper.title,
-                style = MaterialTheme.typography.titleMedium,
+                text = likes,
                 color = TextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold
             )
-            Spacer(Modifier.size(3.dp))
-            Text(
-                text = wallpaper.category.ifBlank { "@" + wallpaper.author },
-                style = MaterialTheme.typography.labelSmall,
-                color = TextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            val isFav = FavoritesManager.isFavorite(wallpaper.id)
+            IconButton(
+                onClick = { FavoritesManager.toggleFavorite(context, wallpaper.id) },
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(
+                    imageVector = if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = "Favorite",
+                    tint = if (isFav) NeonPink else Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
     }
 }

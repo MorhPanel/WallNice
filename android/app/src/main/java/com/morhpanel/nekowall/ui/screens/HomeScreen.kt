@@ -1,20 +1,18 @@
 package com.morhpanel.nekowall.ui.screens
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.tween
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -39,15 +37,16 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.CollectionsBookmark
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -67,7 +66,6 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -85,27 +83,29 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
-import kotlin.math.abs
 import com.morhpanel.nekowall.data.models.AppUpdateInfo
 import com.morhpanel.nekowall.data.models.MediaFilter
 import com.morhpanel.nekowall.data.models.MediaType
 import com.morhpanel.nekowall.data.models.WallpaperItem
 import com.morhpanel.nekowall.data.models.matches
 import com.morhpanel.nekowall.data.repository.FavoritesManager
-import com.morhpanel.nekowall.data.repository.WallpaperRepository
 import com.morhpanel.nekowall.data.repository.WallNicePreferences
-import com.morhpanel.nekowall.ui.components.BrandMark
+import com.morhpanel.nekowall.data.repository.WallpaperRepository
+import com.morhpanel.nekowall.ui.components.CategoryCard
+import com.morhpanel.nekowall.ui.components.CategoryItem
 import com.morhpanel.nekowall.ui.components.CategoryPill
 import com.morhpanel.nekowall.ui.components.EmptyStatePanel
+import com.morhpanel.nekowall.ui.components.NavigationTab
 import com.morhpanel.nekowall.ui.components.SkeletonWallpaperCard
+import com.morhpanel.nekowall.ui.components.WallNiceBottomNavigation
 import com.morhpanel.nekowall.ui.components.WallNiceIconButton
 import com.morhpanel.nekowall.ui.components.WallpaperCard
 import com.morhpanel.nekowall.ui.components.staggeredEntrance
+import com.morhpanel.nekowall.ui.screens.SettingsScreen
 import com.morhpanel.nekowall.ui.theme.AmoledBlack
 import com.morhpanel.nekowall.ui.theme.NeonCyan
 import com.morhpanel.nekowall.ui.theme.NeonPink
@@ -118,8 +118,12 @@ import com.morhpanel.nekowall.ui.theme.TextPrimary
 import com.morhpanel.nekowall.ui.theme.TextSecondary
 import com.morhpanel.nekowall.ui.theme.WallNiceMotion
 import com.morhpanel.nekowall.ui.theme.WallNiceRadii
+import com.morhpanel.nekowall.ui.theme.WallNiceSizes
 import com.morhpanel.nekowall.ui.theme.WallNiceSpacing
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 private enum class CatalogContentState {
     LOADING,
@@ -204,6 +208,8 @@ private data class SearchableWallpaper(
 @Composable
 fun HomeScreen(
     isActive: Boolean = true,
+    currentTab: NavigationTab = NavigationTab.HOME,
+    onTabSelected: (NavigationTab) -> Unit = {},
     onWallpaperSelected: (WallpaperItem) -> Unit,
     onUpdateAvailable: (AppUpdateInfo) -> Unit,
     sharedTransitionScope: SharedTransitionScope? = null,
@@ -214,14 +220,14 @@ fun HomeScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val windowInfo = LocalWindowInfo.current
     val favoriteIds by FavoritesManager.favoriteIds
+
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var selectedCategory by rememberSaveable { mutableStateOf("All") }
+    var activeCategoryDetail by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedAnimeSubcategories by rememberSaveable(stateSaver = AnimeSubcategorySetSaver) { mutableStateOf(setOf("All Anime")) }
     var isAnimeDropdownOpen by rememberSaveable { mutableStateOf(false) }
     var selectedMediaFilter by rememberSaveable(stateSaver = MediaFilterSetSaver) { mutableStateOf(setOf(MediaFilter.ALL)) }
-    var selectedCollection by rememberSaveable { mutableStateOf("All Collections") }
     var searchQuery by rememberSaveable { mutableStateOf("") }
-    var categories by remember { mutableStateOf(listOf("All")) }
     var wallpapers by remember { mutableStateOf<List<WallpaperItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -246,7 +252,7 @@ fun HomeScreen(
     }
 
     val playbackQuality = WallNicePreferences.getPlaybackQuality(context)
-    val canPlayVideos = isActive && !showSettings && !isAnimeDropdownOpen && isAppForeground && windowInfo.isWindowFocused && !gridState.isScrollInProgress && WallNicePreferences.shouldAutoPlayPreviews(context)
+    val canPlayVideos = isActive && isAppForeground && windowInfo.isWindowFocused && !gridState.isScrollInProgress && WallNicePreferences.shouldAutoPlayPreviews(context)
 
     var visibleItemKeys by remember { mutableStateOf(emptySet<Any>()) }
 
@@ -285,14 +291,7 @@ fun HomeScreen(
             errorMessage = null
             WallpaperRepository.fetchCatalog(context)
                 .onSuccess { response ->
-                    val reserved = setOf("All", "New", "Favorites", "Collections")
-                    val baseCategories = response.categories.filter { category -> reserved.none { it.equals(category, ignoreCase = true) } }
-                    val nextCategories = listOf("All", "New", "Favorites", "Collections") + baseCategories
-                    categories = nextCategories
                     wallpapers = response.wallpapers
-                    if (selectedCategory !in nextCategories && selectedCategory != "Anime") {
-                        selectedCategory = "All"
-                    }
                     response.updateInfo?.let(onUpdateAvailable)
                 }
                 .onFailure { error ->
@@ -349,282 +348,219 @@ fun HomeScreen(
         }
     }
 
-    val collections = remember(wallpapers) {
-        listOf("All Collections") + wallpapers
-            .map { item -> item.collection.ifBlank { item.subcategory } }
-            .filter(String::isNotBlank)
-            .distinct()
-            .sorted()
-    }
+    val categoryCards = remember(wallpapers, searchableWallpapers) {
+        val list = mutableListOf<CategoryItem>()
 
-    val displayCategories = remember(categories, animeSubcategories) {
-        val subSet = animeSubcategories.filter { it != "All Anime" }.toSet()
-        val cleaned = categories.filter { it !in subSet }
-        if ("Anime" !in cleaned) {
-            cleaned + "Anime"
-        } else {
-            cleaned
+        val animeCount = searchableWallpapers.count {
+            it.item.category.equals("Anime", ignoreCase = true) || it.decodedUrl.contains("/Anime/", ignoreCase = true)
         }
+        val animeThumb = searchableWallpapers.firstOrNull {
+            it.item.category.equals("Anime", ignoreCase = true) || it.decodedUrl.contains("/Anime/", ignoreCase = true)
+        }?.item?.let { it.thumbnailUrl.ifBlank { it.url } } ?: ""
+        if (animeCount > 0) list.add(CategoryItem("Anime", animeCount, animeThumb))
+
+        val gymCount = searchableWallpapers.count {
+            it.item.category.equals("Gym", ignoreCase = true) || it.decodedUrl.contains("/Gym/", ignoreCase = true)
+        }
+        val gymThumb = searchableWallpapers.firstOrNull {
+            it.item.category.equals("Gym", ignoreCase = true) || it.decodedUrl.contains("/Gym/", ignoreCase = true)
+        }?.item?.let { it.thumbnailUrl.ifBlank { it.url } } ?: ""
+        if (gymCount > 0) list.add(CategoryItem("Gym", gymCount, gymThumb))
+
+        val amoledCount = searchableWallpapers.count { it.item.isAmoled }
+        val amoledThumb = searchableWallpapers.firstOrNull { it.item.isAmoled }?.item?.let { it.thumbnailUrl.ifBlank { it.url } } ?: ""
+        if (amoledCount > 0) list.add(CategoryItem("AMOLED 4K", amoledCount, amoledThumb))
+
+        val videoCount = searchableWallpapers.count { it.item.mediaType == MediaType.VIDEO }
+        val videoThumb = searchableWallpapers.firstOrNull { it.item.mediaType == MediaType.VIDEO }?.item?.let { it.thumbnailUrl.ifBlank { it.url } } ?: ""
+        if (videoCount > 0) list.add(CategoryItem("Live Video", videoCount, videoThumb))
+
+        val gifCount = searchableWallpapers.count { it.item.mediaType == MediaType.GIF }
+        val gifThumb = searchableWallpapers.firstOrNull { it.item.mediaType == MediaType.GIF }?.item?.let { it.thumbnailUrl.ifBlank { it.url } } ?: ""
+        if (gifCount > 0) list.add(CategoryItem("GIF Loops", gifCount, gifThumb))
+
+        list
     }
 
-    val filteredList = remember(selectedCategory, selectedAnimeSubcategories, selectedMediaFilter, selectedCollection, searchQuery, searchableWallpapers, favoriteIds) {
+    val homeWallpapers = remember(searchQuery, selectedMediaFilter, searchableWallpapers) {
         val query = searchQuery.trim()
-        val newThreshold = System.currentTimeMillis() / 1000L - 30L * 24L * 60L * 60L
         searchableWallpapers.mapNotNull { entry ->
             val item = entry.item
             if (!selectedMediaFilter.matches(item)) return@mapNotNull null
+            val matchesSearch = query.isBlank() ||
+                item.title.contains(query, ignoreCase = true) ||
+                item.author.contains(query, ignoreCase = true) ||
+                item.category.contains(query, ignoreCase = true) ||
+                item.subcategory.contains(query, ignoreCase = true) ||
+                entry.decodedUrl.contains(query, ignoreCase = true)
+            if (matchesSearch) item else null
+        }
+    }
 
+    val categoryDetailWallpapers = remember(activeCategoryDetail, selectedAnimeSubcategories, searchableWallpapers) {
+        val targetCategory = activeCategoryDetail ?: return@remember emptyList()
+        searchableWallpapers.mapNotNull { entry ->
+            val item = entry.item
             val decodedUrl = entry.decodedUrl
-            val categoryMatches = when (selectedCategory) {
-                "All" -> true
-                "New" -> item.addedAtEpochSeconds >= newThreshold
-                "Favorites" -> favoriteIds.contains(item.id)
-                "Collections" -> {
-                    val collection = item.collection.ifBlank { item.subcategory }
-                    collection.isNotBlank() && (selectedCollection == "All Collections" || collection.equals(selectedCollection, ignoreCase = true))
-                }
-                "Live Video" -> item.mediaType == MediaType.VIDEO
-                "GIF Loops" -> item.mediaType == MediaType.GIF
-                "AMOLED 4K" -> item.isAmoled
+            val matches = when (targetCategory) {
                 "Anime" -> {
-                    val isAnime = item.category.equals("Anime", ignoreCase = true) ||
-                        decodedUrl.contains("/Anime/", ignoreCase = true)
+                    val isAnime = item.category.equals("Anime", ignoreCase = true) || decodedUrl.contains("/Anime/", ignoreCase = true)
                     if (!isAnime) {
                         false
                     } else if ("All Anime" in selectedAnimeSubcategories || selectedAnimeSubcategories.isEmpty()) {
                         true
                     } else {
                         selectedAnimeSubcategories.any { sub ->
-                            item.subcategory.equals(sub, ignoreCase = true) ||
-                                decodedUrl.contains("/$sub/", ignoreCase = true)
+                            item.subcategory.equals(sub, ignoreCase = true) || decodedUrl.contains("/$sub/", ignoreCase = true)
                         }
                     }
                 }
-                else -> item.category.equals(selectedCategory, ignoreCase = true) ||
-                    decodedUrl.contains("/$selectedCategory/", ignoreCase = true) ||
-                    decodedUrl.contains(selectedCategory, ignoreCase = true)
+                "Gym" -> item.category.equals("Gym", ignoreCase = true) || decodedUrl.contains("/Gym/", ignoreCase = true)
+                "AMOLED 4K" -> item.isAmoled
+                "Live Video" -> item.mediaType == MediaType.VIDEO
+                "GIF Loops" -> item.mediaType == MediaType.GIF
+                else -> item.category.equals(targetCategory, ignoreCase = true) || decodedUrl.contains(targetCategory, ignoreCase = true)
             }
-            if (!categoryMatches) return@mapNotNull null
-
-            val searchMatches = query.isBlank() ||
-                item.title.contains(query, ignoreCase = true) ||
-                item.author.contains(query, ignoreCase = true) ||
-                item.category.contains(query, ignoreCase = true) ||
-                item.subcategory.contains(query, ignoreCase = true) ||
-                item.collection.contains(query, ignoreCase = true) ||
-                decodedUrl.contains(query, ignoreCase = true)
-
-            if (searchMatches) item else null
+            if (matches) item else null
         }
     }
 
-    val catalogState = when {
+    val favoriteWallpapers = remember(favoriteIds, searchableWallpapers) {
+        searchableWallpapers.mapNotNull { entry ->
+            if (favoriteIds.contains(entry.item.id)) entry.item else null
+        }
+    }
+
+    val currentCatalogState = when {
         isLoading && wallpapers.isEmpty() -> CatalogContentState.LOADING
         errorMessage != null && wallpapers.isEmpty() -> CatalogContentState.OFFLINE
         wallpapers.isEmpty() -> CatalogContentState.EMPTY
-        filteredList.isEmpty() -> CatalogContentState.NO_RESULTS
+        currentTab == NavigationTab.HOME && homeWallpapers.isEmpty() -> CatalogContentState.NO_RESULTS
         else -> CatalogContentState.CONTENT
     }
+
+    val onOpenSettings = { showSettings = true }
 
     BackHandler(enabled = showSettings) {
         showSettings = false
     }
 
+    BackHandler(enabled = !showSettings && activeCategoryDetail != null) {
+        activeCategoryDetail = null
+    }
+
+    BackHandler(enabled = !showSettings && activeCategoryDetail == null && currentTab != NavigationTab.HOME) {
+        onTabSelected(NavigationTab.HOME)
+    }
+
     Scaffold(
         containerColor = AmoledBlack,
-        topBar = {
+        bottomBar = {
             if (!showSettings) {
-                CatalogHeader(
-                    searchQuery = searchQuery,
-                    onSearchQueryChange = { searchQuery = it },
-                    categories = displayCategories,
-                    selectedCategory = selectedCategory,
-                    onCategorySelected = { category ->
-                        if (category == "Anime") {
-                            if (selectedCategory == "Anime") {
-                                isAnimeDropdownOpen = !isAnimeDropdownOpen
-                            } else {
-                                selectedCategory = "Anime"
-                                isAnimeDropdownOpen = true
-                            }
-                        } else {
-                            selectedCategory = category
-                            isAnimeDropdownOpen = false
+                WallNiceBottomNavigation(
+                    currentTab = currentTab,
+                    onTabSelected = { tab ->
+                        onTabSelected(tab)
+                        if (tab != NavigationTab.CATEGORIES) {
+                            activeCategoryDetail = null
                         }
-                    },
-                    animeSubcategories = animeSubcategories,
-                    selectedAnimeSubcategories = selectedAnimeSubcategories,
-                    isAnimeDropdownOpen = isAnimeDropdownOpen,
-                    animeSubcategoryCounts = animeSubcategoryCounts,
-                    onAnimeSubcategorySelected = { sub ->
-                        selectedAnimeSubcategories = toggleAnimeSubcategory(
-                            current = selectedAnimeSubcategories,
-                            subcategory = sub,
-                            allAvailable = animeSubcategories
-                        )
-                    },
-                    onCloseAnimeDropdown = { isAnimeDropdownOpen = false },
-                    collections = collections,
-                    selectedCollection = selectedCollection,
-                    onCollectionSelected = { selectedCollection = it },
-                    selectedMediaFilter = selectedMediaFilter,
-                    onMediaFilterSelected = { filter ->
-                        selectedMediaFilter = toggleMediaFilter(selectedMediaFilter, filter)
-                    },
-                    onRefresh = { loadData() },
-                    onOpenSettings = { showSettings = true }
+                    }
                 )
             }
-        },
+        }
     ) { innerPadding ->
-        AnimatedContent(
-            targetState = showSettings,
-            transitionSpec = {
-                if (targetState) {
-                    (fadeIn(animationSpec = tween(WallNiceMotion.standardDurationMillis)) +
-                        slideInHorizontally(
-                            animationSpec = tween(WallNiceMotion.standardDurationMillis),
-                            initialOffsetX = { it / 10 }
-                        )) togetherWith
-                        (fadeOut(animationSpec = tween(WallNiceMotion.fastDurationMillis)) +
-                            slideOutHorizontally(
-                                animationSpec = tween(WallNiceMotion.fastDurationMillis),
-                                targetOffsetX = { -it / 12 }
-                            ))
-                } else {
-                    (fadeIn(animationSpec = tween(WallNiceMotion.standardDurationMillis)) +
-                        slideInHorizontally(
-                            animationSpec = tween(WallNiceMotion.standardDurationMillis),
-                            initialOffsetX = { -it / 10 }
-                        )) togetherWith
-                        (fadeOut(animationSpec = tween(WallNiceMotion.fastDurationMillis)) +
-                            slideOutHorizontally(
-                                animationSpec = tween(WallNiceMotion.fastDurationMillis),
-                                targetOffsetX = { it / 12 }
-                            ))
-                }
-            },
-            label = "ScreenTransition"
-        ) { settingsOpen ->
-            if (settingsOpen) {
-                SettingsScreen(
-                    wallpapers = wallpapers,
-                    onBack = { showSettings = false },
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                AnimatedContent(
-                    targetState = catalogState,
-                    transitionSpec = {
-                        fadeIn(animationSpec = tween(WallNiceMotion.standardDurationMillis)) togetherWith
-                            fadeOut(animationSpec = tween(WallNiceMotion.fastDurationMillis))
-                    },
-                    label = "CatalogStateTransition"
-                ) { state ->
-                    when (state) {
+        if (showSettings) {
+            SettingsScreen(
+                wallpapers = wallpapers,
+                onBack = { showSettings = false },
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            when (currentTab) {
+                NavigationTab.HOME -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(bottom = innerPadding.calculateBottomPadding())
+                    ) {
+                        HomeTopBar(
+                            searchQuery = searchQuery,
+                            onSearchQueryChange = { searchQuery = it },
+                            selectedMediaFilter = selectedMediaFilter,
+                            onMediaFilterSelected = { filter ->
+                                selectedMediaFilter = toggleMediaFilter(selectedMediaFilter, filter)
+                            },
+                            onOpenSettings = onOpenSettings
+                        )
+
+                    when (currentCatalogState) {
                         CatalogContentState.LOADING -> {
                             LazyVerticalGrid(
                                 columns = GridCells.Fixed(2),
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(
-                                    start = WallNiceSpacing.md,
-                                    end = WallNiceSpacing.md,
-                                    top = innerPadding.calculateTopPadding() + WallNiceSpacing.sm,
-                                    bottom = innerPadding.calculateBottomPadding() + WallNiceSpacing.md
-                                ),
-                                horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.sm),
-                                verticalArrangement = Arrangement.spacedBy(WallNiceSpacing.lg),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(14.dp),
                                 userScrollEnabled = false
                             ) {
-                                items(6) {
-                                    SkeletonWallpaperCard()
-                                }
+                                items(6) { SkeletonWallpaperCard() }
                             }
                         }
-
                         CatalogContentState.OFFLINE -> {
                             Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(innerPadding),
+                                modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
                                 EmptyStatePanel(
                                     icon = Icons.Default.CloudOff,
                                     title = "You’re offline",
-                                    message = "WallNice couldn’t reach the wallpaper catalog. Check your connection and try again.",
+                                    message = "WallNice couldn’t reach the catalog. Check your connection.",
                                     actionLabel = "Retry",
                                     onAction = { loadData() }
                                 )
                             }
                         }
-
                         CatalogContentState.EMPTY -> {
                             Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(innerPadding),
+                                modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
                                 EmptyStatePanel(
                                     icon = Icons.Default.CollectionsBookmark,
                                     title = "Catalog is empty",
-                                    message = "New wallpapers will appear here as soon as they are published.",
+                                    message = "New wallpapers will appear here soon.",
                                     actionLabel = "Refresh",
                                     onAction = { loadData() }
                                 )
                             }
                         }
-
                         CatalogContentState.NO_RESULTS -> {
                             Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(innerPadding),
+                                modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
-                                if (selectedCategory == "Favorites" && searchQuery.isBlank()) {
-                                    EmptyStatePanel(
-                                        icon = Icons.Default.FavoriteBorder,
-                                        title = "No favorites yet",
-                                        message = "Tap the heart on any wallpaper preview to save it for quick offline access.",
-                                        actionLabel = "Explore wallpapers",
-                                        onAction = {
-                                            selectedCategory = "All"
-                                        }
-                                    )
-                                } else {
-                                    EmptyStatePanel(
-                                        icon = Icons.Default.Search,
-                                        title = "Nothing found",
-                                        message = "Try another title, creator, or category.",
-                                        actionLabel = "Clear search",
-                                        onAction = {
-                                            searchQuery = ""
-                                            selectedCategory = "All"
-                                            selectedAnimeSubcategories = setOf("All Anime")
-                                            selectedMediaFilter = setOf(MediaFilter.ALL)
-                                        }
-                                    )
-                                }
+                                EmptyStatePanel(
+                                    icon = Icons.Default.Search,
+                                    title = "Nothing found",
+                                    message = "Try another search keyword or filter.",
+                                    actionLabel = "Clear search",
+                                    onAction = {
+                                        searchQuery = ""
+                                        selectedMediaFilter = setOf(MediaFilter.ALL)
+                                    }
+                                )
                             }
                         }
-
                         CatalogContentState.CONTENT -> {
                             LazyVerticalGrid(
                                 columns = GridCells.Fixed(2),
                                 state = gridState,
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(
-                                    start = WallNiceSpacing.md,
-                                    end = WallNiceSpacing.md,
-                                    top = innerPadding.calculateTopPadding() + WallNiceSpacing.sm,
-                                    bottom = innerPadding.calculateBottomPadding() + WallNiceSpacing.md
-                                ),
-                                horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.sm),
-                                verticalArrangement = Arrangement.spacedBy(WallNiceSpacing.sm)
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                itemsIndexed(filteredList, key = { _, it -> it.id }) { index, item ->
+                                itemsIndexed(homeWallpapers, key = { _, it -> it.id }) { index, item ->
                                     val autoPlay = item.id in visibleItemKeys
                                     WallpaperCard(
                                         wallpaper = item,
@@ -643,67 +579,236 @@ fun HomeScreen(
                     }
                 }
             }
+
+            NavigationTab.CATEGORIES -> {
+                if (activeCategoryDetail == null) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(bottom = innerPadding.calculateBottomPadding())
+                    ) {
+                        Text(
+                            text = "Categories",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            modifier = Modifier
+                                .statusBarsPadding()
+                                .padding(horizontal = 20.dp, vertical = 14.dp)
+                        )
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            items(categoryCards, key = { it.name }) { category ->
+                                CategoryCard(
+                                    category = category,
+                                    onClick = { activeCategoryDetail = category.name }
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(bottom = innerPadding.calculateBottomPadding())
+                    ) {
+                        CategoryDetailTopBar(
+                            title = activeCategoryDetail ?: "",
+                            isAnime = activeCategoryDetail == "Anime",
+                            isAnimeDropdownOpen = isAnimeDropdownOpen,
+                            selectedAnimeSubcategories = selectedAnimeSubcategories,
+                            onAnimePillClick = { isAnimeDropdownOpen = !isAnimeDropdownOpen },
+                            onBack = { activeCategoryDetail = null }
+                        )
+
+                        AnimatedVisibility(
+                            visible = isAnimeDropdownOpen && activeCategoryDetail == "Anime",
+                            enter = expandVertically(animationSpec = tween(WallNiceMotion.standardDurationMillis)) + fadeIn(),
+                            exit = shrinkVertically(animationSpec = tween(WallNiceMotion.fastDurationMillis)) + fadeOut()
+                        ) {
+                            AnimeSubcategoryDropdown(
+                                subcategories = animeSubcategories,
+                                selectedSubcategories = selectedAnimeSubcategories,
+                                subcategoryCounts = animeSubcategoryCounts,
+                                onSubcategorySelected = { sub ->
+                                    selectedAnimeSubcategories = toggleAnimeSubcategory(
+                                        current = selectedAnimeSubcategories,
+                                        subcategory = sub,
+                                        allAvailable = animeSubcategories
+                                    )
+                                },
+                                onClose = { isAnimeDropdownOpen = false }
+                            )
+                        }
+
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            itemsIndexed(categoryDetailWallpapers, key = { _, it -> it.id }) { index, item ->
+                                val autoPlay = item.id in visibleItemKeys
+                                WallpaperCard(
+                                    wallpaper = item,
+                                    autoPlay = autoPlay,
+                                    onClick = { onWallpaperSelected(item) },
+                                    sharedTransitionScope = sharedTransitionScope,
+                                    animatedVisibilityScope = animatedVisibilityScope
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            NavigationTab.FAVORITES -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = innerPadding.calculateBottomPadding())
+                ) {
+                    Text(
+                        text = "Favorites",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        modifier = Modifier
+                            .statusBarsPadding()
+                            .padding(horizontal = 20.dp, vertical = 14.dp)
+                    )
+
+                    if (favoriteWallpapers.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            EmptyStatePanel(
+                                icon = Icons.Default.FavoriteBorder,
+                                title = "No favorites yet",
+                                message = "No favorite wallpapers yet.",
+                                actionLabel = "Explore wallpapers",
+                                onAction = { onTabSelected(NavigationTab.HOME) }
+                            )
+                        }
+                    } else {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            itemsIndexed(favoriteWallpapers, key = { _, it -> it.id }) { index, item ->
+                                val autoPlay = item.id in visibleItemKeys
+                                WallpaperCard(
+                                    wallpaper = item,
+                                    autoPlay = autoPlay,
+                                    onClick = { onWallpaperSelected(item) },
+                                    sharedTransitionScope = sharedTransitionScope,
+                                    animatedVisibilityScope = animatedVisibilityScope
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            NavigationTab.ME -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = innerPadding.calculateBottomPadding())
+                ) {
+                    MeScreen(
+                        wallpapers = wallpapers,
+                        onCheckUpdate = { loadData() }
+                    )
+                }
+            }
         }
     }
 }
+}
 
 @Composable
-private fun CatalogHeader(
+private fun HomeTopBar(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    categories: List<String>,
-    selectedCategory: String,
-    onCategorySelected: (String) -> Unit,
-    animeSubcategories: List<String>,
-    selectedAnimeSubcategories: Set<String>,
-    isAnimeDropdownOpen: Boolean,
-    animeSubcategoryCounts: Map<String, Int>,
-    onAnimeSubcategorySelected: (String) -> Unit,
-    onCloseAnimeDropdown: () -> Unit,
-    collections: List<String>,
-    selectedCollection: String,
-    onCollectionSelected: (String) -> Unit,
     selectedMediaFilter: Set<MediaFilter>,
     onMediaFilterSelected: (MediaFilter) -> Unit,
-    onRefresh: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(AmoledBlack)
             .statusBarsPadding()
-            .padding(top = WallNiceSpacing.xs)
+            .padding(top = 10.dp, bottom = 6.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = WallNiceSpacing.md),
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            BrandMark()
-            Spacer(Modifier.size(WallNiceSpacing.sm))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "WallNice",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+            TextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp)
+                    .border(1.dp, OutlineSubtle, RoundedCornerShape(WallNiceRadii.medium)),
+                placeholder = {
+                    Text(
+                        text = "Search wallpapers",
+                        color = TextSecondary,
+                        fontSize = 14.sp
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = TextSecondary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
+                trailingIcon = {
+                    AnimatedVisibility(
+                        visible = searchQuery.isNotEmpty(),
+                        enter = fadeIn(animationSpec = tween(WallNiceMotion.fastDurationMillis)),
+                        exit = fadeOut(animationSpec = tween(WallNiceMotion.fastDurationMillis))
+                    ) {
+                        IconButton(onClick = { onSearchQueryChange("") }) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = "Clear search",
+                                tint = TextSecondary
+                            )
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(WallNiceRadii.medium),
+                colors = TextFieldDefaults.colors(
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary,
+                    focusedContainerColor = SurfaceLow,
+                    unfocusedContainerColor = SurfaceLow,
+                    cursorColor = NeonCyan,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
                 )
-                Text(
-                    text = "Curated for your screen",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = TextSecondary
-                )
-            }
-            WallNiceIconButton(
-                icon = Icons.Default.Refresh,
-                contentDescription = "Refresh catalog",
-                onClick = onRefresh,
-                tint = NeonCyan
             )
-            Spacer(Modifier.width(WallNiceSpacing.xs))
+
+            Spacer(Modifier.width(8.dp))
+
             WallNiceIconButton(
                 icon = Icons.Default.Settings,
                 contentDescription = "Settings and stats",
@@ -712,188 +817,98 @@ private fun CatalogHeader(
             )
         }
 
-        Spacer(Modifier.height(WallNiceSpacing.sm))
-
-        TextField(
-            value = searchQuery,
-            onValueChange = onSearchQueryChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = WallNiceSpacing.md)
-                .height(52.dp)
-                .border(
-                    width = 1.dp,
-                    color = OutlineSubtle,
-                    shape = RoundedCornerShape(WallNiceRadii.medium)
-                ),
-            placeholder = {
-                Text(
-                    text = "Search wallpapers",
-                    color = TextSecondary
-                )
-            },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = null,
-                    tint = TextSecondary
-                )
-            },
-            trailingIcon = {
-                AnimatedVisibility(
-                    visible = searchQuery.isNotEmpty(),
-                    enter = fadeIn(animationSpec = tween(WallNiceMotion.fastDurationMillis)),
-                    exit = fadeOut(animationSpec = tween(WallNiceMotion.fastDurationMillis))
-                ) {
-                    IconButton(onClick = { onSearchQueryChange("") }) {
-                        Icon(
-                            imageVector = Icons.Default.Clear,
-                            contentDescription = "Clear search",
-                            tint = TextSecondary
-                        )
-                    }
-                }
-            },
-            singleLine = true,
-            shape = RoundedCornerShape(WallNiceRadii.medium),
-            colors = TextFieldDefaults.colors(
-                focusedTextColor = TextPrimary,
-                unfocusedTextColor = TextPrimary,
-                focusedContainerColor = SurfaceLow,
-                unfocusedContainerColor = SurfaceLow,
-                cursorColor = NeonCyan,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
-            )
-        )
-
-        Spacer(Modifier.height(WallNiceSpacing.xs))
+        Spacer(Modifier.height(8.dp))
 
         LazyRow(
-            contentPadding = PaddingValues(
-                start = WallNiceSpacing.md,
-                end = WallNiceSpacing.md,
-                bottom = WallNiceSpacing.xs
-            ),
-            horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.xs)
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(categories, key = { it }) { category ->
-                val isAnime = category == "Anime"
-                val isSelected = selectedCategory == category
-                val pillText = if (isAnime && isSelected) {
-                    when {
-                        "All Anime" in selectedAnimeSubcategories || selectedAnimeSubcategories.isEmpty() -> "Anime"
-                        selectedAnimeSubcategories.size == 1 -> "Anime: ${selectedAnimeSubcategories.first()}"
-                        else -> "Anime (${selectedAnimeSubcategories.size})"
+            items(MediaFilter.entries) { filter ->
+                val isSelected = filter in selectedMediaFilter
+                val checkmark: @Composable (() -> Unit)? = if (isSelected) {
+                    {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Filter active",
+                            tint = Color.White,
+                            modifier = Modifier.size(15.dp)
+                        )
                     }
-                } else {
-                    category
-                }
+                } else null
 
                 CategoryPill(
-                    text = pillText,
+                    text = filter.label,
                     selected = isSelected,
-                    onClick = { onCategorySelected(category) },
-                    trailingIcon = if (isAnime) {
-                        {
-                            Icon(
-                                imageVector = if (isAnimeDropdownOpen) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                contentDescription = if (isAnimeDropdownOpen) "Collapse anime list" else "Expand anime list",
-                                tint = if (isSelected) Color.White else TextSecondary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    } else null
+                    onClick = { onMediaFilterSelected(filter) },
+                    trailingIcon = checkmark
                 )
             }
         }
+    }
+}
 
-        AnimatedVisibility(
-            visible = isAnimeDropdownOpen && selectedCategory == "Anime",
-            enter = expandVertically(
-                animationSpec = tween(WallNiceMotion.standardDurationMillis)
-            ) + fadeIn(
-                animationSpec = tween(WallNiceMotion.standardDurationMillis)
-            ),
-            exit = shrinkVertically(
-                animationSpec = tween(WallNiceMotion.fastDurationMillis)
-            ) + fadeOut(
-                animationSpec = tween(WallNiceMotion.fastDurationMillis)
-            )
-        ) {
-            AnimeSubcategoryDropdown(
-                subcategories = animeSubcategories,
-                selectedSubcategories = selectedAnimeSubcategories,
-                subcategoryCounts = animeSubcategoryCounts,
-                onSubcategorySelected = onAnimeSubcategorySelected,
-                onClose = onCloseAnimeDropdown
-            )
-        }
-
-        AnimatedVisibility(
-            visible = selectedCategory == "Collections",
-            enter = expandVertically(animationSpec = tween(WallNiceMotion.standardDurationMillis)) + fadeIn(),
-            exit = shrinkVertically(animationSpec = tween(WallNiceMotion.fastDurationMillis)) + fadeOut()
-        ) {
-            LazyRow(
-                contentPadding = PaddingValues(
-                    start = WallNiceSpacing.md,
-                    end = WallNiceSpacing.md,
-                    bottom = WallNiceSpacing.xs
-                ),
-                horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.xs)
-            ) {
-                items(collections, key = { it }) { collection ->
-                    CategoryPill(
-                        text = collection,
-                        selected = selectedCollection == collection,
-                        onClick = { onCollectionSelected(collection) }
-                    )
-                }
-            }
-        }
-
+@Composable
+private fun CategoryDetailTopBar(
+    title: String,
+    isAnime: Boolean,
+    isAnimeDropdownOpen: Boolean,
+    selectedAnimeSubcategories: Set<String>,
+    onAnimePillClick: () -> Unit,
+    onBack: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = 14.dp, vertical = 8.dp)
+    ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = WallNiceSpacing.md),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Media",
-                style = MaterialTheme.typography.labelSmall,
-                color = TextSecondary
-            )
-            Spacer(Modifier.width(WallNiceSpacing.sm))
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.xs)
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(SurfaceLow)
+                    .border(1.dp, OutlineSubtle, CircleShape)
             ) {
-                items(MediaFilter.entries, key = { it.name }) { filter ->
-                    val isSelected = if (filter == MediaFilter.ALL) {
-                        MediaFilter.ALL in selectedMediaFilter
-                    } else {
-                        filter in selectedMediaFilter
-                    }
-
-                    CategoryPill(
-                        text = filter.label,
-                        selected = isSelected,
-                        onClick = { onMediaFilterSelected(filter) },
-                        trailingIcon = if (isSelected) {
-                            {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
-                        } else null
-                    )
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                modifier = Modifier.weight(1f)
+            )
+            if (isAnime) {
+                val pillText = when {
+                    "All Anime" in selectedAnimeSubcategories || selectedAnimeSubcategories.isEmpty() -> "All Anime"
+                    selectedAnimeSubcategories.size == 1 -> selectedAnimeSubcategories.first()
+                    else -> "Anime (${selectedAnimeSubcategories.size})"
                 }
+                CategoryPill(
+                    text = pillText,
+                    selected = true,
+                    onClick = onAnimePillClick,
+                    trailingIcon = {
+                        Icon(
+                            imageVector = if (isAnimeDropdownOpen) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                )
             }
         }
-        Spacer(Modifier.height(WallNiceSpacing.xs))
     }
 }
 
@@ -958,54 +973,52 @@ private fun AnimeSubcategoryDropdown(
             Spacer(Modifier.height(WallNiceSpacing.xs))
 
             subcategories.forEach { subcategory ->
-                val isSelected = if (subcategory == "All Anime") {
-                    "All Anime" in selectedSubcategories || selectedSubcategories.isEmpty()
-                } else {
-                    subcategory in selectedSubcategories
-                }
+                val isSelected = subcategory in selectedSubcategories
                 val count = subcategoryCounts[subcategory] ?: 0
-                val shape = RoundedCornerShape(WallNiceRadii.medium)
 
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(shape)
-                        .background(if (isSelected) NeonPink.copy(alpha = 0.12f) else Color.Transparent)
-                        .border(
-                            width = 1.dp,
-                            color = if (isSelected) NeonPink.copy(alpha = 0.4f) else Color.Transparent,
-                            shape = shape
+                        .clip(RoundedCornerShape(WallNiceRadii.small))
+                        .background(
+                            if (isSelected) NeonPink.copy(alpha = 0.12f) else Color.Transparent
                         )
                         .clickable { onSubcategorySelected(subcategory) }
                         .padding(horizontal = WallNiceSpacing.sm, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Icon(
-                        imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                        contentDescription = null,
-                        tint = if (isSelected) NeonPink else TextMuted,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(WallNiceSpacing.sm))
-                    Text(
-                        text = subcategory,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (isSelected) TextPrimary else TextSecondary,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(WallNiceRadii.pill))
-                            .background(SurfaceLow)
-                            .border(1.dp, OutlineSubtle, RoundedCornerShape(WallNiceRadii.pill))
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(WallNiceSpacing.sm)
+                    ) {
+                        Icon(
+                            imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                            contentDescription = if (isSelected) "Selected" else "Not selected",
+                            tint = if (isSelected) NeonPink else TextMuted,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = subcategory,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (isSelected) TextPrimary else TextSecondary,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(WallNiceRadii.pill),
+                        color = if (isSelected) NeonPink.copy(alpha = 0.22f) else SurfaceLow,
+                        border = BorderStroke(
+                            1.dp,
+                            if (isSelected) NeonPink.copy(alpha = 0.45f) else OutlineSubtle
+                        )
                     ) {
                         Text(
                             text = count.toString(),
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (isSelected) NeonPink else NeonCyan,
-                            fontWeight = FontWeight.Bold
+                            color = if (isSelected) NeonPink else TextMuted,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                         )
                     }
                 }

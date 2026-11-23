@@ -25,6 +25,7 @@ import com.morhpanel.nekowall.data.models.MediaType
 import com.morhpanel.nekowall.data.models.WallpaperItem
 import com.morhpanel.nekowall.engine.AppUpdateManager
 import com.morhpanel.nekowall.ui.components.AppUpdateDialog
+import com.morhpanel.nekowall.ui.components.NavigationTab
 import com.morhpanel.nekowall.ui.screens.HomeScreen
 import com.morhpanel.nekowall.ui.screens.PreviewScreen
 import com.morhpanel.nekowall.ui.theme.AmoledBlack
@@ -95,6 +96,7 @@ class MainActivity : ComponentActivity() {
                     var selectedWallpaper by rememberSaveable(stateSaver = WallpaperItemSaver) {
                         mutableStateOf<WallpaperItem?>(null)
                     }
+                    var currentTab by rememberSaveable { mutableStateOf(NavigationTab.HOME) }
                     var pendingUpdate by remember { mutableStateOf<AppUpdateInfo?>(null) }
 
                     @OptIn(ExperimentalSharedTransitionApi::class)
@@ -110,6 +112,8 @@ class MainActivity : ComponentActivity() {
                             if (wallpaper == null) {
                                 HomeScreen(
                                     isActive = (selectedWallpaper == null),
+                                    currentTab = currentTab,
+                                    onTabSelected = { currentTab = it },
                                     onWallpaperSelected = { selectedWallpaper = it },
                                     onUpdateAvailable = { updateInfo ->
                                         if (updateInfo.versionCode > BuildConfig.VERSION_CODE &&
@@ -125,6 +129,10 @@ class MainActivity : ComponentActivity() {
                                 PreviewScreen(
                                     wallpaper = wallpaper,
                                     onBack = { selectedWallpaper = null },
+                                    onNavigateTab = { tab ->
+                                        selectedWallpaper = null
+                                        currentTab = tab
+                                    },
                                     sharedTransitionScope = this@SharedTransitionLayout,
                                     animatedVisibilityScope = this@AnimatedContent
                                 )
