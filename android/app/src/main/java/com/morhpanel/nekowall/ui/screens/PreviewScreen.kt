@@ -151,6 +151,7 @@ enum class PreviewOverlayMode {
 @Composable
 fun PreviewScreen(
     wallpaper: WallpaperItem,
+    currentTab: NavigationTab = NavigationTab.HOME,
     onBack: () -> Unit,
     onNavigateTab: (NavigationTab) -> Unit = {},
     sharedTransitionScope: SharedTransitionScope? = null,
@@ -173,13 +174,12 @@ fun PreviewScreen(
     var videoError by remember { mutableStateOf(false) }
     var fitMode by remember(wallpaper.id) {
         val savedMode = WallNicePreferences.getFitMode(context)
-        mutableStateOf(
-            if (wallpaper.mediaType == MediaType.VIDEO && savedMode == WallpaperFitMode.BLUR) {
-                WallpaperFitMode.FIT
-            } else {
-                savedMode
-            }
-        )
+        val initialMode = if (wallpaper.mediaType == MediaType.VIDEO && savedMode == WallpaperFitMode.BLUR) {
+            WallpaperFitMode.CROP
+        } else {
+            savedMode
+        }
+        mutableStateOf(initialMode)
     }
     var isInPlaylist by remember { mutableStateOf(PlaylistManager.contains(context, wallpaper.id)) }
     var isPlaylistBusy by remember { mutableStateOf(false) }
@@ -220,6 +220,11 @@ fun PreviewScreen(
                 }
                 prepare()
                 playWhenReady = true
+                videoScalingMode = if (fitMode == WallpaperFitMode.CROP) {
+                    C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
+                } else {
+                    C.VIDEO_SCALING_MODE_SCALE_TO_FIT
+                }
             }
         } else {
             null
@@ -256,6 +261,14 @@ fun PreviewScreen(
 
     LaunchedEffect(isMuted, exoPlayer) {
         exoPlayer?.volume = if (isMuted) 0f else 1f
+    }
+
+    LaunchedEffect(fitMode, exoPlayer) {
+        exoPlayer?.videoScalingMode = if (fitMode == WallpaperFitMode.CROP) {
+            C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
+        } else {
+            C.VIDEO_SCALING_MODE_SCALE_TO_FIT
+        }
     }
 
     fun applyWallpaperDirect(target: WallpaperTarget) {
@@ -457,7 +470,7 @@ fun PreviewScreen(
                         onSetAsLockScreen = { applyWallpaperDirect(WallpaperTarget.LOCK_SCREEN) }
                     )
                     WallNiceBottomNavigation(
-                        currentTab = NavigationTab.HOME,
+                        currentTab = currentTab,
                         onTabSelected = { tab ->
                             onNavigateTab(tab)
                             onBack()
@@ -598,7 +611,7 @@ private fun WallpaperMedia(
     fitContent: Boolean = false
 ) {
     val context = LocalContext.current
-    val effectiveMode = if (fitContent && fitMode == WallpaperFitMode.CROP) WallpaperFitMode.FIT else fitMode
+    val effectiveMode = if (fitContent && fitMode != WallpaperFitMode.CROP) WallpaperFitMode.FIT else fitMode
 
     when (wallpaper.mediaType) {
         MediaType.VIDEO -> {

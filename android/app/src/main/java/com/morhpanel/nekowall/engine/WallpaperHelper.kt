@@ -40,6 +40,7 @@ object WallpaperHelper {
             .putString(WallNicePreferences.KEY_FIT_MODE, fitMode.name)
             .putLong(KEY_UPDATE_TIMESTAMP, System.currentTimeMillis())
             .apply()
+        WallNicePreferences.setFitMode(context, fitMode)
     }
 
     fun isLiveWallpaperActive(context: Context): Boolean {

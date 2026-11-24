@@ -12,6 +12,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -98,6 +99,10 @@ class MainActivity : ComponentActivity() {
                     }
                     var currentTab by rememberSaveable { mutableStateOf(NavigationTab.HOME) }
                     var pendingUpdate by remember { mutableStateOf<AppUpdateInfo?>(null) }
+                    val homeGridState = rememberLazyGridState()
+                    val categoriesGridState = rememberLazyGridState()
+                    val categoryDetailGridState = rememberLazyGridState()
+                    val favoritesGridState = rememberLazyGridState()
 
                     @OptIn(ExperimentalSharedTransitionApi::class)
                     SharedTransitionLayout {
@@ -122,12 +127,17 @@ class MainActivity : ComponentActivity() {
                                             pendingUpdate = updateInfo
                                         }
                                     },
+                                    homeGridState = homeGridState,
+                                    categoriesGridState = categoriesGridState,
+                                    categoryDetailGridState = categoryDetailGridState,
+                                    favoritesGridState = favoritesGridState,
                                     sharedTransitionScope = this@SharedTransitionLayout,
                                     animatedVisibilityScope = this@AnimatedContent
                                 )
                             } else {
                                 PreviewScreen(
                                     wallpaper = wallpaper,
+                                    currentTab = currentTab,
                                     onBack = { selectedWallpaper = null },
                                     onNavigateTab = { tab ->
                                         selectedWallpaper = null

@@ -15,10 +15,10 @@ CATALOG_PATH = "catalog.json"
 DLS_DIR = "DLS"
 
 existing_update = {
-    "versionCode": 34,
-    "versionName": "0.0.32-beta",
-    "changelog": "Redesigned GUI with 4-tab bottom navigation, category cards, me screen, and refined preview.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.32-beta/app-release.apk"
+    "versionCode": 35,
+    "versionName": "0.0.35-beta",
+    "changelog": "Full-screen video scaling without letterboxing, scroll position preservation on back navigation, and stability fixes.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.35-beta/app-release.apk"
 }
 
 existing_added_at = {}
@@ -38,10 +38,10 @@ if os.path.exists(CATALOG_PATH):
         pass
 
 existing_update.update({
-    "versionCode": 34,
-    "versionName": "0.0.32-beta",
-    "changelog": "Redesigned GUI with 4-tab bottom navigation, category cards, me screen, and refined preview.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.32-beta/app-release.apk"
+    "versionCode": 35,
+    "versionName": "0.0.35-beta",
+    "changelog": "Full-screen video scaling without letterboxing, scroll position preservation on back navigation, and stability fixes.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.35-beta/app-release.apk"
 })
 
 categories = set(["All"])

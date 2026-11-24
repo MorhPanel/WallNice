@@ -1,9 +1,9 @@
 {
   "appUpdate": {
-    "versionCode": 34,
-    "versionName": "0.0.32-beta",
-    "changelog": "Redesigned GUI with 4-tab bottom navigation, category cards, me screen, and refined preview.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.32-beta/app-release.apk"
+    "versionCode": 35,
+    "versionName": "0.0.35-beta",
+    "changelog": "Full-screen video scaling without letterboxing, scroll position preservation on back navigation, and stability fixes.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.35-beta/app-release.apk"
   },
   "categories": [
     "All",

@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.itemsIndexed
@@ -212,6 +213,10 @@ fun HomeScreen(
     onTabSelected: (NavigationTab) -> Unit = {},
     onWallpaperSelected: (WallpaperItem) -> Unit,
     onUpdateAvailable: (AppUpdateInfo) -> Unit,
+    homeGridState: LazyGridState = rememberLazyGridState(),
+    categoriesGridState: LazyGridState = rememberLazyGridState(),
+    categoryDetailGridState: LazyGridState = rememberLazyGridState(),
+    favoritesGridState: LazyGridState = rememberLazyGridState(),
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
@@ -228,10 +233,11 @@ fun HomeScreen(
     var isAnimeDropdownOpen by rememberSaveable { mutableStateOf(false) }
     var selectedMediaFilter by rememberSaveable(stateSaver = MediaFilterSetSaver) { mutableStateOf(setOf(MediaFilter.ALL)) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
-    var wallpapers by remember { mutableStateOf<List<WallpaperItem>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    val initialCatalog = remember { WallpaperRepository.getOrLoadCachedCatalog(context) }
+    var wallpapers by remember { mutableStateOf(initialCatalog?.wallpapers ?: emptyList()) }
+    var isLoading by remember { mutableStateOf(wallpapers.isEmpty()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    val gridState = rememberLazyGridState()
+    val gridState = homeGridState
 
     var isAppForeground by remember {
         mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
@@ -284,10 +290,12 @@ fun HomeScreen(
         }
     }
 
-    fun loadData() {
-        if (isLoading && wallpapers.isNotEmpty()) return
+    fun loadData(force: Boolean = false) {
+        if (isLoading && wallpapers.isNotEmpty() && !force) return
         coroutineScope.launch {
-            isLoading = true
+            if (wallpapers.isEmpty() || force) {
+                isLoading = true
+            }
             errorMessage = null
             WallpaperRepository.fetchCatalog(context)
                 .onSuccess { response ->
@@ -295,7 +303,9 @@ fun HomeScreen(
                     response.updateInfo?.let(onUpdateAvailable)
                 }
                 .onFailure { error ->
-                    errorMessage = error.localizedMessage ?: "The catalog could not be reached."
+                    if (wallpapers.isEmpty()) {
+                        errorMessage = error.localizedMessage ?: "The catalog could not be reached."
+                    }
                 }
             isLoading = false
         }
@@ -598,6 +608,7 @@ fun HomeScreen(
                         )
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
+                            state = categoriesGridState,
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -606,7 +617,14 @@ fun HomeScreen(
                             items(categoryCards, key = { it.name }) { category ->
                                 CategoryCard(
                                     category = category,
-                                    onClick = { activeCategoryDetail = category.name }
+                                    onClick = {
+                                        if (activeCategoryDetail != category.name) {
+                                            activeCategoryDetail = category.name
+                                            coroutineScope.launch {
+                                                categoryDetailGridState.scrollToItem(0)
+                                            }
+                                        }
+                                    }
                                 )
                             }
                         }
@@ -648,6 +666,7 @@ fun HomeScreen(
 
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
+                            state = categoryDetailGridState,
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -700,6 +719,7 @@ fun HomeScreen(
                     } else {
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
+                            state = favoritesGridState,
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                             horizontalArrangement = Arrangement.spacedBy(10.dp),

@@ -21,6 +21,20 @@ object WallpaperRepository {
     private const val GITHUB_TREE_API_URL = "https://api.github.com/repos/MorhPanel/WallNice/git/trees/main?recursive=1"
     private const val RAW_BASE_URL = "https://raw.githubusercontent.com/MorhPanel/WallNice/main"
     private const val CACHE_FILE_NAME = "catalog_cache.json"
+    @Volatile
+    var cachedCatalog: CatalogResponse? = null
+
+    fun getOrLoadCachedCatalog(context: Context? = null): CatalogResponse? {
+        cachedCatalog?.let { return it }
+        if (context != null) {
+            val fromDisk = loadCatalogCache(context)
+            if (fromDisk != null && fromDisk.wallpapers.isNotEmpty()) {
+                cachedCatalog = fromDisk
+                return fromDisk
+            }
+        }
+        return null
+    }
 
     fun saveCatalogCache(context: Context, rawJson: String) {
         try {
@@ -110,11 +124,13 @@ object WallpaperRepository {
             }
         }
 
-        return CatalogResponse(
+        val response = CatalogResponse(
             updateInfo = appUpdate,
             categories = categoriesList,
             wallpapers = wallpapersList.reversed()
         )
+        cachedCatalog = response
+        return response
     }
 
     suspend fun fetchCatalog(context: Context? = null): Result<CatalogResponse> = withContext(Dispatchers.IO) {
@@ -150,13 +166,13 @@ object WallpaperRepository {
                         categoriesList.add(cat)
                     }
                 }
-                return@withContext Result.success(
-                    CatalogResponse(
-                        updateInfo = null,
-                        categories = categoriesList,
-                        wallpapers = treeWalls
-                    )
+                val treeResponse = CatalogResponse(
+                    updateInfo = null,
+                    categories = categoriesList,
+                    wallpapers = treeWalls
                 )
+                cachedCatalog = treeResponse
+                return@withContext Result.success(treeResponse)
             } else {
                 lastFailure = treeResult.exceptionOrNull() ?: lastFailure
             }
@@ -164,6 +180,7 @@ object WallpaperRepository {
             if (context != null) {
                 val cached = loadCatalogCache(context)
                 if (cached != null && cached.wallpapers.isNotEmpty()) {
+                    cachedCatalog = cached
                     return@withContext Result.success(cached)
                 }
             }
