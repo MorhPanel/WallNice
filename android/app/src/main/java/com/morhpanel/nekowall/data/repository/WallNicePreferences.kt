@@ -16,8 +16,8 @@ object WallNicePreferences {
     private fun prefs(context: Context) = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     fun getFitMode(context: Context): WallpaperFitMode {
-        val value = prefs(context).getString(KEY_FIT_MODE, WallpaperFitMode.CROP.name)
-        return runCatching { WallpaperFitMode.valueOf(value.orEmpty()) }.getOrDefault(WallpaperFitMode.CROP)
+        val value = prefs(context).getString(KEY_FIT_MODE, WallpaperFitMode.BLUR.name)
+        return runCatching { WallpaperFitMode.valueOf(value.orEmpty()) }.getOrDefault(WallpaperFitMode.BLUR)
     }
 
     fun setFitMode(context: Context, mode: WallpaperFitMode) {

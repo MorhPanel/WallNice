@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -197,8 +198,9 @@ fun WallpaperCard(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
                             0f to Color.Black.copy(alpha = 0.04f),
-                            0.48f to Color.Transparent,
-                            1f to Color.Black.copy(alpha = 0.94f)
+                            0.42f to Color.Transparent,
+                            0.72f to Color.Black.copy(alpha = 0.65f),
+                            1f to Color.Black.copy(alpha = 0.95f)
                         )
                     )
                 )
@@ -213,32 +215,47 @@ fun WallpaperCard(
             )
         }
 
-        Row(
+        Column(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
+                .align(Alignment.BottomStart)
                 .fillMaxWidth()
-                .padding(horizontal = WallNiceSpacing.sm, vertical = WallNiceSpacing.xs),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = WallNiceSpacing.sm, vertical = WallNiceSpacing.xs)
         ) {
-            val likes = if (wallpaper.likesCount > 0) "${wallpaper.likesCount}" else "142"
             Text(
-                text = likes,
+                text = wallpaper.title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
                 color = TextPrimary,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
-            val isFav = FavoritesManager.isFavorite(wallpaper.id)
-            IconButton(
-                onClick = { FavoritesManager.toggleFavorite(context, wallpaper.id) },
-                modifier = Modifier.size(24.dp)
+            Spacer(Modifier.height(2.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = "Favorite",
-                    tint = if (isFav) NeonPink else Color.White,
-                    modifier = Modifier.size(18.dp)
+                val subtitle = (wallpaper.subcategory.ifBlank { wallpaper.category }).ifBlank { "@" + wallpaper.author }
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
+                val isFav = FavoritesManager.isFavorite(wallpaper.id)
+                IconButton(
+                    onClick = { FavoritesManager.toggleFavorite(context, wallpaper.id) },
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = "Favorite",
+                        tint = if (isFav) NeonPink else Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
     }

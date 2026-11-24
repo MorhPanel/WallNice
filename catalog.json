@@ -1,9 +1,9 @@
 {
   "appUpdate": {
-    "versionCode": 35,
-    "versionName": "0.0.35-beta",
-    "changelog": "Full-screen video scaling without letterboxing, scroll position preservation on back navigation, and stability fixes.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.35-beta/app-release.apk"
+    "versionCode": 36,
+    "versionName": "0.0.36-beta",
+    "changelog": "Restored wallpaper titles on cards, GPU-accelerated video blur background for letterboxing, and default blur fit mode.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.36-beta/app-release.apk"
   },
   "categories": [
     "All",

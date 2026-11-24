@@ -27,6 +27,7 @@ import androidx.media3.common.AudioAttributes as Media3AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
 import androidx.media3.exoplayer.ExoPlayer
 import com.morhpanel.nekowall.data.models.WallpaperFitMode
 import com.morhpanel.nekowall.data.repository.WallNicePreferences
@@ -39,6 +40,7 @@ class VideoLiveWallpaperService : WallpaperService() {
     inner class VideoEngine : Engine(), SharedPreferences.OnSharedPreferenceChangeListener {
 
         private var player: ExoPlayer? = null
+        private var glRenderer: VideoGlRenderer? = null
         private var surfaceHolder: SurfaceHolder? = null
         private val mainHandler = Handler(Looper.getMainLooper())
         private val prefs by lazy {
@@ -249,11 +251,12 @@ class VideoLiveWallpaperService : WallpaperService() {
             if (width <= 0 || height <= 0) {
                 return
             }
+            glRenderer?.updateDimensions(width, height)
             runOnMainThread {
                 val activePlayer = player
                 if (activePlayer == null) {
                     initPlayer()
-                } else {
+                } else if (glRenderer == null) {
                     activePlayer.setVideoSurfaceHolder(holder)
                     activePlayer.videoScalingMode = videoScalingMode()
                 }
@@ -354,10 +357,26 @@ class VideoLiveWallpaperService : WallpaperService() {
                     releasePlayer()
                     isManuallyPaused = false
 
+                    val renderer = VideoGlRenderer(holder) {
+                        runOnMainThread {
+                            if (isVisible || isPreview) {
+                                glRenderer?.render(WallNicePreferences.getFitMode(this@VideoLiveWallpaperService))
+                            }
+                        }
+                    }
+                    val glSurface = renderer.initialize()
+                    if (glSurface != null) {
+                        glRenderer = renderer
+                    }
+
                     player = ExoPlayer.Builder(this@VideoLiveWallpaperService).build().apply {
-                        setVideoSurfaceHolder(holder)
+                        if (glSurface != null) {
+                            setVideoSurface(glSurface)
+                        } else {
+                            setVideoSurfaceHolder(holder)
+                            videoScalingMode = videoScalingMode()
+                        }
                         repeatMode = Player.REPEAT_MODE_ALL
-                        videoScalingMode = videoScalingMode()
 
                         val quality = WallNicePreferences.getPlaybackQuality(this@VideoLiveWallpaperService)
                         if (quality.maxWidth != Int.MAX_VALUE) {
@@ -378,6 +397,9 @@ class VideoLiveWallpaperService : WallpaperService() {
                             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                                 stop()
                             }
+                            override fun onVideoSizeChanged(videoSize: VideoSize) {
+                                glRenderer?.updateVideoSize(videoSize.width, videoSize.height)
+                            }
                         })
                         prepare()
                         val shouldPlay = (isVisible || isPreview) && !isBatteryRestricted()
@@ -395,6 +417,8 @@ class VideoLiveWallpaperService : WallpaperService() {
         private fun releasePlayer() {
             runOnMainThread {
                 abandonAudioFocus()
+                glRenderer?.release()
+                glRenderer = null
                 player?.apply {
                     stop()
                     clearVideoSurfaceHolder(surfaceHolder)
@@ -420,6 +444,8 @@ class VideoLiveWallpaperService : WallpaperService() {
             runCatching { unregisterReceiver(batteryReceiver) }
             abandonAudioFocus()
             mainHandler.removeCallbacksAndMessages(null)
+            glRenderer?.release()
+            glRenderer = null
             player?.apply {
                 stop()
                 clearVideoSurfaceHolder(surfaceHolder)

@@ -173,13 +173,7 @@ fun PreviewScreen(
     var videoPlaybackState by remember { mutableIntStateOf(Player.STATE_IDLE) }
     var videoError by remember { mutableStateOf(false) }
     var fitMode by remember(wallpaper.id) {
-        val savedMode = WallNicePreferences.getFitMode(context)
-        val initialMode = if (wallpaper.mediaType == MediaType.VIDEO && savedMode == WallpaperFitMode.BLUR) {
-            WallpaperFitMode.CROP
-        } else {
-            savedMode
-        }
-        mutableStateOf(initialMode)
+        mutableStateOf(WallNicePreferences.getFitMode(context))
     }
     var isInPlaylist by remember { mutableStateOf(PlaylistManager.contains(context, wallpaper.id)) }
     var isPlaylistBusy by remember { mutableStateOf(false) }
@@ -500,11 +494,7 @@ fun PreviewScreen(
                     isMuted = isMuted,
                     onMuteToggle = { isMuted = !isMuted },
                     onFitModeToggle = {
-                        val supportedModes = if (wallpaper.mediaType == MediaType.VIDEO) {
-                            listOf(WallpaperFitMode.CROP, WallpaperFitMode.FIT)
-                        } else {
-                            WallpaperFitMode.entries
-                        }
+                        val supportedModes = WallpaperFitMode.entries
                         val nextIndex = (supportedModes.indexOf(fitMode).coerceAtLeast(0) + 1) % supportedModes.size
                         fitMode = supportedModes[nextIndex]
                         WallNicePreferences.setFitMode(context, fitMode)
@@ -607,11 +597,11 @@ private fun WallpaperMedia(
     videoPlaybackState: Int,
     videoError: Boolean,
     cachedFile: File? = null,
-    fitMode: WallpaperFitMode = WallpaperFitMode.CROP,
+    fitMode: WallpaperFitMode = WallpaperFitMode.BLUR,
     fitContent: Boolean = false
 ) {
     val context = LocalContext.current
-    val effectiveMode = if (fitContent && fitMode != WallpaperFitMode.CROP) WallpaperFitMode.FIT else fitMode
+    val effectiveMode = if (fitContent) WallpaperFitMode.FIT else fitMode
 
     when (wallpaper.mediaType) {
         MediaType.VIDEO -> {
@@ -623,10 +613,15 @@ private fun WallpaperMedia(
                         modifier = Modifier
                             .fillMaxSize()
                             .graphicsLayer {
-                                scaleX = 1.12f
-                                scaleY = 1.12f
+                                scaleX = 1.15f
+                                scaleY = 1.15f
                             }
-                            .blur(30.dp)
+                            .blur(36.dp)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.35f))
                     )
                 } else {
                     WallpaperPoster(
@@ -639,6 +634,8 @@ private fun WallpaperMedia(
                         PlayerView(viewContext).apply {
                             player = exoPlayer
                             useController = false
+                            setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
+                            setBackgroundColor(android.graphics.Color.TRANSPARENT)
                             resizeMode = if (effectiveMode == WallpaperFitMode.CROP) {
                                 AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                             } else {
@@ -648,6 +645,8 @@ private fun WallpaperMedia(
                     },
                     update = { view ->
                         view.player = exoPlayer
+                        view.setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
+                        view.setBackgroundColor(android.graphics.Color.TRANSPARENT)
                         view.resizeMode = if (effectiveMode == WallpaperFitMode.CROP) {
                             AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                         } else {
@@ -716,7 +715,7 @@ private fun WallpaperImage(
     wallpaper: WallpaperItem,
     imageLoader: ImageLoader? = null,
     cachedFile: File? = null,
-    fitMode: WallpaperFitMode = WallpaperFitMode.CROP
+    fitMode: WallpaperFitMode = WallpaperFitMode.BLUR
 ) {
     val context = LocalContext.current
     val model = ImageRequest.Builder(context)
