@@ -40,7 +40,6 @@ object WallpaperHelper {
             .putString(WallNicePreferences.KEY_FIT_MODE, fitMode.name)
             .putLong(KEY_UPDATE_TIMESTAMP, System.currentTimeMillis())
             .apply()
-        WallNicePreferences.setFitMode(context, fitMode)
     }
 
     fun isLiveWallpaperActive(context: Context): Boolean {
@@ -63,7 +62,7 @@ object WallpaperHelper {
         if (isLiveWallpaperActive(context)) {
             return true
         }
-        openLiveWallpaperChooser(context, videoUri, isMuted, target, fitMode)
+        launchChooserIntent(context, target)
         return false
     }
 
@@ -105,7 +104,10 @@ object WallpaperHelper {
         fitMode: WallpaperFitMode = WallNicePreferences.getFitMode(context)
     ) {
         saveLiveWallpaperConfig(context, videoUri, isMuted, target, fitMode)
+        launchChooserIntent(context, target)
+    }
 
+    private fun launchChooserIntent(context: Context, target: WallpaperTarget) {
         try {
             val intent = Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER).apply {
                 putExtra(

@@ -8,6 +8,7 @@ import android.content.BroadcastReceiver
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
+import android.graphics.PixelFormat
 import android.media.AudioAttributes as AndroidAudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
@@ -42,7 +43,12 @@ class VideoLiveWallpaperService : WallpaperService() {
         private var player: ExoPlayer? = null
         private var glRenderer: VideoGlRenderer? = null
         private var surfaceHolder: SurfaceHolder? = null
+        private var surfaceWidth: Int = 0
+        private var surfaceHeight: Int = 0
         private val mainHandler = Handler(Looper.getMainLooper())
+        private val initPlayerRunnable = Runnable {
+            initPlayer()
+        }
         private val prefs by lazy {
             getSharedPreferences("nekowall_prefs", MODE_PRIVATE)
         }
@@ -228,6 +234,7 @@ class VideoLiveWallpaperService : WallpaperService() {
 
         override fun onCreate(holder: SurfaceHolder) {
             super.onCreate(holder)
+            holder.setFormat(PixelFormat.RGBA_8888)
             setTouchEventsEnabled(true)
             surfaceHolder = holder
             audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager
@@ -241,7 +248,13 @@ class VideoLiveWallpaperService : WallpaperService() {
 
         override fun onSurfaceCreated(holder: SurfaceHolder) {
             super.onSurfaceCreated(holder)
+            holder.setFormat(PixelFormat.RGBA_8888)
             surfaceHolder = holder
+            val frame = holder.surfaceFrame
+            if (frame != null && frame.width() > 0 && frame.height() > 0) {
+                surfaceWidth = frame.width()
+                surfaceHeight = frame.height()
+            }
             initPlayer()
         }
 
@@ -251,8 +264,10 @@ class VideoLiveWallpaperService : WallpaperService() {
             if (width <= 0 || height <= 0) {
                 return
             }
-            glRenderer?.updateDimensions(width, height)
+            surfaceWidth = width
+            surfaceHeight = height
             runOnMainThread {
+                glRenderer?.updateDimensions(width, height)
                 val activePlayer = player
                 if (activePlayer == null) {
                     initPlayer()
@@ -265,11 +280,10 @@ class VideoLiveWallpaperService : WallpaperService() {
 
         override fun onSurfaceDestroyed(holder: SurfaceHolder) {
             super.onSurfaceDestroyed(holder)
+            surfaceHolder = null
             runOnMainThread {
-                player?.clearVideoSurfaceHolder(holder)
                 releasePlayer()
             }
-            surfaceHolder = null
         }
 
         override fun onTouchEvent(event: MotionEvent) {
@@ -335,21 +349,40 @@ class VideoLiveWallpaperService : WallpaperService() {
                 WallpaperHelper.KEY_UPDATE_TIMESTAMP,
                 WallNicePreferences.KEY_FIT_MODE,
                 WallNicePreferences.KEY_PLAYBACK_QUALITY -> {
-                    initPlayer()
+                    debounceInitPlayer()
                 }
                 WallNicePreferences.KEY_PAUSE_ON_LOW_BATTERY -> updatePlaybackState()
             }
         }
 
+        private fun debounceInitPlayer(delayMs: Long = 100L) {
+            mainHandler.removeCallbacks(initPlayerRunnable)
+            mainHandler.postDelayed(initPlayerRunnable, delayMs)
+        }
+
         private fun initPlayer() {
             runOnMainThread {
+                mainHandler.removeCallbacks(initPlayerRunnable)
                 val holder = surfaceHolder ?: return@runOnMainThread
-                val videoUriString = WallpaperHelper.getSavedVideoUri(this@VideoLiveWallpaperService)
+                val surface = holder.surface ?: return@runOnMainThread
+                if (!surface.isValid) {
+                    return@runOnMainThread
+                }
+                val frame = holder.surfaceFrame
+                if (frame != null && frame.width() > 0 && frame.height() > 0) {
+                    surfaceWidth = frame.width()
+                    surfaceHeight = frame.height()
+                }
+                if (surfaceWidth <= 0 || surfaceHeight <= 0) {
+                    return@runOnMainThread
+                }
 
+                val videoUriString = WallpaperHelper.getSavedVideoUri(this@VideoLiveWallpaperService)
                 if (videoUriString.isNullOrEmpty() ||
                     videoUriString.startsWith("http://", ignoreCase = true) ||
                     videoUriString.startsWith("https://", ignoreCase = true)
                 ) {
+                    releasePlayer()
                     return@runOnMainThread
                 }
 
@@ -364,9 +397,12 @@ class VideoLiveWallpaperService : WallpaperService() {
                             }
                         }
                     }
+                    renderer.updateDimensions(surfaceWidth, surfaceHeight)
                     val glSurface = renderer.initialize()
                     if (glSurface != null) {
                         glRenderer = renderer
+                    } else {
+                        renderer.release()
                     }
 
                     player = ExoPlayer.Builder(this@VideoLiveWallpaperService).build().apply {
@@ -416,15 +452,18 @@ class VideoLiveWallpaperService : WallpaperService() {
 
         private fun releasePlayer() {
             runOnMainThread {
+                mainHandler.removeCallbacks(initPlayerRunnable)
                 abandonAudioFocus()
-                glRenderer?.release()
-                glRenderer = null
                 player?.apply {
                     stop()
+                    setVideoSurface(null)
+                    clearVideoSurface()
                     clearVideoSurfaceHolder(surfaceHolder)
                     release()
                 }
                 player = null
+                glRenderer?.release()
+                glRenderer = null
             }
         }
 
@@ -442,16 +481,8 @@ class VideoLiveWallpaperService : WallpaperService() {
             } catch (_: Exception) {
             }
             runCatching { unregisterReceiver(batteryReceiver) }
-            abandonAudioFocus()
             mainHandler.removeCallbacksAndMessages(null)
-            glRenderer?.release()
-            glRenderer = null
-            player?.apply {
-                stop()
-                clearVideoSurfaceHolder(surfaceHolder)
-                release()
-            }
-            player = null
+            releasePlayer()
             surfaceHolder = null
             audioManager = null
             super.onDestroy()

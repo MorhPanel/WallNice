@@ -2,8 +2,11 @@
 
 package com.morhpanel.nekowall.ui.screens
 
+import android.content.Context
 import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
+import android.view.TextureView
+import android.view.ViewGroup
 import androidx.activity.compose.BackHandler
 import kotlin.OptIn
 import androidx.compose.animation.AnimatedVisibility
@@ -214,11 +217,7 @@ fun PreviewScreen(
                 }
                 prepare()
                 playWhenReady = true
-                videoScalingMode = if (fitMode == WallpaperFitMode.CROP) {
-                    C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
-                } else {
-                    C.VIDEO_SCALING_MODE_SCALE_TO_FIT
-                }
+                videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
             }
         } else {
             null
@@ -258,11 +257,7 @@ fun PreviewScreen(
     }
 
     LaunchedEffect(fitMode, exoPlayer) {
-        exoPlayer?.videoScalingMode = if (fitMode == WallpaperFitMode.CROP) {
-            C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
-        } else {
-            C.VIDEO_SCALING_MODE_SCALE_TO_FIT
-        }
+        exoPlayer?.videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
     }
 
     fun applyWallpaperDirect(target: WallpaperTarget) {
@@ -590,6 +585,28 @@ private fun FullscreenMediaViewer(
     }
 }
 
+private fun createTexturePlayerView(context: Context): PlayerView {
+    val playerView = PlayerView(context)
+    val oldView = playerView.videoSurfaceView
+    val parent = oldView?.parent as? ViewGroup
+    if (parent != null && oldView !is TextureView) {
+        val index = parent.indexOfChild(oldView)
+        val lp = oldView.layoutParams
+        parent.removeView(oldView)
+        val textureView = TextureView(context).apply {
+            layoutParams = lp
+        }
+        parent.addView(textureView, if (index >= 0) index else 0)
+        try {
+            val field = PlayerView::class.java.getDeclaredField("surfaceView")
+            field.isAccessible = true
+            field.set(playerView, textureView)
+        } catch (_: Exception) {
+        }
+    }
+    return playerView
+}
+
 @Composable
 private fun WallpaperMedia(
     wallpaper: WallpaperItem,
@@ -631,15 +648,14 @@ private fun WallpaperMedia(
                 }
                 AndroidView(
                     factory = { viewContext ->
-                        PlayerView(viewContext).apply {
+                        createTexturePlayerView(viewContext).apply {
                             player = exoPlayer
                             useController = false
                             setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
                             setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                            resizeMode = if (effectiveMode == WallpaperFitMode.CROP) {
-                                AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                            } else {
-                                AspectRatioFrameLayout.RESIZE_MODE_FIT
+                            resizeMode = when (effectiveMode) {
+                                WallpaperFitMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                                WallpaperFitMode.FIT, WallpaperFitMode.BLUR -> AspectRatioFrameLayout.RESIZE_MODE_FIT
                             }
                         }
                     },
@@ -647,16 +663,13 @@ private fun WallpaperMedia(
                         view.player = exoPlayer
                         view.setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
                         view.setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                        view.resizeMode = if (effectiveMode == WallpaperFitMode.CROP) {
-                            AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                        } else {
-                            AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        view.resizeMode = when (effectiveMode) {
+                            WallpaperFitMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                            WallpaperFitMode.FIT, WallpaperFitMode.BLUR -> AspectRatioFrameLayout.RESIZE_MODE_FIT
                         }
                     },
                     onRelease = { it.player = null },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .alpha(if (!videoError && videoPlaybackState == Player.STATE_READY) 1f else 0f)
+                    modifier = Modifier.fillMaxSize()
                 )
                 when {
                     videoError -> MediaErrorState()
@@ -759,9 +772,7 @@ private fun WallpaperImage(
 @Composable
 private fun MediaLoadingState() {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(AmoledBlack),
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         CircularProgressIndicator(
