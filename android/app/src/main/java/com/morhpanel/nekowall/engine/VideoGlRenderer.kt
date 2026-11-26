@@ -35,6 +35,15 @@ class VideoGlRenderer(
     private var sTextureHandle: Int = 0
     private var uModeHandle: Int = 0
     private var uBlurOffsetHandle: Int = 0
+    private var uTimeHandle: Int = 0
+    private var uParallaxOffsetHandle: Int = 0
+
+    @Volatile
+    private var shaderMode: Int = 0
+    @Volatile
+    private var parallaxOffsetX: Float = 0f
+    @Volatile
+    private var parallaxOffsetY: Float = 0f
 
     @Volatile
     private var surfaceWidth: Int = 1080
@@ -75,10 +84,13 @@ class VideoGlRenderer(
         attribute vec4 aPosition;
         attribute vec4 aTexCoord;
         uniform mat4 uSTMatrix;
+        uniform vec2 uParallaxOffset;
         varying vec2 vTexCoord;
         void main() {
             gl_Position = aPosition;
-            vTexCoord = (uSTMatrix * aTexCoord).xy;
+            vec2 baseCoord = (uSTMatrix * aTexCoord).xy;
+            float margin = max(abs(uParallaxOffset.x), abs(uParallaxOffset.y));
+            vTexCoord = (baseCoord - 0.5) * (1.0 - 2.0 * margin) + 0.5 + uParallaxOffset;
         }
     """.trimIndent()
 
@@ -89,6 +101,7 @@ class VideoGlRenderer(
         uniform samplerExternalOES sTexture;
         uniform int uMode;
         uniform vec2 uBlurOffset;
+        uniform float uTime;
 
         void main() {
             if (uMode == 1) {
@@ -103,6 +116,24 @@ class VideoGlRenderer(
                 color += texture2D(sTexture, vTexCoord + vec2(0.0, uBlurOffset.y * 1.5)) * 0.12;
                 color += texture2D(sTexture, vTexCoord + vec2(uBlurOffset.x * 1.5, uBlurOffset.y * 1.5)) * 0.08;
                 gl_FragColor = vec4(color.rgb * 0.82, 1.0);
+            } else if (uMode == 2) {
+                vec4 color = texture2D(sTexture, vTexCoord);
+                float lum = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+                if (lum < 0.06) {
+                    gl_FragColor = vec4(0.0, 0.0, 0.0, color.a);
+                } else {
+                    gl_FragColor = color;
+                }
+            } else if (uMode == 3) {
+                vec4 color = texture2D(sTexture, vTexCoord);
+                float scanline = sin(vTexCoord.y * 800.0) * 0.06;
+                vec2 uv = vTexCoord - 0.5;
+                float vignette = 1.0 - dot(uv, uv) * 0.35;
+                gl_FragColor = vec4(clamp((color.rgb - scanline) * vignette, 0.0, 1.0), color.a);
+            } else if (uMode == 4) {
+                vec4 color = texture2D(sTexture, vTexCoord);
+                float noise = fract(sin(dot(vTexCoord * (1.0 + fract(uTime)), vec2(12.9898, 78.233))) * 43758.5453);
+                gl_FragColor = vec4(clamp(color.rgb + (noise - 0.5) * 0.08, 0.0, 1.0), color.a);
             } else {
                 gl_FragColor = texture2D(sTexture, vTexCoord);
             }
@@ -163,6 +194,8 @@ class VideoGlRenderer(
             sTextureHandle = GLES20.glGetUniformLocation(program, "sTexture")
             uModeHandle = GLES20.glGetUniformLocation(program, "uMode")
             uBlurOffsetHandle = GLES20.glGetUniformLocation(program, "uBlurOffset")
+            uTimeHandle = GLES20.glGetUniformLocation(program, "uTime")
+            uParallaxOffsetHandle = GLES20.glGetUniformLocation(program, "uParallaxOffset")
 
             surfaceTexture = SurfaceTexture(textureId).apply {
                 setOnFrameAvailableListener {
@@ -188,6 +221,15 @@ class VideoGlRenderer(
         }
     }
 
+    fun setMode(mode: Int) {
+        shaderMode = mode.coerceIn(0, 4)
+    }
+
+    fun setParallaxOffset(offsetX: Float, offsetY: Float) {
+        parallaxOffsetX = offsetX.coerceIn(-0.04f, 0.04f)
+        parallaxOffsetY = offsetY.coerceIn(-0.04f, 0.04f)
+    }
+
     fun render(fitMode: WallpaperFitMode) {
         synchronized(lock) {
             val st = surfaceTexture ?: return
@@ -206,6 +248,13 @@ class VideoGlRenderer(
                 GLES20.glUseProgram(program)
                 GLES20.glUniformMatrix4fv(uSTMatrixHandle, 1, false, stMatrix, 0)
                 GLES20.glUniform1i(sTextureHandle, 0)
+                GLES20.glUniform1f(uTimeHandle, (System.nanoTime() % 100_000_000_000L) / 1_000_000_000.0f)
+                GLES20.glUniform2f(uParallaxOffsetHandle, parallaxOffsetX, parallaxOffsetY)
+                GLES20.glUniform2f(
+                    uBlurOffsetHandle,
+                    12.0f / surfaceWidth.coerceAtLeast(1).toFloat(),
+                    12.0f / surfaceHeight.coerceAtLeast(1).toFloat()
+                )
 
                 GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
                 GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId)
@@ -226,11 +275,6 @@ class VideoGlRenderer(
                         }
 
                         GLES20.glUniform1i(uModeHandle, 1)
-                        GLES20.glUniform2f(
-                            uBlurOffsetHandle,
-                            12.0f / surfaceWidth.coerceAtLeast(1).toFloat(),
-                            12.0f / surfaceHeight.coerceAtLeast(1).toFloat()
-                        )
                         drawQuad(bgScaleX, bgScaleY)
 
                         val fgScaleX: Float
@@ -243,7 +287,7 @@ class VideoGlRenderer(
                             fgScaleY = 1.0f
                         }
 
-                        GLES20.glUniform1i(uModeHandle, 0)
+                        GLES20.glUniform1i(uModeHandle, shaderMode)
                         drawQuad(fgScaleX, fgScaleY)
                     }
 
@@ -257,7 +301,7 @@ class VideoGlRenderer(
                             scaleX = 1.0f
                             scaleY = surfaceAspect / videoAspect
                         }
-                        GLES20.glUniform1i(uModeHandle, 0)
+                        GLES20.glUniform1i(uModeHandle, shaderMode)
                         drawQuad(scaleX, scaleY)
                     }
 
@@ -271,7 +315,7 @@ class VideoGlRenderer(
                             scaleX = videoAspect / surfaceAspect
                             scaleY = 1.0f
                         }
-                        GLES20.glUniform1i(uModeHandle, 0)
+                        GLES20.glUniform1i(uModeHandle, shaderMode)
                         drawQuad(scaleX, scaleY)
                     }
                 }

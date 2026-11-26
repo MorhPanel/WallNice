@@ -59,7 +59,9 @@ import com.morhpanel.nekowall.data.models.PlaybackQuality
 import com.morhpanel.nekowall.data.repository.PlaylistManager
 import com.morhpanel.nekowall.data.repository.WallNicePreferences
 import com.morhpanel.nekowall.engine.DownloadHelper
+import com.morhpanel.nekowall.engine.ShaderMode
 import com.morhpanel.nekowall.engine.WallpaperHelper
+import com.morhpanel.nekowall.util.WallNiceImageLoader
 import com.morhpanel.nekowall.ui.components.WallNiceIconButton
 import com.morhpanel.nekowall.ui.theme.AmoledBlack
 import com.morhpanel.nekowall.ui.theme.NeonCyan
@@ -95,6 +97,9 @@ fun SettingsScreen(
     var rotationEnabled by remember { mutableStateOf(WallNicePreferences.isRotationEnabled(context)) }
     var rotationInterval by remember { mutableStateOf(WallNicePreferences.getRotationIntervalHours(context)) }
     var cacheSize by remember { mutableStateOf(DownloadHelper.temporaryCacheSize(context)) }
+    var cacheQuotaMb by remember { mutableStateOf(WallNiceImageLoader.getCacheQuotaMb(context)) }
+    var parallaxEnabled by remember { mutableStateOf(WallpaperHelper.isParallaxEnabled(context)) }
+    var shaderMode by remember { mutableStateOf(WallpaperHelper.getShaderMode(context)) }
     var rotationStatus by remember { mutableStateOf<String?>(null) }
     val favoriteSize = DownloadHelper.favoritesSize(context)
     val playlistSize = DownloadHelper.playlistSize(context)
@@ -239,6 +244,29 @@ fun SettingsScreen(
                         WallNicePreferences.setPauseOnLowBattery(context, enabled)
                     }
                 )
+                SettingsDivider()
+                SettingsSwitchRow(
+                    label = "Gyroscope parallax",
+                    detail = "Subtle 2.5D tilt depth on live wallpapers",
+                    checked = parallaxEnabled,
+                    onCheckedChange = { enabled ->
+                        parallaxEnabled = enabled
+                        WallpaperHelper.setParallaxEnabled(context, enabled)
+                    }
+                )
+                SettingsDivider()
+                ShaderMode.entries.forEachIndexed { index, mode ->
+                    SettingsChoiceRow(
+                        label = "Shader: ${mode.label}",
+                        detail = "Live GPU post-processing",
+                        selected = shaderMode == mode,
+                        onClick = {
+                            shaderMode = mode
+                            WallpaperHelper.setShaderMode(context, mode)
+                        }
+                    )
+                    if (index < ShaderMode.entries.lastIndex) SettingsDivider()
+                }
             }
 
             Spacer(Modifier.height(WallNiceSpacing.xl))
@@ -314,6 +342,24 @@ fun SettingsScreen(
                         cacheSize = DownloadHelper.temporaryCacheSize(context)
                     }
                 )
+                SettingsDivider()
+                WallNiceImageLoader.CACHE_QUOTA_PRESETS_MB.forEachIndexed { index, mb ->
+                    val label = when {
+                        mb >= 1024 && mb % 1024 == 0 -> "${mb / 1024} GB"
+                        mb >= 1024 -> String.format(Locale.ENGLISH, "%.1f GB", mb / 1024f)
+                        else -> "$mb MB"
+                    }
+                    SettingsChoiceRow(
+                        label = "Cache limit: $label",
+                        detail = "Maximum disk cache quota",
+                        selected = cacheQuotaMb == mb,
+                        onClick = {
+                            cacheQuotaMb = mb
+                            WallNiceImageLoader.updateCacheQuota(context, mb)
+                        }
+                    )
+                    if (index < WallNiceImageLoader.CACHE_QUOTA_PRESETS_MB.lastIndex) SettingsDivider()
+                }
             }
 
             Spacer(Modifier.height(WallNiceSpacing.xl))

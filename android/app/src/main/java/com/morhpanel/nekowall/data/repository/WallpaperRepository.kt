@@ -137,9 +137,10 @@ object WallpaperRepository {
         try {
             var lastFailure: Throwable? = null
 
+            var catalogConn: HttpURLConnection? = null
             try {
                 val separator = if (remoteCatalogUrl.contains("?")) "&" else "?"
-                val catalogConn = URL("$remoteCatalogUrl${separator}cacheBust=${System.currentTimeMillis()}").openConnection() as HttpURLConnection
+                catalogConn = URL("$remoteCatalogUrl${separator}cacheBust=${System.currentTimeMillis()}").openConnection() as HttpURLConnection
                 catalogConn.connectTimeout = 8000
                 catalogConn.readTimeout = 8000
                 catalogConn.useCaches = false
@@ -155,6 +156,8 @@ object WallpaperRepository {
                 }
             } catch (e: Exception) {
                 lastFailure = e
+            } finally {
+                catalogConn?.disconnect()
             }
 
             val treeResult = fetchDirectFromDlsTree()
@@ -192,9 +195,10 @@ object WallpaperRepository {
     }
 
     private fun fetchDirectFromDlsTree(): Result<Pair<List<String>, List<WallpaperItem>>> {
+        var connection: HttpURLConnection? = null
         return try {
             val url = URL(GITHUB_TREE_API_URL)
-            val connection = url.openConnection() as HttpURLConnection
+            connection = url.openConnection() as HttpURLConnection
             connection.connectTimeout = 8000
             connection.readTimeout = 8000
             connection.setRequestProperty("User-Agent", "WallNice-Android-Client")
@@ -291,6 +295,8 @@ object WallpaperRepository {
             Result.success(Pair(categories, wallpapers.reversed()))
         } catch (e: Exception) {
             Result.failure(e)
+        } finally {
+            connection?.disconnect()
         }
     }
 

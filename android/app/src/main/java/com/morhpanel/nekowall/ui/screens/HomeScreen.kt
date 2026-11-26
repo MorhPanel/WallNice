@@ -88,6 +88,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.morhpanel.nekowall.data.models.AppUpdateInfo
 import com.morhpanel.nekowall.data.models.MediaFilter
 import com.morhpanel.nekowall.data.models.MediaType
@@ -233,9 +235,8 @@ fun HomeScreen(
     var isAnimeDropdownOpen by rememberSaveable { mutableStateOf(false) }
     var selectedMediaFilter by rememberSaveable(stateSaver = MediaFilterSetSaver) { mutableStateOf(setOf(MediaFilter.ALL)) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
-    val initialCatalog = remember { WallpaperRepository.getOrLoadCachedCatalog(context) }
-    var wallpapers by remember { mutableStateOf(initialCatalog?.wallpapers ?: emptyList()) }
-    var isLoading by remember { mutableStateOf(wallpapers.isEmpty()) }
+    var wallpapers by remember { mutableStateOf(emptyList<WallpaperItem>()) }
+    var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val gridState = homeGridState
 
@@ -313,6 +314,13 @@ fun HomeScreen(
 
     LaunchedEffect(Unit) {
         FavoritesManager.init(context)
+        val cachedCatalog = withContext(Dispatchers.IO) {
+            WallpaperRepository.getOrLoadCachedCatalog(context)
+        }
+        if (cachedCatalog != null && wallpapers.isEmpty()) {
+            wallpapers = cachedCatalog.wallpapers
+            isLoading = false
+        }
         loadData()
     }
 

@@ -75,6 +75,17 @@
             </intent-filter>
         </receiver>
 
+        <service
+            android:name=".service.NextWallpaperTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_launcher_wallnice"
+            android:label="Next Wallpaper"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
     </application>
 
 </manifest>

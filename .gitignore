@@ -21,3 +21,5 @@ android/.gradle/
 **/signing.properties
 wallnice-release-signing.env
 **/*-signing.env
+
+.android-sdk/

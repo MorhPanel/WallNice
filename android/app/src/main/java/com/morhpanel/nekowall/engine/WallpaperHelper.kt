@@ -16,6 +16,14 @@ enum class WallpaperTarget {
     BOTH
 }
 
+enum class ShaderMode(val id: Int, val label: String) {
+    NONE(0, "Off"),
+    BLUR(1, "Blur"),
+    AMOLED_BLACK(2, "AMOLED Black"),
+    CRT_SCANLINES(3, "CRT"),
+    FILM_GRAIN(4, "Film Grain")
+}
+
 object WallpaperHelper {
 
     private const val PREFS_NAME = WallNicePreferences.PREFS_NAME
@@ -24,6 +32,8 @@ object WallpaperHelper {
     const val KEY_TARGET = "wallpaper_target"
     const val KEY_UPDATE_TIMESTAMP = "wallpaper_update_timestamp"
     const val KEY_DOUBLE_TAP_TO_PAUSE = "double_tap_to_pause"
+    const val KEY_PARALLAX_ENABLED = "parallax_enabled"
+    const val KEY_SHADER_MODE = "shader_mode"
 
     fun saveLiveWallpaperConfig(
         context: Context,
@@ -84,6 +94,27 @@ object WallpaperHelper {
     fun setDoubleTapToPauseEnabled(context: Context, enabled: Boolean) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putBoolean(KEY_DOUBLE_TAP_TO_PAUSE, enabled).apply()
+    }
+
+    fun isParallaxEnabled(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getBoolean(KEY_PARALLAX_ENABLED, false)
+    }
+
+    fun setParallaxEnabled(context: Context, enabled: Boolean) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putBoolean(KEY_PARALLAX_ENABLED, enabled).apply()
+    }
+
+    fun getShaderMode(context: Context): ShaderMode {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val id = prefs.getInt(KEY_SHADER_MODE, ShaderMode.NONE.id)
+        return ShaderMode.entries.firstOrNull { it.id == id } ?: ShaderMode.NONE
+    }
+
+    fun setShaderMode(context: Context, mode: ShaderMode) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putInt(KEY_SHADER_MODE, mode.id).apply()
     }
 
     fun getSavedTarget(context: Context): WallpaperTarget {

@@ -9,6 +9,10 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.graphics.PixelFormat
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.media.AudioAttributes as AndroidAudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
@@ -38,7 +42,7 @@ class VideoLiveWallpaperService : WallpaperService() {
 
     override fun onCreateEngine(): Engine = VideoEngine()
 
-    inner class VideoEngine : Engine(), SharedPreferences.OnSharedPreferenceChangeListener {
+    inner class VideoEngine : Engine(), SharedPreferences.OnSharedPreferenceChangeListener, SensorEventListener {
 
         private var player: ExoPlayer? = null
         private var glRenderer: VideoGlRenderer? = null
@@ -60,6 +64,15 @@ class VideoLiveWallpaperService : WallpaperService() {
         private var lastTapX: Int = 0
         private var lastTapY: Int = 0
         private var lastDoubleTapActionTime: Long = 0
+        private var sensorManager: SensorManager? = null
+        private var rotationSensor: Sensor? = null
+        private var isSensorRegistered = false
+        private val rotationMatrix = FloatArray(9)
+        private val orientationAngles = FloatArray(3)
+        private var baselinePitch: Float? = null
+        private var baselineRoll: Float? = null
+        private var parallaxOffsetX: Float = 0f
+        private var parallaxOffsetY: Float = 0f
         private val batteryReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 runOnMainThread { updatePlaybackState() }
@@ -238,6 +251,8 @@ class VideoLiveWallpaperService : WallpaperService() {
             setTouchEventsEnabled(true)
             surfaceHolder = holder
             audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+            sensorManager = getSystemService(Context.SENSOR_SERVICE) as? SensorManager
+            rotationSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
             try {
                 audioManager?.registerAudioPlaybackCallback(playbackCallback, mainHandler)
             } catch (_: Exception) {
@@ -304,9 +319,10 @@ class VideoLiveWallpaperService : WallpaperService() {
             if (action == WallpaperManager.COMMAND_TAP) {
                 val now = SystemClock.uptimeMillis()
                 val doubleTapTimeout = ViewConfiguration.getDoubleTapTimeout()
+                val doubleTapSlop = ViewConfiguration.get(this@VideoLiveWallpaperService).scaledDoubleTapSlop
                 if (now - lastTapTime <= doubleTapTimeout &&
-                    abs(x - lastTapX) < 120 &&
-                    abs(y - lastTapY) < 120
+                    abs(x - lastTapX) < doubleTapSlop &&
+                    abs(y - lastTapY) < doubleTapSlop
                 ) {
                     handleDoubleTap()
                     lastTapTime = 0
@@ -323,7 +339,50 @@ class VideoLiveWallpaperService : WallpaperService() {
             super.onVisibilityChanged(visible)
             runOnMainThread {
                 updatePlaybackState()
+                updateParallaxSensorState(visible)
             }
+        }
+
+        private fun updateParallaxSensorState(visible: Boolean) {
+            val shouldRegister = visible && WallpaperHelper.isParallaxEnabled(this@VideoLiveWallpaperService)
+            if (shouldRegister && !isSensorRegistered) {
+                val sensor = rotationSensor ?: return
+                baselinePitch = null
+                baselineRoll = null
+                isSensorRegistered = sensorManager?.registerListener(
+                    this,
+                    sensor,
+                    SensorManager.SENSOR_DELAY_GAME
+                ) == true
+            } else if (!shouldRegister && isSensorRegistered) {
+                sensorManager?.unregisterListener(this)
+                isSensorRegistered = false
+                baselinePitch = null
+                baselineRoll = null
+                parallaxOffsetX = 0f
+                parallaxOffsetY = 0f
+                glRenderer?.setParallaxOffset(0f, 0f)
+            }
+        }
+
+        override fun onSensorChanged(event: SensorEvent?) {
+            if (event?.sensor?.type != Sensor.TYPE_ROTATION_VECTOR) return
+            SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
+            SensorManager.getOrientation(rotationMatrix, orientationAngles)
+            val pitch = orientationAngles[1]
+            val roll = orientationAngles[2]
+            val basePitch = baselinePitch ?: pitch.also { baselinePitch = it }
+            val baseRoll = baselineRoll ?: roll.also { baselineRoll = it }
+            val maxTiltRad = 0.35f
+            val targetX = ((roll - baseRoll) / maxTiltRad).coerceIn(-1f, 1f) * 0.03f
+            val targetY = ((pitch - basePitch) / maxTiltRad).coerceIn(-1f, 1f) * 0.03f
+            val smoothing = 0.15f
+            parallaxOffsetX += (targetX - parallaxOffsetX) * smoothing
+            parallaxOffsetY += (targetY - parallaxOffsetY) * smoothing
+            glRenderer?.setParallaxOffset(parallaxOffsetX, parallaxOffsetY)
+        }
+
+        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
         }
 
         override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
@@ -352,6 +411,16 @@ class VideoLiveWallpaperService : WallpaperService() {
                     debounceInitPlayer()
                 }
                 WallNicePreferences.KEY_PAUSE_ON_LOW_BATTERY -> updatePlaybackState()
+                WallpaperHelper.KEY_PARALLAX_ENABLED -> {
+                    runOnMainThread {
+                        updateParallaxSensorState(isVisible)
+                    }
+                }
+                WallpaperHelper.KEY_SHADER_MODE -> {
+                    runOnMainThread {
+                        glRenderer?.setMode(WallpaperHelper.getShaderMode(this@VideoLiveWallpaperService).id)
+                    }
+                }
             }
         }
 
@@ -398,6 +467,8 @@ class VideoLiveWallpaperService : WallpaperService() {
                         }
                     }
                     renderer.updateDimensions(surfaceWidth, surfaceHeight)
+                    renderer.setMode(WallpaperHelper.getShaderMode(this@VideoLiveWallpaperService).id)
+                    renderer.setParallaxOffset(parallaxOffsetX, parallaxOffsetY)
                     val glSurface = renderer.initialize()
                     if (glSurface != null) {
                         glRenderer = renderer
@@ -481,6 +552,12 @@ class VideoLiveWallpaperService : WallpaperService() {
             } catch (_: Exception) {
             }
             runCatching { unregisterReceiver(batteryReceiver) }
+            if (isSensorRegistered) {
+                sensorManager?.unregisterListener(this)
+                isSensorRegistered = false
+            }
+            sensorManager = null
+            rotationSensor = null
             mainHandler.removeCallbacksAndMessages(null)
             releasePlayer()
             surfaceHolder = null

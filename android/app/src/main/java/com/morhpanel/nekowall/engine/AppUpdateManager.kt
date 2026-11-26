@@ -239,12 +239,12 @@ object AppUpdateManager {
         }
     }
 
-    @Suppress("DEPRECATION")
     fun isPlayManagedInstall(context: Context): Boolean {
         val packageManager = context.packageManager
         val installerPackage = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             packageManager.getInstallSourceInfo(context.packageName).installingPackageName
         } else {
+            @Suppress("DEPRECATION")
             packageManager.getInstallerPackageName(context.packageName)
         }
         return installerPackage == "com.android.vending"
@@ -277,24 +277,48 @@ object AppUpdateManager {
         }
     }
 
-    @Suppress("DEPRECATION")
     private fun hasMatchingPackageSignature(context: Context, apkFile: File): Boolean {
         val packageManager = context.packageManager
-        val installedInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            packageManager.getPackageInfo(
-                context.packageName,
-                PackageManager.GET_SIGNING_CERTIFICATES
-            )
-        } else {
-            packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES)
+        val installedInfo = when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
+                packageManager.getPackageInfo(
+                    context.packageName,
+                    PackageManager.PackageInfoFlags.of(PackageManager.GET_SIGNING_CERTIFICATES.toLong())
+                )
+            }
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.P -> {
+                @Suppress("DEPRECATION")
+                packageManager.getPackageInfo(
+                    context.packageName,
+                    PackageManager.GET_SIGNING_CERTIFICATES
+                )
+            }
+            else -> {
+                @Suppress("DEPRECATION")
+                packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES)
+            }
         }
-        val archiveInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            packageManager.getPackageArchiveInfo(
-                apkFile.absolutePath,
-                PackageManager.GET_SIGNING_CERTIFICATES
-            )
-        } else {
-            packageManager.getPackageArchiveInfo(apkFile.absolutePath, PackageManager.GET_SIGNATURES)
+        val archiveInfo = when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
+                packageManager.getPackageArchiveInfo(
+                    apkFile.absolutePath,
+                    PackageManager.PackageInfoFlags.of(PackageManager.GET_SIGNING_CERTIFICATES.toLong())
+                )
+            }
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.P -> {
+                @Suppress("DEPRECATION")
+                packageManager.getPackageArchiveInfo(
+                    apkFile.absolutePath,
+                    PackageManager.GET_SIGNING_CERTIFICATES
+                )
+            }
+            else -> {
+                @Suppress("DEPRECATION")
+                packageManager.getPackageArchiveInfo(
+                    apkFile.absolutePath,
+                    PackageManager.GET_SIGNATURES
+                )
+            }
         } ?: return false
 
         if (archiveInfo.packageName != context.packageName) {
@@ -315,6 +339,7 @@ object AppUpdateManager {
                 signingInfo.signingCertificateHistory
             }
         } else {
+            @Suppress("DEPRECATION")
             installedInfo.signatures ?: return false
         }
         val archiveSignatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -325,6 +350,7 @@ object AppUpdateManager {
                 signingInfo.signingCertificateHistory
             }
         } else {
+            @Suppress("DEPRECATION")
             archiveInfo.signatures ?: return false
         }
 
