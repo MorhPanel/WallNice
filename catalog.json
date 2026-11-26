@@ -1,9 +1,9 @@
 {
   "appUpdate": {
-    "versionCode": 36,
-    "versionName": "0.0.36-beta",
-    "changelog": "Restored wallpaper titles on cards, GPU-accelerated video blur background for letterboxing, and default blur fit mode.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.36-beta/app-release.apk"
+    "versionCode": 37,
+    "versionName": "0.0.37-beta",
+    "changelog": "Quick Settings tile, GPU shaders (AMOLED Black, CRT, Film Grain), gyroscope parallax, and cache quota.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.37-beta/app-release.apk"
   },
   "categories": [
     "All",

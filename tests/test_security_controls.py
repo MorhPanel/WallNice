@@ -29,7 +29,7 @@ class SecurityControlTests(unittest.TestCase):
         updater = read_text("android/app/src/main/java/com/morhpanel/nekowall/engine/AppUpdateManager.kt")
         dialog = read_text("android/app/src/main/java/com/morhpanel/nekowall/ui/components/AppUpdateDialog.kt")
         catalog = read_json("catalog.json")
-        expected_url = "https://github.com/MorhPanel/WallNice/releases/download/v0.0.36-beta/app-release.apk"
+        expected_url = "https://github.com/MorhPanel/WallNice/releases/download/v0.0.37-beta/app-release.apk"
 
         self.assertIn("https://github.com/MorhPanel/WallNice/releases/latest/download/app-release.apk", updater)
         self.assertEqual(catalog["appUpdate"]["downloadUrl"], expected_url)
@@ -65,10 +65,10 @@ class SecurityControlTests(unittest.TestCase):
     def test_release_metadata_is_synchronized(self):
         gradle = read_text("android/app/build.gradle.kts")
         catalog = read_json("catalog.json")
-        self.assertIn("versionCode = 36", gradle)
-        self.assertIn('versionName = "0.0.36-beta"', gradle)
-        self.assertEqual(catalog["appUpdate"]["versionCode"], 36)
-        self.assertEqual(catalog["appUpdate"]["versionName"], "0.0.36-beta")
+        self.assertIn("versionCode = 37", gradle)
+        self.assertIn('versionName = "0.0.37-beta"', gradle)
+        self.assertEqual(catalog["appUpdate"]["versionCode"], 37)
+        self.assertEqual(catalog["appUpdate"]["versionName"], "0.0.37-beta")
 
     def test_settings_is_header_action_with_back_navigation_and_shared_motion(self):
         home = read_text("android/app/src/main/java/com/morhpanel/nekowall/ui/screens/HomeScreen.kt")
