@@ -54,7 +54,7 @@ jobs:
 
       - name: Run Android tests and lint
         working-directory: android
-        run: ./gradlew testDebugUnitTest lintDebug --build-cache --stacktrace
+        run: ./gradlew testDebugUnitTest lintDebug --stacktrace
 
       - name: Configure Keystore
         env:
