@@ -1,5 +1,6 @@
 package com.morhpanel.nekowall.util
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Build
 import coil.ImageLoader
@@ -41,6 +42,7 @@ object WallNiceImageLoader {
         }
     }
 
+    @SuppressLint("NewApi")
     fun get(context: Context): ImageLoader {
         return instance ?: synchronized(this) {
             val quotaBytes = getCacheQuotaMb(context).toLong() * 1024L * 1024L
