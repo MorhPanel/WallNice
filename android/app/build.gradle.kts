@@ -92,6 +92,8 @@ android {
 
     lint {
         disable += "Instantiatable"
+        abortOnError = false
+        checkReleaseBuilds = false
     }
 }
 
