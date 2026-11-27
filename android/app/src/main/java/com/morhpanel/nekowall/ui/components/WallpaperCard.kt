@@ -3,6 +3,8 @@
 package com.morhpanel.nekowall.ui.components
 
 import android.net.Uri
+import android.view.LayoutInflater
+import com.morhpanel.nekowall.R
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
@@ -284,7 +286,7 @@ private fun CardVideoPlayer(
                     .setMaxVideoSize(quality.maxWidth, quality.maxHeight)
                     .build()
             }
-            videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
+            videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
             prepare()
             playWhenReady = true
         }
@@ -325,9 +327,11 @@ private fun CardVideoPlayer(
 
     AndroidView(
         factory = { viewContext ->
-            PlayerView(viewContext).apply {
+            (LayoutInflater.from(viewContext).inflate(R.layout.view_texture_player, null, false) as PlayerView).apply {
                 player = exoPlayer
                 useController = false
+                setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
+                setBackgroundColor(android.graphics.Color.TRANSPARENT)
                 resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
             }
         },

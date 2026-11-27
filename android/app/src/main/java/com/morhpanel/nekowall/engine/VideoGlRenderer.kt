@@ -8,6 +8,8 @@ import android.opengl.EGLDisplay
 import android.opengl.EGLSurface
 import android.opengl.GLES11Ext
 import android.opengl.GLES20
+import android.os.Handler
+import android.os.Looper
 import android.view.Surface
 import android.view.SurfaceHolder
 import com.morhpanel.nekowall.data.models.WallpaperFitMode
@@ -60,10 +62,10 @@ class VideoGlRenderer(
     private val texCoordBuffer: FloatBuffer
 
     private val texCoords = floatArrayOf(
-        0.0f, 1.0f,
-        1.0f, 1.0f,
         0.0f, 0.0f,
-        1.0f, 0.0f
+        1.0f, 0.0f,
+        0.0f, 1.0f,
+        1.0f, 1.0f
     )
 
     init {
@@ -148,7 +150,7 @@ class VideoGlRenderer(
             val version = IntArray(2)
             if (!EGL14.eglInitialize(eglDisplay, version, 0, version, 1)) return null
 
-            val configAttribs = intArrayOf(
+            val rgbaAttribs = intArrayOf(
                 EGL14.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT,
                 EGL14.EGL_RED_SIZE, 8,
                 EGL14.EGL_GREEN_SIZE, 8,
@@ -156,23 +158,52 @@ class VideoGlRenderer(
                 EGL14.EGL_ALPHA_SIZE, 8,
                 EGL14.EGL_NONE
             )
+            val rgbAttribs = intArrayOf(
+                EGL14.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT,
+                EGL14.EGL_RED_SIZE, 8,
+                EGL14.EGL_GREEN_SIZE, 8,
+                EGL14.EGL_BLUE_SIZE, 8,
+                EGL14.EGL_ALPHA_SIZE, 0,
+                EGL14.EGL_NONE
+            )
 
             val configs = arrayOfNulls<EGLConfig>(1)
             val numConfigs = IntArray(1)
-            if (!EGL14.eglChooseConfig(eglDisplay, configAttribs, 0, configs, 0, 1, numConfigs, 0) || numConfigs[0] == 0) {
-                return null
+            val surfaceAttribs = intArrayOf(EGL14.EGL_NONE)
+            var createdConfig: EGLConfig? = null
+
+            for (attribs in listOf(rgbaAttribs, rgbAttribs)) {
+                if (EGL14.eglChooseConfig(eglDisplay, attribs, 0, configs, 0, 1, numConfigs, 0) && numConfigs[0] > 0) {
+                    val candidateConfig = configs[0] ?: continue
+                    val candidateContext = EGL14.eglCreateContext(
+                        eglDisplay,
+                        candidateConfig,
+                        EGL14.EGL_NO_CONTEXT,
+                        intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, EGL14.EGL_NONE),
+                        0
+                    )
+                    if (candidateContext == EGL14.EGL_NO_CONTEXT) continue
+                    val candidateSurface = EGL14.eglCreateWindowSurface(
+                        eglDisplay,
+                        candidateConfig,
+                        surfaceHolder.surface,
+                        surfaceAttribs,
+                        0
+                    )
+                    if (candidateSurface != EGL14.EGL_NO_SURFACE) {
+                        eglContext = candidateContext
+                        eglSurface = candidateSurface
+                        createdConfig = candidateConfig
+                        break
+                    } else {
+                        EGL14.eglDestroyContext(eglDisplay, candidateContext)
+                    }
+                }
             }
 
-            val contextAttribs = intArrayOf(
-                EGL14.EGL_CONTEXT_CLIENT_VERSION, 2,
-                EGL14.EGL_NONE
-            )
-            eglContext = EGL14.eglCreateContext(eglDisplay, configs[0], EGL14.EGL_NO_CONTEXT, contextAttribs, 0)
-            if (eglContext == EGL14.EGL_NO_CONTEXT) return null
-
-            val surfaceAttribs = intArrayOf(EGL14.EGL_NONE)
-            eglSurface = EGL14.eglCreateWindowSurface(eglDisplay, configs[0], surfaceHolder.surface, surfaceAttribs, 0)
-            if (eglSurface == EGL14.EGL_NO_SURFACE) return null
+            if (createdConfig == null || eglContext == EGL14.EGL_NO_CONTEXT || eglSurface == EGL14.EGL_NO_SURFACE) {
+                return null
+            }
 
             if (!EGL14.eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext)) return null
 
@@ -198,9 +229,7 @@ class VideoGlRenderer(
             uParallaxOffsetHandle = GLES20.glGetUniformLocation(program, "uParallaxOffset")
 
             surfaceTexture = SurfaceTexture(textureId).apply {
-                setOnFrameAvailableListener {
-                    onFrameRendered()
-                }
+                setOnFrameAvailableListener({ onFrameRendered() }, Handler(Looper.getMainLooper()))
             }
             inputSurface = Surface(surfaceTexture)
             return inputSurface

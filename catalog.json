@@ -1,9 +1,9 @@
 {
   "appUpdate": {
-    "versionCode": 37,
-    "versionName": "0.0.37-beta",
-    "changelog": "Quick Settings tile, GPU shaders (AMOLED Black, CRT, Film Grain), gyroscope parallax, and cache quota.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.37-beta/app-release.apk"
+    "versionCode": 38,
+    "versionName": "0.0.38-beta",
+    "changelog": "Fixed video playback in preview, feed cards, and live wallpaper GL surface rendering.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.38-beta/app-release.apk"
   },
   "categories": [
     "All",

@@ -5,8 +5,8 @@ package com.morhpanel.nekowall.ui.screens
 import android.content.Context
 import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
-import android.view.TextureView
-import android.view.ViewGroup
+import android.view.LayoutInflater
+import com.morhpanel.nekowall.R
 import androidx.activity.compose.BackHandler
 import kotlin.OptIn
 import androidx.compose.animation.AnimatedVisibility
@@ -227,6 +227,8 @@ fun PreviewScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     DisposableEffect(exoPlayer, lifecycleOwner) {
+        videoError = false
+        videoPlaybackState = exoPlayer?.playbackState ?: Player.STATE_IDLE
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 videoPlaybackState = playbackState
@@ -586,25 +588,7 @@ private fun FullscreenMediaViewer(
 }
 
 private fun createTexturePlayerView(context: Context): PlayerView {
-    val playerView = PlayerView(context)
-    val oldView = playerView.videoSurfaceView
-    val parent = oldView?.parent as? ViewGroup
-    if (parent != null && oldView !is TextureView) {
-        val index = parent.indexOfChild(oldView)
-        val lp = oldView.layoutParams
-        parent.removeView(oldView)
-        val textureView = TextureView(context).apply {
-            layoutParams = lp
-        }
-        parent.addView(textureView, if (index >= 0) index else 0)
-        try {
-            val field = PlayerView::class.java.getDeclaredField("surfaceView")
-            field.isAccessible = true
-            field.set(playerView, textureView)
-        } catch (_: Exception) {
-        }
-    }
-    return playerView
+    return LayoutInflater.from(context).inflate(R.layout.view_texture_player, null, false) as PlayerView
 }
 
 @Composable

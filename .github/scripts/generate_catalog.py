@@ -15,10 +15,10 @@ CATALOG_PATH = "catalog.json"
 DLS_DIR = "DLS"
 
 existing_update = {
-    "versionCode": 36,
-    "versionName": "0.0.36-beta",
-    "changelog": "Restored wallpaper titles on cards, GPU-accelerated video blur background for letterboxing, and default blur fit mode.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.36-beta/app-release.apk"
+    "versionCode": 38,
+    "versionName": "0.0.38-beta",
+    "changelog": "Fixed video playback in preview, feed cards, and live wallpaper GL surface rendering.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.38-beta/app-release.apk"
 }
 
 existing_added_at = {}
@@ -38,10 +38,10 @@ if os.path.exists(CATALOG_PATH):
         pass
 
 existing_update.update({
-    "versionCode": 36,
-    "versionName": "0.0.36-beta",
-    "changelog": "Restored wallpaper titles on cards, GPU-accelerated video blur background for letterboxing, and default blur fit mode.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.36-beta/app-release.apk"
+    "versionCode": 38,
+    "versionName": "0.0.38-beta",
+    "changelog": "Fixed video playback in preview, feed cards, and live wallpaper GL surface rendering.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.38-beta/app-release.apk"
 })
 
 categories = set(["All"])

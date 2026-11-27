@@ -263,7 +263,6 @@ class VideoLiveWallpaperService : WallpaperService() {
 
         override fun onSurfaceCreated(holder: SurfaceHolder) {
             super.onSurfaceCreated(holder)
-            holder.setFormat(PixelFormat.RGBA_8888)
             surfaceHolder = holder
             val frame = holder.surfaceFrame
             if (frame != null && frame.width() > 0 && frame.height() > 0) {
@@ -419,6 +418,9 @@ class VideoLiveWallpaperService : WallpaperService() {
                 WallpaperHelper.KEY_SHADER_MODE -> {
                     runOnMainThread {
                         glRenderer?.setMode(WallpaperHelper.getShaderMode(this@VideoLiveWallpaperService).id)
+                        if (isVisible || isPreview) {
+                            glRenderer?.render(WallNicePreferences.getFitMode(this@VideoLiveWallpaperService))
+                        }
                     }
                 }
             }
@@ -461,9 +463,7 @@ class VideoLiveWallpaperService : WallpaperService() {
 
                     val renderer = VideoGlRenderer(holder) {
                         runOnMainThread {
-                            if (isVisible || isPreview) {
-                                glRenderer?.render(WallNicePreferences.getFitMode(this@VideoLiveWallpaperService))
-                            }
+                            glRenderer?.render(WallNicePreferences.getFitMode(this@VideoLiveWallpaperService))
                         }
                     }
                     renderer.updateDimensions(surfaceWidth, surfaceHeight)
