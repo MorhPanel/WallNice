@@ -48,20 +48,19 @@ This document provides a comprehensive roadmap, system architecture summary, and
   - Provide 100% offline playback with zero risk of cache eviction.
 - [ ] **Seamless Video Ping-Pong Looping**:
   - Implement optional reverse playback / ping-pong loop for short-form live wallpapers to prevent jarring loop resets.
-- [ ] **Smart Cache Settings Panel**:
-  - Add cache size inspection, one-tap cache purge, and custom cache quota slider (100MB – 1GB) in `SettingsScreen`.
+- [x] **Smart Cache Settings Panel**:
+  - Add cache size inspection, one-tap cache purge, and custom cache quota selector (50 MB – 10 GB) in `SettingsScreen`.
 
 ### Milestone 2 — Customization Engine & Visual FX Shaders
-- [ ] **GPU Post-Processing Shaders**:
-  - Implement Compose `RuntimeShader` (Android 13+) / OpenGL pipeline for live effects:
+- [x] **GPU Post-Processing Shaders**:
+  - Implement OpenGL pipeline for live effects:
     - Retro CRT scanline filter
-    - Dynamic chromatic aberration
-    - Film grain and vinyl texture overlay
+    - Film grain texture overlay
     - AMOLED Pure Black boost (threshold cutoff)
-- [ ] **Interactive Gyroscope Parallax**:
-  - Optional motion-sensor tilt parallax for static wallpapers and 3D depth-map layers.
-- [ ] **Double-Tap Live Controls**:
-  - Double-tap on desktop to toggle wallpaper playback or switch between favorite wallpapers.
+- [x] **Interactive Gyroscope Parallax**:
+  - Optional motion-sensor tilt parallax for live wallpapers via `ROTATION_VECTOR`.
+- [x] **Double-Tap Live Controls**:
+  - Double-tap on desktop to toggle wallpaper playback and Quick Settings tile to cycle favorites.
 
 ### Milestone 3 — Community Hub & Synchronization
 - [ ] **Decentralized Likes Sync**:
