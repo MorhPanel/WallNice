@@ -14,6 +14,21 @@
   ],
   "wallpapers": [
     {
+      "id": "wp_b5ef03d1",
+      "title": "Maplle Cosplay 4K",
+      "author": "morhpanel",
+      "category": "Live Video",
+      "subcategory": "",
+      "mediaType": "VIDEO",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/video/Maplle_Cosplay_4K.mp4",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/assets/thumbnails/Maplle_Cosplay_4K.jpg",
+      "resolution": "2160x3840",
+      "isAmoled": false,
+      "likesCount": 0,
+      "collection": "Live Video",
+      "addedAt": 1795856217
+    },
+    {
       "id": "wp_79ec9255",
       "title": "Yourdemon Anime Edit 4K",
       "author": "morhpanel",
@@ -37,7 +52,7 @@
       "mediaType": "VIDEO",
       "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/video/Orekyae_Anime_Edit_4K.mp4",
       "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/assets/thumbnails/Orekyae_Anime_Edit_4K.jpg",
-      "resolution": "2160x3840",
+      "resolution": "2160x2160",
       "isAmoled": false,
       "likesCount": 0,
       "collection": "Live Video",
