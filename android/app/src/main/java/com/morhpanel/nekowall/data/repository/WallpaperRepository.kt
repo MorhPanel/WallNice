@@ -97,7 +97,8 @@ object WallpaperRepository {
                     val resolvedSubcategory = if (rawSubcategory.isNotBlank()) {
                         rawSubcategory
                     } else if (url.contains("/Anime/", ignoreCase = true)) {
-                        Uri.decode(url).substringAfter("/Anime/", "").substringBefore("/")
+                        val afterAnime = Uri.decode(url).substringAfter("/Anime/", "")
+                        if (afterAnime.contains("/")) afterAnime.substringBefore("/") else ""
                     } else {
                         ""
                     }
