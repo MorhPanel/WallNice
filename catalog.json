@@ -14,6 +14,21 @@
   ],
   "wallpapers": [
     {
+      "id": "wp_2dd73111",
+      "title": "Ichika Energy Rooftop 1080X2400",
+      "author": "morhpanel",
+      "category": "Anime",
+      "subcategory": "General",
+      "mediaType": "IMAGE",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/General/ichika_energy_rooftop_1080x2400.png",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/General/ichika_energy_rooftop_1080x2400.png",
+      "resolution": "1080x2400",
+      "isAmoled": false,
+      "likesCount": 0,
+      "collection": "General",
+      "addedAt": 1795873317
+    },
+    {
       "id": "wp_c6b71ce3",
       "title": "Miyabi Zzz Cozy Bedroom",
       "author": "morhpanel",
@@ -72,6 +87,21 @@
       "likesCount": 0,
       "collection": "Anime",
       "addedAt": 1795872875
+    },
+    {
+      "id": "wp_74e0072d",
+      "title": "Miyabi Zzz Neon Rain",
+      "author": "morhpanel",
+      "category": "Anime",
+      "subcategory": "",
+      "mediaType": "IMAGE",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Miyabi_ZZZ_Neon_Rain.jpg",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Miyabi_ZZZ_Neon_Rain.jpg",
+      "resolution": "737x1024",
+      "isAmoled": false,
+      "likesCount": 0,
+      "collection": "Anime",
+      "addedAt": 1795872834
     },
     {
       "id": "wp_0cff61b5",
