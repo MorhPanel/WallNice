@@ -37,11 +37,9 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items as lazyItems
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items as lazyItemsIndexed
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -520,7 +518,9 @@ fun HomeScreen(
                             onMediaFilterSelected = { filter ->
                                 selectedMediaFilter = toggleMediaFilter(selectedMediaFilter, filter)
                             },
-                            onOpenSettings = onOpenSettings
+                            onOpenSettings = onOpenSettings,
+                            isRefreshing = isLoading,
+                            onRefresh = { loadData(force = true) }
                         )
 
                     when (currentCatalogState) {
@@ -617,15 +617,29 @@ fun HomeScreen(
                             .fillMaxSize()
                             .padding(bottom = innerPadding.calculateBottomPadding())
                     ) {
-                        Text(
-                            text = "Categories",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
+                        Row(
                             modifier = Modifier
+                                .fillMaxWidth()
                                 .statusBarsPadding()
-                                .padding(horizontal = 20.dp, vertical = 14.dp)
-                        )
+                                .padding(horizontal = 20.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Categories",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            WallNiceIconButton(
+                                icon = Icons.Default.Refresh,
+                                contentDescription = "Refresh categories",
+                                onClick = { loadData(force = true) },
+                                tint = NeonCyan,
+                                enabled = !isLoading,
+                                isSpinning = isLoading
+                            )
+                        }
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
                             state = categoriesGridState,
@@ -783,7 +797,9 @@ private fun HomeTopBar(
     onSearchQueryChange: (String) -> Unit,
     selectedMediaFilter: Set<MediaFilter>,
     onMediaFilterSelected: (MediaFilter) -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -850,6 +866,17 @@ private fun HomeTopBar(
             Spacer(Modifier.width(8.dp))
 
             WallNiceIconButton(
+                icon = Icons.Default.Refresh,
+                contentDescription = "Refresh catalog",
+                onClick = onRefresh,
+                tint = NeonCyan,
+                enabled = !isRefreshing,
+                isSpinning = isRefreshing
+            )
+
+            Spacer(Modifier.width(8.dp))
+
+            WallNiceIconButton(
                 icon = Icons.Default.Settings,
                 contentDescription = "Settings and stats",
                 onClick = onOpenSettings,
@@ -863,7 +890,7 @@ private fun HomeTopBar(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(MediaFilter.entries) { filter ->
+            lazyItems(MediaFilter.entries) { filter ->
                 val isSelected = filter in selectedMediaFilter
                 val checkmark: @Composable (() -> Unit)? = if (isSelected) {
                     {

@@ -81,14 +81,26 @@ fun WallNiceIconButton(
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    tint: Color = TextPrimary
+    tint: Color = TextPrimary,
+    enabled: Boolean = true,
+    isSpinning: Boolean = false
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val pressScale by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1f,
+        targetValue = if (isPressed && enabled) 0.96f else 1f,
         animationSpec = tween(WallNiceMotion.fastDurationMillis),
         label = "IconButtonPress"
+    )
+    val infiniteTransition = rememberInfiniteTransition(label = "IconButtonSpin")
+    val spinAngle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = androidx.compose.animation.core.LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "IconButtonSpinAngle"
     )
     Box(
         modifier = modifier
@@ -96,11 +108,15 @@ fun WallNiceIconButton(
             .graphicsLayer {
                 scaleX = pressScale
                 scaleY = pressScale
+                if (isSpinning) {
+                    rotationZ = spinAngle
+                }
             }
             .clip(RoundedCornerShape(WallNiceRadii.small))
             .background(SurfaceLow)
             .border(1.dp, OutlineSubtle, RoundedCornerShape(WallNiceRadii.small))
             .clickable(
+                enabled = enabled,
                 interactionSource = interactionSource,
                 indication = LocalIndication.current,
                 onClick = onClick
@@ -110,7 +126,7 @@ fun WallNiceIconButton(
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = tint,
+            tint = if (enabled) tint else tint.copy(alpha = 0.5f),
             modifier = Modifier.size(21.dp)
         )
     }
