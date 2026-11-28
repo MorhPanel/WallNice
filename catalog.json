@@ -13,6 +13,21 @@
   ],
   "wallpapers": [
     {
+      "id": "wp_5f5235ab",
+      "title": "Cosmic Alien",
+      "author": "morhpanel",
+      "category": "Anime",
+      "subcategory": "",
+      "mediaType": "IMAGE",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/cosmic_alien_3f088d17.jpg",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/cosmic_alien_3f088d17.jpg",
+      "resolution": "1440x3200",
+      "isAmoled": false,
+      "likesCount": 0,
+      "collection": "Anime",
+      "addedAt": 1795832712
+    },
+    {
       "id": "wp_f254803a",
       "title": "Neon Neko Smoke",
       "author": "morhpanel",
