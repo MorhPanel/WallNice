@@ -13,6 +13,21 @@
   ],
   "wallpapers": [
     {
+      "id": "wp_84868be5",
+      "title": "Rem",
+      "author": "morhpanel",
+      "category": "Anime",
+      "subcategory": "Re Zero",
+      "mediaType": "IMAGE",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Re%20Zero/rem_61db474d.jpg",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/Re%20Zero/rem_61db474d.jpg",
+      "resolution": "1440x3200",
+      "isAmoled": false,
+      "likesCount": 0,
+      "collection": "Re Zero",
+      "addedAt": 1795831898
+    },
+    {
       "id": "wp_f6051baa",
       "title": "Ellen Joe",
       "author": "morhpanel",
