@@ -15,10 +15,10 @@ CATALOG_PATH = "catalog.json"
 DLS_DIR = "DLS"
 
 existing_update = {
-    "versionCode": 39,
-    "versionName": "0.0.39-beta",
-    "changelog": "Restored Set Wallpaper dialog with Home, Lock, and Both screens options.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.39-beta/app-release.apk"
+    "versionCode": 40,
+    "versionName": "0.0.40-beta",
+    "changelog": "Added refresh buttons, fixed anime collections dropdown scroll, and sorted wallpapers newest-first.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.40-beta/app-release.apk"
 }
 
 existing_added_at = {}
@@ -38,10 +38,10 @@ if os.path.exists(CATALOG_PATH):
         pass
 
 existing_update.update({
-    "versionCode": 39,
-    "versionName": "0.0.39-beta",
-    "changelog": "Restored Set Wallpaper dialog with Home, Lock, and Both screens options.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.39-beta/app-release.apk"
+    "versionCode": 40,
+    "versionName": "0.0.40-beta",
+    "changelog": "Added refresh buttons, fixed anime collections dropdown scroll, and sorted wallpapers newest-first.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.40-beta/app-release.apk"
 })
 
 categories = set(["All"])
