@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.os.Build
 import com.morhpanel.nekowall.data.models.WallpaperFitMode
 import com.morhpanel.nekowall.data.repository.WallNicePreferences
 import kotlinx.coroutines.Dispatchers
@@ -61,6 +62,23 @@ object WallpaperHelper {
         }
     }
 
+    fun isLiveWallpaperActiveForTarget(context: Context, target: WallpaperTarget): Boolean {
+        return try {
+            val manager = WallpaperManager.getInstance(context)
+            val homeActive = manager.wallpaperInfo?.packageName == context.packageName
+            if (!homeActive) return false
+            if (target == WallpaperTarget.HOME_SCREEN) return true
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                val lockActive = manager.getWallpaperInfo(WallpaperManager.FLAG_LOCK)?.packageName == context.packageName
+                return lockActive
+            }
+            val savedTarget = getSavedTarget(context)
+            savedTarget == target || savedTarget == WallpaperTarget.BOTH
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     fun applyLiveWallpaper(
         context: Context,
         videoUri: String,
@@ -68,8 +86,9 @@ object WallpaperHelper {
         target: WallpaperTarget = WallpaperTarget.BOTH,
         fitMode: WallpaperFitMode = WallNicePreferences.getFitMode(context)
     ): Boolean {
+        val activeForTarget = isLiveWallpaperActiveForTarget(context, target)
         saveLiveWallpaperConfig(context, videoUri, isMuted, target, fitMode)
-        if (isLiveWallpaperActive(context)) {
+        if (activeForTarget) {
             return true
         }
         launchChooserIntent(context, target)

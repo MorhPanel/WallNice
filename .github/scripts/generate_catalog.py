@@ -15,10 +15,10 @@ CATALOG_PATH = "catalog.json"
 DLS_DIR = "DLS"
 
 existing_update = {
-    "versionCode": 38,
-    "versionName": "0.0.38-beta",
-    "changelog": "Fixed video playback in preview, feed cards, and live wallpaper GL surface rendering.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.38-beta/app-release.apk"
+    "versionCode": 39,
+    "versionName": "0.0.39-beta",
+    "changelog": "Restored Set Wallpaper dialog with Home, Lock, and Both screens options.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.39-beta/app-release.apk"
 }
 
 existing_added_at = {}
@@ -38,10 +38,10 @@ if os.path.exists(CATALOG_PATH):
         pass
 
 existing_update.update({
-    "versionCode": 38,
-    "versionName": "0.0.38-beta",
-    "changelog": "Fixed video playback in preview, feed cards, and live wallpaper GL surface rendering.",
-    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.38-beta/app-release.apk"
+    "versionCode": 39,
+    "versionName": "0.0.39-beta",
+    "changelog": "Restored Set Wallpaper dialog with Home, Lock, and Both screens options.",
+    "downloadUrl": "https://github.com/MorhPanel/WallNice/releases/download/v0.0.39-beta/app-release.apk"
 })
 
 categories = set(["All"])

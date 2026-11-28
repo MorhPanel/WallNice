@@ -170,6 +170,7 @@ fun PreviewScreen(
     var showInfoDialog by remember { mutableStateOf(false) }
 
     var isMuted by remember { mutableStateOf(false) }
+    var showApplyDialog by remember { mutableStateOf(false) }
     var isApplying by remember { mutableStateOf(false) }
     var showFullscreenPreview by remember { mutableStateOf(false) }
     var showScanline by remember { mutableStateOf(false) }
@@ -455,10 +456,9 @@ fun PreviewScreen(
                             )
                         )
                 ) {
-                    PreviewDualActionButtons(
+                    PreviewApplyButton(
                         isApplying = isApplying,
-                        onSetAsWallpaper = { applyWallpaperDirect(WallpaperTarget.HOME_SCREEN) },
-                        onSetAsLockScreen = { applyWallpaperDirect(WallpaperTarget.LOCK_SCREEN) }
+                        onClick = { showApplyDialog = true }
                     )
                     WallNiceBottomNavigation(
                         currentTab = currentTab,
@@ -520,6 +520,17 @@ fun PreviewScreen(
                         showFullscreenPreview = true
                     },
                     onDismiss = { showInfoDialog = false }
+                )
+            }
+
+            if (showApplyDialog) {
+                ApplyTargetDialog(
+                    isApplying = isApplying,
+                    onDismiss = { if (!isApplying) showApplyDialog = false },
+                    onTargetSelected = { target ->
+                        showApplyDialog = false
+                        applyWallpaperDirect(target)
+                    }
                 )
             }
         }
@@ -880,55 +891,50 @@ private fun PreviewTopBar(
 }
 
 @Composable
-private fun PreviewDualActionButtons(
+private fun PreviewApplyButton(
     isApplying: Boolean,
-    onSetAsWallpaper: () -> Unit,
-    onSetAsLockScreen: () -> Unit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         Button(
-            onClick = onSetAsWallpaper,
+            onClick = onClick,
             enabled = !isApplying,
             modifier = Modifier
-                .weight(1f)
+                .fillMaxWidth()
                 .height(52.dp),
             shape = RoundedCornerShape(26.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF38363F),
-                contentColor = Color.White
+                containerColor = NeonPink,
+                contentColor = Color.White,
+                disabledContainerColor = NeonPink.copy(alpha = 0.5f),
+                disabledContentColor = Color.White.copy(alpha = 0.7f)
             )
         ) {
-            Text(
-                text = "Set as Wallpaper",
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp
-            )
-        }
-
-        Button(
-            onClick = onSetAsLockScreen,
-            enabled = !isApplying,
-            modifier = Modifier
-                .weight(1f)
-                .height(52.dp),
-            shape = RoundedCornerShape(26.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFE2DFE6),
-                contentColor = Color(0xFF1E1A22)
-            )
-        ) {
-            Text(
-                text = "Set as Lock Screen",
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp
-            )
+            if (isApplying) {
+                CircularProgressIndicator(
+                    color = Color.White,
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(20.dp)
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Wallpaper,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "Set Wallpaper",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp
+                )
+            }
         }
     }
 }
