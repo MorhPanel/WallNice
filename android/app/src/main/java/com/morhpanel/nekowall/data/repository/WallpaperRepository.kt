@@ -125,10 +125,11 @@ object WallpaperRepository {
             }
         }
 
+        val sortedWallpapers = wallpapersList.sortedByDescending { it.addedAtEpochSeconds }
         val response = CatalogResponse(
             updateInfo = appUpdate,
             categories = categoriesList,
-            wallpapers = wallpapersList.reversed()
+            wallpapers = sortedWallpapers
         )
         cachedCatalog = response
         return response

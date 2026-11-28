@@ -67,7 +67,6 @@ for root, _, files in os.walk(DLS_DIR):
         folder = parts[0].lower() if len(parts) > 0 else ""
         ext = os.path.splitext(file)[1].lower()
 
-        is_amoled = False
         resolution = "1440x3200"
         subcategory = ""
 
@@ -86,6 +85,8 @@ for root, _, files in os.walk(DLS_DIR):
             categories.add(category)
         else:
             category = "All"
+
+        is_amoled = category.lower() in {"amoled", "amoled 4k"}
 
         if ext in valid_vid or folder == "video":
             media_type = "VIDEO"
@@ -106,12 +107,6 @@ for root, _, files in os.walk(DLS_DIR):
                 try:
                     with Image.open(full_path) as im:
                         resolution = f"{im.width}x{im.height}"
-                        colors = im.getcolors(maxcolors=1000000)
-                        if colors:
-                            total_pixels = im.width * im.height
-                            black_pixels = sum(count for count, col in colors if max(col[:3]) < 10)
-                            if (black_pixels / total_pixels) > 0.4:
-                                is_amoled = True
                 except Exception:
                     pass
         else:
@@ -162,6 +157,8 @@ for root, _, files in os.walk(DLS_DIR):
             "collection": subcategory or category,
             "addedAt": added_at
         })
+
+wallpapers.sort(key=lambda item: item.get("addedAt", 0), reverse=True)
 
 output_data = {
     "appUpdate": existing_update,

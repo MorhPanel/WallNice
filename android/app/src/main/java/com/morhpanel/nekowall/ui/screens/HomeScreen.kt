@@ -26,16 +26,20 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.items as lazyItems
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items as lazyItemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -80,6 +84,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -127,6 +132,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+
+private fun isAmoledCategory(item: WallpaperItem): Boolean {
+    val cat = item.category
+    return cat.equals("AMOLED 4K", ignoreCase = true) ||
+        cat.equals("AMOLED", ignoreCase = true) ||
+        android.net.Uri.decode(item.url).contains("/AMOLED/", ignoreCase = true)
+}
 
 private enum class CatalogContentState {
     LOADING,
@@ -385,8 +397,8 @@ fun HomeScreen(
         }?.item?.let { it.thumbnailUrl.ifBlank { it.url } } ?: ""
         if (gymCount > 0) list.add(CategoryItem("Gym", gymCount, gymThumb))
 
-        val amoledCount = searchableWallpapers.count { it.item.isAmoled }
-        val amoledThumb = searchableWallpapers.firstOrNull { it.item.isAmoled }?.item?.let { it.thumbnailUrl.ifBlank { it.url } } ?: ""
+        val amoledCount = searchableWallpapers.count { isAmoledCategory(it.item) }
+        val amoledThumb = searchableWallpapers.firstOrNull { isAmoledCategory(it.item) }?.item?.let { it.thumbnailUrl.ifBlank { it.url } } ?: ""
         if (amoledCount > 0) list.add(CategoryItem("AMOLED 4K", amoledCount, amoledThumb))
 
         val videoCount = searchableWallpapers.count { it.item.mediaType == MediaType.VIDEO }
@@ -434,7 +446,7 @@ fun HomeScreen(
                     }
                 }
                 "Gym" -> item.category.equals("Gym", ignoreCase = true) || decodedUrl.contains("/Gym/", ignoreCase = true)
-                "AMOLED 4K" -> item.isAmoled
+                "AMOLED 4K" -> isAmoledCategory(item)
                 "Live Video" -> item.mediaType == MediaType.VIDEO
                 "GIF Loops" -> item.mediaType == MediaType.GIF
                 else -> item.category.equals(targetCategory, ignoreCase = true) || decodedUrl.contains(targetCategory, ignoreCase = true)
@@ -1000,7 +1012,12 @@ private fun AnimeSubcategoryDropdown(
 
             Spacer(Modifier.height(WallNiceSpacing.xs))
 
-            subcategories.forEach { subcategory ->
+            val maxListHeight = (LocalConfiguration.current.screenHeightDp.dp * 0.48f).coerceIn(220.dp, 420.dp)
+
+            LazyColumn(
+                modifier = Modifier.heightIn(max = maxListHeight)
+            ) {
+                lazyItems(subcategories) { subcategory ->
                 val isSelected = subcategory in selectedSubcategories
                 val count = subcategoryCounts[subcategory] ?: 0
 
@@ -1050,6 +1067,7 @@ private fun AnimeSubcategoryDropdown(
                         )
                     }
                 }
+            }
             }
         }
     }
