@@ -13,6 +13,21 @@
   ],
   "wallpapers": [
     {
+      "id": "wp_366acc89",
+      "title": "Miku Nakano",
+      "author": "morhpanel",
+      "category": "Anime",
+      "subcategory": "The Quintessential Quintuplets",
+      "mediaType": "IMAGE",
+      "url": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/The%20Quintessential%20Quintuplets/miku_nakano_95a680f6.jpg",
+      "thumbnailUrl": "https://raw.githubusercontent.com/MorhPanel/WallNice/main/DLS/img/Anime/The%20Quintessential%20Quintuplets/miku_nakano_95a680f6.jpg",
+      "resolution": "1440x3200",
+      "isAmoled": false,
+      "likesCount": 0,
+      "collection": "The Quintessential Quintuplets",
+      "addedAt": 1795832366
+    },
+    {
       "id": "wp_1d07274e",
       "title": "Itsuki Nakano",
       "author": "morhpanel",
